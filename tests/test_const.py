@@ -25,7 +25,7 @@ def test_status_values_count() -> None:
 def test_supported_operators_excludes_equality() -> None:
     assert "==" not in const.SUPPORTED_OPERATORS
     assert "!=" not in const.SUPPORTED_OPERATORS
-    assert set(const.SUPPORTED_OPERATORS) == {"<", "<=", ">", ">="}
+    assert set(const.SUPPORTED_OPERATORS) == {"lt", "lte", "gt", "gte"}
 
 
 def test_entry_types() -> None:

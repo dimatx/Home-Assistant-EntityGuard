@@ -267,10 +267,10 @@
     },
     "operator": {
       "options": {
-        "<": "Less than (<)",
-        "<=": "Less than or equal (<=)",
-        ">": "Greater than (>)",
-        ">=": "Greater than or equal (>=)"
+        "lt": "Less than (<)",
+        "lte": "Less than or equal (<=)",
+        "gt": "Greater than (>)",
+        "gte": "Greater than or equal (>=)"
       }
     },
     "flag_action": {

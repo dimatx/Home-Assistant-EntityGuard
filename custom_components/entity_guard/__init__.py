@@ -12,6 +12,7 @@ from homeassistant.components.lovelace.resources import ResourceStorageCollectio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_ENTRY_TYPE,
@@ -23,6 +24,8 @@ from .models import parse_rule_config
 from .rule_engine import RuleEngine, signal_for_rule, signal_master_update
 from .services import async_register_services
 from .storage import EntityGuardStore
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 __all__ = ["signal_for_rule", "signal_master_update"]
 

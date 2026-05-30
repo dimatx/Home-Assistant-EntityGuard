@@ -48,10 +48,10 @@ SUPPORTED_ATTRIBUTES = [
 ]
 
 # Operators (no ==/!= due to float precision concerns)
-OPERATOR_LT = "<"
-OPERATOR_LE = "<="
-OPERATOR_GT = ">"
-OPERATOR_GE = ">="
+OPERATOR_LT = "lt"
+OPERATOR_LE = "lte"
+OPERATOR_GT = "gt"
+OPERATOR_GE = "gte"
 
 SUPPORTED_OPERATORS = [OPERATOR_LT, OPERATOR_LE, OPERATOR_GT, OPERATOR_GE]
 
