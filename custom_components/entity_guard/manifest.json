@@ -1,0 +1,15 @@
+{
+    "domain": "entity_guard",
+    "name": "Entity Guard",
+    "after_dependencies": ["http", "lovelace"],
+    "codeowners": ["@italo-lombardi"],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/italo-lombardi/Home-Assistant-EntityGuard",
+    "integration_type": "service",
+    "iot_class": "calculated",
+    "issue_tracker": "https://github.com/italo-lombardi/Home-Assistant-EntityGuard/issues",
+    "quality_scale": "custom",
+    "requirements": [],
+    "version": "0.0.1"
+}

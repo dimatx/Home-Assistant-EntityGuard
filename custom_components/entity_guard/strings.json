@@ -1,0 +1,15 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Entity Guard",
+        "description": "Choose what to set up.",
+        "menu_options": {
+          "rule": "New rule",
+          "hub": "Set up Entity Guard hub"
+        }
+      }
+    }
+  }
+}
