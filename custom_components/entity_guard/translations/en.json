@@ -9,7 +9,307 @@
           "rule": "New rule",
           "hub": "Set up Entity Guard hub"
         }
+      },
+      "hub": {
+        "title": "Set up Entity Guard hub",
+        "description": "The hub owns the global master switch (switch.entity_guard_master_enabled). Only one hub instance is allowed."
+      },
+      "rule": {
+        "title": "New rule — basics",
+        "description": "Name the rule, pick the target entities to enforce against, and choose the rule mode.",
+        "data": {
+          "rule_name": "Rule name",
+          "target_entities": "Target entities",
+          "mode": "Rule mode"
+        },
+        "data_description": {
+          "rule_name": "Display name shown in the UI. Must be unique.",
+          "target_entities": "One or more entities this rule will enforce.",
+          "mode": "State mode forces a specific state. Attribute mode clamps a numeric attribute."
+        }
+      },
+      "state": {
+        "title": "State mode",
+        "description": "When the entity is in any of the trigger states, force it to the target state after the delay.",
+        "data": {
+          "trigger_states": "Trigger states",
+          "target_state": "Target state",
+          "delay_seconds": "Delay (seconds)"
+        },
+        "data_description": {
+          "trigger_states": "List of states that arm enforcement (e.g. on, open, unlocked). Type to add custom values.",
+          "target_state": "State the entity will be forced to (e.g. off, closed, locked).",
+          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate."
+        }
+      },
+      "attribute": {
+        "title": "Attribute mode",
+        "description": "When the attribute crosses the threshold, clamp it to the target value after the delay.",
+        "data": {
+          "attribute": "Attribute",
+          "operator": "Operator",
+          "threshold": "Threshold",
+          "target_value": "Target value",
+          "delay_seconds": "Delay (seconds)"
+        },
+        "data_description": {
+          "attribute": "Attribute to monitor.",
+          "operator": "Comparison operator. Equality is intentionally not supported (float precision).",
+          "threshold": "Numeric value compared against the live attribute.",
+          "target_value": "Value to set the attribute to when the rule fires.",
+          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate."
+        }
+      },
+      "flags": {
+        "title": "Flag conditions",
+        "description": "Optional gating conditions (AND'd). The rule only enforces when every flag matches. Currently {count} flag(s): {summary}. Leave both fields blank and uncheck \"add another\" to finish.",
+        "data": {
+          "entity": "Flag entity",
+          "match_state": "Required state",
+          "add_another": "Add another flag after this one"
+        },
+        "data_description": {
+          "entity": "Entity whose state must match for the rule to be armed.",
+          "match_state": "Exact state value the flag entity must be in (e.g. on, home, true).",
+          "add_another": "Check to keep adding flags. Uncheck to continue."
+        }
+      },
+      "advanced": {
+        "title": "Advanced",
+        "description": "Debounce smooths flapping triggers. Rate limit auto-suppresses runaway loops.",
+        "data": {
+          "debounce_enabled": "Enable debounce",
+          "debounce_seconds": "Debounce window (seconds)",
+          "max_enforcements_per_minute": "Max enforcements per minute"
+        },
+        "data_description": {
+          "debounce_enabled": "Coalesce rapid trigger changes within the debounce window.",
+          "debounce_seconds": "Window in seconds. Only used when debounce is enabled.",
+          "max_enforcements_per_minute": "Exceeding this rate auto-suppresses the rule for 15 minutes and fires entity_guard_loop_detected."
+        }
+      },
+      "safety": {
+        "title": "Safety acknowledgment",
+        "description": "This rule targets safety-sensitive entities ({entities}). You must explicitly acknowledge the risk to continue.",
+        "data": {
+          "safety_acknowledged": "I understand this rule will move physical hardware and accept the risk."
+        }
+      },
+      "preview": {
+        "title": "Review and save",
+        "description": "{summary}",
+        "data": {
+          "confirm": "Create this rule"
+        }
       }
+    },
+    "error": {
+      "empty_rule_name": "Rule name cannot be empty.",
+      "empty_target_entities": "Pick at least one target entity.",
+      "empty_trigger_states": "Provide at least one trigger state.",
+      "empty_target_state": "Target state cannot be empty.",
+      "invalid_threshold": "Threshold and target value must be numeric.",
+      "incomplete_flag": "Both flag entity and required state must be set.",
+      "safety_not_acknowledged": "You must acknowledge the safety risk to continue."
+    },
+    "abort": {
+      "single_instance_allowed": "Only one Entity Guard hub can be configured.",
+      "name_already_exists": "A rule with this name already exists.",
+      "already_configured": "This rule is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit rule",
+        "description": "Pick what to change.",
+        "menu_options": {
+          "edit_basics": "Edit name",
+          "edit_mode": "Edit mode-specific settings",
+          "edit_entities": "Add or remove target entities",
+          "edit_flags": "Edit flag conditions",
+          "edit_advanced": "Edit debounce and rate limit"
+        }
+      },
+      "edit_basics": {
+        "title": "Edit name",
+        "data": {"rule_name": "Rule name"}
+      },
+      "edit_entities": {
+        "title": "Edit target entities",
+        "data": {"target_entities": "Target entities"}
+      },
+      "edit_safety": {
+        "title": "Safety acknowledgment",
+        "description": "New safety-sensitive entities were added. Re-acknowledge to save.",
+        "data": {
+          "safety_acknowledged": "I understand this rule will move physical hardware and accept the risk."
+        }
+      },
+      "edit_state": {
+        "title": "Edit state mode",
+        "data": {
+          "trigger_states": "Trigger states",
+          "target_state": "Target state",
+          "delay_seconds": "Delay (seconds)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Edit attribute mode",
+        "data": {
+          "attribute": "Attribute",
+          "operator": "Operator",
+          "threshold": "Threshold",
+          "target_value": "Target value",
+          "delay_seconds": "Delay (seconds)"
+        }
+      },
+      "edit_flags": {
+        "title": "Edit flag conditions",
+        "description": "Current flags: {summary}. Choose 'add' to append, 'clear' to remove all, or 'save' to leave unchanged.",
+        "data": {
+          "entity": "Flag entity",
+          "match_state": "Required state",
+          "action": "Action"
+        }
+      },
+      "edit_advanced": {
+        "title": "Edit advanced settings",
+        "data": {
+          "debounce_enabled": "Enable debounce",
+          "debounce_seconds": "Debounce window (seconds)",
+          "max_enforcements_per_minute": "Max enforcements per minute"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Rule name cannot be empty.",
+      "empty_target_entities": "Pick at least one target entity.",
+      "empty_trigger_states": "Provide at least one trigger state.",
+      "empty_target_state": "Target state cannot be empty.",
+      "invalid_threshold": "Threshold and target value must be numeric.",
+      "incomplete_flag": "Both flag entity and required state must be set.",
+      "safety_not_acknowledged": "You must acknowledge the safety risk to continue."
+    },
+    "abort": {
+      "name_already_exists": "A rule with this name already exists.",
+      "hub_no_options": "The Entity Guard hub has no editable options."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Suppress rule",
+      "description": "Temporarily suppress an Entity Guard rule. The rule auto-resumes after the duration.",
+      "fields": {
+        "rule_id": {
+          "name": "Rule",
+          "description": "Rule UUID or rule name (config entry title)."
+        },
+        "duration_minutes": {
+          "name": "Duration (minutes)",
+          "description": "How long to suppress the rule (1-1440 minutes)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Unsuppress rule",
+      "description": "Resume a suppressed Entity Guard rule immediately.",
+      "fields": {
+        "rule_id": {
+          "name": "Rule",
+          "description": "Rule UUID or rule name (config entry title)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "List rules",
+      "description": "Return the configuration and current status of every Entity Guard rule."
+    },
+    "clear_history": {
+      "name": "Clear rule history",
+      "description": "Clear stored enforcement history (counts, last enforced, cooldowns) for a rule.",
+      "fields": {
+        "rule_id": {
+          "name": "Rule",
+          "description": "Rule UUID or rule name (config entry title)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Panic stop",
+      "description": "Emergency kill — disable every rule, clear all cooldowns, suppress for 60 minutes, and turn off the hub master switch."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Disabled",
+        "suppressed": "Suppressed",
+        "enforcing": "Enforcing",
+        "cooldown": "Cooldown",
+        "armed": "Armed",
+        "idle": "Idle"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "State",
+        "attribute": "Attribute"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Brightness",
+        "volume_level": "Volume level",
+        "temperature": "Temperature",
+        "percentage": "Percentage"
+      }
+    },
+    "operator": {
+      "options": {
+        "<": "Less than (<)",
+        "<=": "Less than or equal (<=)",
+        ">": "Greater than (>)",
+        ">=": "Greater than or equal (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Save without changes",
+        "add": "Add flag",
+        "clear": "Clear all flags"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Armed"},
+      "active": {"name": "Active"},
+      "in_cooldown": {"name": "In cooldown"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Last enforced"},
+      "enforcement_count_today": {"name": "Enforcements today"},
+      "enforcement_count_total": {"name": "Enforcements total"},
+      "cooldown_remaining": {"name": "Cooldown remaining"},
+      "blocked_entities": {"name": "Blocked entities"},
+      "safety_status": {"name": "Safety status"},
+      "suppressed_until": {"name": "Suppressed until"}
+    },
+    "switch": {
+      "enabled": {"name": "Enabled"},
+      "debounce_enabled": {"name": "Debounce enabled"},
+      "master_enabled": {"name": "Master enabled"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Delay (seconds)"},
+      "debounce_seconds": {"name": "Debounce (seconds)"},
+      "max_enforcements_per_minute": {"name": "Max enforcements per minute"}
+    },
+    "button": {
+      "reset": {"name": "Reset cooldowns"},
+      "test_enforce": {"name": "Test enforce"}
     }
   }
 }

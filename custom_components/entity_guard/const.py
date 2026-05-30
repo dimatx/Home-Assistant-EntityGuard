@@ -27,6 +27,7 @@ CONF_DEBOUNCE_ENABLED = "debounce_enabled"
 CONF_DEBOUNCE_SECONDS = "debounce_seconds"
 CONF_MAX_ENFORCEMENTS_PER_MINUTE = "max_enforcements_per_minute"
 CONF_SAFETY_ACKNOWLEDGED = "safety_acknowledged"
+CONF_DURATION_MINUTES = "duration_minutes"
 
 # Modes
 MODE_STATE = "state"

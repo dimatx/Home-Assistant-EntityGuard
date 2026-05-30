@@ -1,0 +1,50 @@
+suppress:
+  name: Suppress rule
+  description: Temporarily suppress an Entity Guard rule. The rule auto-resumes after the duration.
+  fields:
+    rule_id:
+      name: Rule
+      description: Rule UUID or rule name (config entry title).
+      required: true
+      selector:
+        text:
+    duration_minutes:
+      name: Duration (minutes)
+      description: How long to suppress the rule (1-1440 minutes).
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 1440
+          step: 1
+          unit_of_measurement: min
+
+unsuppress:
+  name: Unsuppress rule
+  description: Resume a suppressed Entity Guard rule immediately.
+  fields:
+    rule_id:
+      name: Rule
+      description: Rule UUID or rule name (config entry title).
+      required: true
+      selector:
+        text:
+
+list_rules:
+  name: List rules
+  description: Return the configuration and current status of every Entity Guard rule.
+
+clear_history:
+  name: Clear rule history
+  description: Clear stored enforcement history (counts, last enforced, cooldowns) for a rule.
+  fields:
+    rule_id:
+      name: Rule
+      description: Rule UUID or rule name (config entry title).
+      required: true
+      selector:
+        text:
+
+panic_stop:
+  name: Panic stop
+  description: Emergency kill — disable every rule, clear all cooldowns, suppress for 60 minutes, and turn off the hub master switch.

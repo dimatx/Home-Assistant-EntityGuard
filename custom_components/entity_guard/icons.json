@@ -1,0 +1,71 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "armed": {
+        "default": "mdi:shield-check"
+      },
+      "active": {
+        "default": "mdi:shield-alert"
+      },
+      "in_cooldown": {
+        "default": "mdi:timer-sand"
+      }
+    },
+    "sensor": {
+      "status": {
+        "default": "mdi:shield"
+      },
+      "last_enforced": {
+        "default": "mdi:clock-check-outline"
+      },
+      "enforcement_count_today": {
+        "default": "mdi:counter"
+      },
+      "enforcement_count_total": {
+        "default": "mdi:counter"
+      },
+      "cooldown_remaining": {
+        "default": "mdi:timer-sand"
+      },
+      "blocked_entities": {
+        "default": "mdi:cancel"
+      },
+      "safety_status": {
+        "default": "mdi:shield-half-full"
+      },
+      "suppressed_until": {
+        "default": "mdi:pause-circle-outline"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "default": "mdi:shield-check"
+      },
+      "debounce_enabled": {
+        "default": "mdi:timer-cog-outline"
+      },
+      "master_enabled": {
+        "default": "mdi:shield-account"
+      }
+    },
+    "number": {
+      "delay_seconds": {
+        "default": "mdi:timer-outline"
+      },
+      "debounce_seconds": {
+        "default": "mdi:timer-cog-outline"
+      },
+      "max_enforcements_per_minute": {
+        "default": "mdi:gauge"
+      }
+    },
+    "button": {
+      "reset": {
+        "default": "mdi:restart"
+      },
+      "test_enforce": {
+        "default": "mdi:test-tube"
+      }
+    }
+  }
+}
