@@ -1,4 +1,5 @@
 """Tests for Entity Guard integration setup and unload."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch

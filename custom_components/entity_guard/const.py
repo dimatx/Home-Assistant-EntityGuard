@@ -1,4 +1,5 @@
 """Constants for the Entity Guard integration."""
+
 from __future__ import annotations
 
 DOMAIN = "entity_guard"
@@ -99,22 +100,22 @@ STATUS_VALUES = [
 
 # Domain service map for state mode enforcement
 DOMAIN_SERVICE_MAP: dict[str, dict[str, str]] = {
-    "light":         {"on": "light.turn_on",          "off": "light.turn_off"},
-    "switch":        {"on": "switch.turn_on",         "off": "switch.turn_off"},
-    "lock":          {"locked": "lock.lock",          "unlocked": "lock.unlock"},
-    "cover":         {"open": "cover.open_cover",     "closed": "cover.close_cover"},
-    "media_player":  {"on": "media_player.turn_on",   "off": "media_player.turn_off"},
-    "climate":       {"on": "climate.turn_on",        "off": "climate.turn_off"},
-    "fan":           {"on": "fan.turn_on",            "off": "fan.turn_off"},
-    "input_boolean": {"on": "input_boolean.turn_on",  "off": "input_boolean.turn_off"},
+    "light": {"on": "light.turn_on", "off": "light.turn_off"},
+    "switch": {"on": "switch.turn_on", "off": "switch.turn_off"},
+    "lock": {"locked": "lock.lock", "unlocked": "lock.unlock"},
+    "cover": {"open": "cover.open_cover", "closed": "cover.close_cover"},
+    "media_player": {"on": "media_player.turn_on", "off": "media_player.turn_off"},
+    "climate": {"on": "climate.turn_on", "off": "climate.turn_off"},
+    "fan": {"on": "fan.turn_on", "off": "fan.turn_off"},
+    "input_boolean": {"on": "input_boolean.turn_on", "off": "input_boolean.turn_off"},
 }
 
 # Attribute clamp service map
 ATTRIBUTE_SERVICE_MAP: dict[str, tuple[str, str]] = {
-    ATTR_BRIGHTNESS:   ("light.turn_on",            "brightness"),
-    ATTR_VOLUME_LEVEL: ("media_player.volume_set",  "volume_level"),
-    ATTR_TEMPERATURE:  ("climate.set_temperature",  "temperature"),
-    ATTR_PERCENTAGE:   ("fan.set_percentage",       "percentage"),
+    ATTR_BRIGHTNESS: ("light.turn_on", "brightness"),
+    ATTR_VOLUME_LEVEL: ("media_player.volume_set", "volume_level"),
+    ATTR_TEMPERATURE: ("climate.set_temperature", "temperature"),
+    ATTR_PERCENTAGE: ("fan.set_percentage", "percentage"),
 }
 
 # Events

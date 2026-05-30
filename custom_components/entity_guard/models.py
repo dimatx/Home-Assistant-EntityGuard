@@ -1,4 +1,5 @@
 """Data models for the Entity Guard integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -118,7 +119,9 @@ def parse_rule_config(entry: ConfigEntry) -> RuleConfig:
         debounce_enabled=bool(raw.get(CONF_DEBOUNCE_ENABLED, DEFAULT_DEBOUNCE_ENABLED)),
         debounce_seconds=int(raw.get(CONF_DEBOUNCE_SECONDS, DEFAULT_DEBOUNCE_SECONDS)),
         max_enforcements_per_minute=int(
-            raw.get(CONF_MAX_ENFORCEMENTS_PER_MINUTE, DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE)
+            raw.get(
+                CONF_MAX_ENFORCEMENTS_PER_MINUTE, DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE
+            )
         ),
         safety_acknowledged=bool(raw.get(CONF_SAFETY_ACKNOWLEDGED, False)),
     )

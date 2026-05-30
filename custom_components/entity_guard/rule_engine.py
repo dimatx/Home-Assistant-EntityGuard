@@ -1,7 +1,7 @@
 """Per-rule runtime engine for the Entity Guard integration."""
+
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Callable
@@ -250,7 +250,11 @@ class RuleEngine:
             threshold = self._config.threshold
             if attr is None or op is None or threshold is None:
                 return False
-            value = new_state.attributes.get(attr) if hasattr(new_state, "attributes") else None
+            value = (
+                new_state.attributes.get(attr)
+                if hasattr(new_state, "attributes")
+                else None
+            )
             try:
                 value_f = float(value)
             except (TypeError, ValueError):
@@ -308,7 +312,10 @@ class RuleEngine:
         self._state.rate_limit_window = [
             t for t in self._state.rate_limit_window if t > cutoff
         ]
-        if len(self._state.rate_limit_window) >= self._config.max_enforcements_per_minute:
+        if (
+            len(self._state.rate_limit_window)
+            >= self._config.max_enforcements_per_minute
+        ):
             await self._trigger_loop_protection(entity_id)
             return
 
@@ -397,7 +404,9 @@ class RuleEngine:
 
     async def _trigger_loop_protection(self, entity_id: str) -> None:
         """Auto-suppress on rate-limit breach and notify the user."""
-        suppress_until = dt_util.now() + timedelta(minutes=DEFAULT_LOOP_SUPPRESS_MINUTES)
+        suppress_until = dt_util.now() + timedelta(
+            minutes=DEFAULT_LOOP_SUPPRESS_MINUTES
+        )
         self._state.suppressed_until = suppress_until
         self._persist()
 

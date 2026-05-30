@@ -1,4 +1,5 @@
 """Number platform for Entity Guard."""
+
 from __future__ import annotations
 
 import logging

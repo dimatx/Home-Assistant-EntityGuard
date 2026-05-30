@@ -1,4 +1,5 @@
 """Entity Guard integration."""
+
 from __future__ import annotations
 
 import json
@@ -148,9 +149,7 @@ async def _async_install_card(hass: HomeAssistant) -> None:
     hass.data[DOMAIN][_CARD_INSTALLED_KEY] = True
 
 
-async def _async_register_lovelace_resource(
-    hass: HomeAssistant, version: str
-) -> None:
+async def _async_register_lovelace_resource(hass: HomeAssistant, version: str) -> None:
     """Register card as Lovelace resource (best-effort)."""
     resource_url = f"{CARD_URL}?automatically-added&{version}"
 
@@ -168,9 +167,7 @@ async def _async_register_lovelace_resource(
         await resources.async_load()
         resources.loaded = True
 
-    existing = [
-        r for r in resources.async_items() if CARD_FILENAME in r.get("url", "")
-    ]
+    existing = [r for r in resources.async_items() if CARD_FILENAME in r.get("url", "")]
 
     if not existing:
         if getattr(resources, "async_create_item", None):

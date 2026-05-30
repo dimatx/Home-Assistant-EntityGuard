@@ -1,4 +1,5 @@
 """Sanity tests for const module."""
+
 from __future__ import annotations
 
 from custom_components.entity_guard import const

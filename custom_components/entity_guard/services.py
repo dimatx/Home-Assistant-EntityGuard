@@ -1,4 +1,5 @@
 """Services for Entity Guard."""
+
 from __future__ import annotations
 
 import logging
@@ -64,9 +65,7 @@ def _resolve_engine(hass: HomeAssistant, rule_id: str) -> Any:
         config = engine.config
         if config.unique_id == rule_id or config.name == rule_id:
             return engine
-    raise ServiceValidationError(
-        f"No Entity Guard rule found matching '{rule_id}'"
-    )
+    raise ServiceValidationError(f"No Entity Guard rule found matching '{rule_id}'")
 
 
 async def async_register_services(hass: HomeAssistant) -> None:

@@ -1,4 +1,5 @@
 """Persistent storage for the Entity Guard integration."""
+
 from __future__ import annotations
 
 import logging
@@ -144,7 +145,9 @@ class EntityGuardStore:
     def runtime_to_blob(state: RuleRuntimeState) -> dict[str, Any]:
         """Serialize a RuleRuntimeState to a JSON-friendly blob."""
         return {
-            "cooldowns": {eid: _serialize_dt(ts) for eid, ts in state.cooldowns.items()},
+            "cooldowns": {
+                eid: _serialize_dt(ts) for eid, ts in state.cooldowns.items()
+            },
             "enforcement_count_today": state.enforcement_count_today,
             "enforcement_count_total": state.enforcement_count_total,
             "last_enforced": _serialize_dt(state.last_enforced),
@@ -152,7 +155,9 @@ class EntityGuardStore:
             "today_reset_date": (
                 state.today_reset_date.isoformat() if state.today_reset_date else None
             ),
-            "rate_limit_window": [_serialize_dt(t) for t in state.rate_limit_window if t],
+            "rate_limit_window": [
+                _serialize_dt(t) for t in state.rate_limit_window if t
+            ],
         }
 
     @staticmethod

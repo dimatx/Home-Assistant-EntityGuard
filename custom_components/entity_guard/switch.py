@@ -1,4 +1,5 @@
 """Switch platform for Entity Guard."""
+
 from __future__ import annotations
 
 import logging
@@ -158,9 +159,7 @@ class EntityGuardEnabledSwitch(EntityGuardRuleSwitchBase):
             await setter(value)
         else:
             self._engine.enabled = value  # type: ignore[attr-defined]
-            async_dispatcher_send(
-                self.hass, _signal_for_rule(self._entry.entry_id)
-            )
+            async_dispatcher_send(self.hass, _signal_for_rule(self._entry.entry_id))
         self.async_write_ha_state()
 
 
@@ -175,9 +174,7 @@ class EntityGuardDebounceEnabledSwitch(EntityGuardRuleSwitchBase):
     def is_on(self) -> bool:
         """Return True if debounce is enabled."""
         config = getattr(self._engine, "config", None)
-        return bool(
-            getattr(config, "debounce_enabled", DEFAULT_DEBOUNCE_ENABLED)
-        )
+        return bool(getattr(config, "debounce_enabled", DEFAULT_DEBOUNCE_ENABLED))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable debounce."""
@@ -227,9 +224,7 @@ class EntityGuardMasterEnabledSwitch(SwitchEntity):
     async def async_added_to_hass(self) -> None:
         """Subscribe to master dispatcher updates."""
         self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, _signal_master(), self._handle_update
-            )
+            async_dispatcher_connect(self.hass, _signal_master(), self._handle_update)
         )
 
     @callback

@@ -1,4 +1,5 @@
 """Tests for Entity Guard config flow (skeleton)."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,9 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.entity_guard.const import (
-    CONF_ENTRY_TYPE,
     DOMAIN,
-    ENTRY_TYPE_HUB,
 )
 
 
@@ -38,6 +37,8 @@ async def test_hub_single_instance_aborts(hass: HomeAssistant, hub_entry) -> Non
     assert result["reason"] == "single_instance_allowed"
 
 
-@pytest.mark.skip(reason="pending integration: end-to-end rule flow exercises rule_engine")
+@pytest.mark.skip(
+    reason="pending integration: end-to-end rule flow exercises rule_engine"
+)
 async def test_create_state_rule_end_to_end(hass: HomeAssistant) -> None:
     """End-to-end: create a state-mode rule via the multi-step flow."""

@@ -91,9 +91,7 @@ def _build_summary(data: dict[str, Any]) -> str:
     mode = data.get(CONF_MODE)
     lines.append(f"Mode: {mode}")
     if mode == MODE_STATE:
-        lines.append(
-            f"Trigger states: {', '.join(data.get(CONF_TRIGGER_STATES, []))}"
-        )
+        lines.append(f"Trigger states: {', '.join(data.get(CONF_TRIGGER_STATES, []))}")
         lines.append(f"Target state: {data.get(CONF_TARGET_STATE, '')}")
     elif mode == MODE_ATTRIBUTE:
         lines.append(
@@ -112,9 +110,7 @@ def _build_summary(data: dict[str, Any]) -> str:
         lines.append(f"Debounce: {data.get(CONF_DEBOUNCE_SECONDS)}s")
     else:
         lines.append("Debounce: disabled")
-    lines.append(
-        f"Rate limit: {data.get(CONF_MAX_ENFORCEMENTS_PER_MINUTE)} per minute"
-    )
+    lines.append(f"Rate limit: {data.get(CONF_MAX_ENFORCEMENTS_PER_MINUTE)} per minute")
     if data.get(CONF_SAFETY_ACKNOWLEDGED):
         lines.append("Safety acknowledged: yes")
     return "\n".join(lines)
@@ -158,9 +154,7 @@ def _rate_selector() -> selector.NumberSelector:
 def _number_selector() -> selector.NumberSelector:
     # Threshold/target_value: unbounded numeric input — engine clamps domain-specifically.
     return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            mode=selector.NumberSelectorMode.BOX, step="any"
-        )
+        selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX, step="any")
     )
 
 
@@ -226,9 +220,7 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if not name:
                 errors[CONF_RULE_NAME] = "empty_rule_name"
-            elif _rule_name_taken(
-                self.hass.config_entries.async_entries(DOMAIN), name
-            ):
+            elif _rule_name_taken(self.hass.config_entries.async_entries(DOMAIN), name):
                 return self.async_abort(reason="name_already_exists")
             elif not entities:
                 errors[CONF_TARGET_ENTITIES] = "empty_target_entities"
@@ -266,9 +258,7 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             }
         )
-        return self.async_show_form(
-            step_id="rule", data_schema=schema, errors=errors
-        )
+        return self.async_show_form(step_id="rule", data_schema=schema, errors=errors)
 
     # ------------------------------------------------------------------ State mode
 
@@ -304,9 +294,7 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 ): _delay_selector(),
             }
         )
-        return self.async_show_form(
-            step_id="state", data_schema=schema, errors=errors
-        )
+        return self.async_show_form(step_id="state", data_schema=schema, errors=errors)
 
     # ------------------------------------------------------------------ Attribute mode
 
@@ -608,9 +596,8 @@ class EntityGuardOptionsFlow(OptionsFlow):
             else:
                 self._working[CONF_TARGET_ENTITIES] = entities
                 # New safety domain present? Force re-ack if not already given.
-                if (
-                    _has_safety_target(entities)
-                    and not self._working.get(CONF_SAFETY_ACKNOWLEDGED, False)
+                if _has_safety_target(entities) and not self._working.get(
+                    CONF_SAFETY_ACKNOWLEDGED, False
                 ):
                     return await self.async_step_edit_safety()
                 return self._save()
@@ -678,9 +665,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
             else:
                 self._working[CONF_TRIGGER_STATES] = triggers
                 self._working[CONF_TARGET_STATE] = target
-                self._working[CONF_DELAY_SECONDS] = int(
-                    user_input[CONF_DELAY_SECONDS]
-                )
+                self._working[CONF_DELAY_SECONDS] = int(user_input[CONF_DELAY_SECONDS])
                 return self._save()
 
         schema = vol.Schema(
@@ -724,9 +709,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
                 self._working[CONF_OPERATOR] = user_input[CONF_OPERATOR]
                 self._working[CONF_THRESHOLD] = threshold
                 self._working[CONF_TARGET_VALUE] = target_value
-                self._working[CONF_DELAY_SECONDS] = int(
-                    user_input[CONF_DELAY_SECONDS]
-                )
+                self._working[CONF_DELAY_SECONDS] = int(user_input[CONF_DELAY_SECONDS])
                 return self._save()
 
         schema = vol.Schema(
@@ -813,9 +796,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
                     selector.EntitySelectorConfig()
                 ),
                 vol.Optional(CONF_FLAG_MATCH_STATE, default=""): str,
-                vol.Required(
-                    "action", default="save"
-                ): selector.SelectSelector(
+                vol.Required("action", default="save"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=["save", "add", "clear"],
                         translation_key="flag_action",

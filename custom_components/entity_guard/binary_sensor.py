@@ -1,4 +1,5 @@
 """Binary sensor platform for Entity Guard."""
+
 from __future__ import annotations
 
 import logging
@@ -99,9 +100,7 @@ class EntityGuardBinarySensor(BinarySensorEntity):
             )
         )
         self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, _signal_master(), self._handle_update
-            )
+            async_dispatcher_connect(self.hass, _signal_master(), self._handle_update)
         )
 
     @callback
