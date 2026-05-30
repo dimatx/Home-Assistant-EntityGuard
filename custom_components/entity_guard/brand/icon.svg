@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Shield -->
+  <path d="M32 4 L56 14 L56 30 C56 46 44 56 32 60 C20 56 8 46 8 30 L8 14 Z"
+        fill="none" stroke="#4CAF50" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Circular return arrow: 270deg arc, ends with chunky arrowhead -->
+  <path d="M32 20 A12 12 0 1 1 20 32"
+        fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round"/>
+  <polygon points="20,32 14,28 14,36" fill="#4CAF50"/>
+</svg>
