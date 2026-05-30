@@ -85,7 +85,9 @@ async def async_setup_entry(
         return
 
     if entry_type != ENTRY_TYPE_RULE:
-        _LOGGER.warning("Unknown entry_type=%s for entry %s", entry_type, entry.entry_id)
+        _LOGGER.warning(
+            "Unknown entry_type=%s for entry %s", entry_type, entry.entry_id
+        )
         return
 
     engine: RuleEngine = hass.data[DOMAIN]["engines"][entry.entry_id]
@@ -158,7 +160,9 @@ class EntityGuardEnabledSwitch(EntityGuardRuleSwitchBase):
     async def _set_enabled(self, value: bool) -> None:
         """Apply enabled state through the engine."""
         self._engine.set_enabled(value)
-        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
+        async_dispatcher_send(
+            self.hass, _signal_for_rule(self._engine.config.unique_id)
+        )
         self.async_write_ha_state()
 
 
@@ -196,7 +200,9 @@ class EntityGuardDebounceEnabledSwitch(EntityGuardRuleSwitchBase):
         new_data[CONF_DEBOUNCE_ENABLED] = value
         self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
-        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
+        async_dispatcher_send(
+            self.hass, _signal_for_rule(self._engine.config.unique_id)
+        )
         self.async_write_ha_state()
 
 

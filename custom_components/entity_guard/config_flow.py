@@ -618,14 +618,12 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
         fields: dict[Any, Any] = {}
         if self._add_debounce:
             fields[
-                vol.Required(
-                    CONF_DEBOUNCE_SECONDS, default=DEFAULT_DEBOUNCE_SECONDS
-                )
+                vol.Required(CONF_DEBOUNCE_SECONDS, default=DEFAULT_DEBOUNCE_SECONDS)
             ] = _debounce_selector()
         if self._custom_rate_limit:
-            fields[
-                vol.Required(CONF_RATE_LIMIT_ENABLED, default=True)
-            ] = selector.BooleanSelector()
+            fields[vol.Required(CONF_RATE_LIMIT_ENABLED, default=True)] = (
+                selector.BooleanSelector()
+            )
             fields[
                 vol.Optional(
                     CONF_MAX_ENFORCEMENTS_PER_MINUTE,
@@ -636,7 +634,9 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="advanced",
             data_schema=vol.Schema(fields),
             errors=errors,
-            description_placeholders={"default_rate": str(DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE)},
+            description_placeholders={
+                "default_rate": str(DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE)
+            },
         )
 
     # ------------------------------------------------------------------ Safety ack
@@ -697,7 +697,9 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="preview",
             data_schema=vol.Schema({}),
-            description_placeholders={"summary": _build_summary(self._rule_data, self.hass)},
+            description_placeholders={
+                "summary": _build_summary(self._rule_data, self.hass)
+            },
         )
 
     async def _async_ensure_hub(self) -> None:

@@ -258,15 +258,41 @@ The custom card auto-registers when the integration loads. Add it to a dashboard
 ```yaml
 type: custom:entity-guard-card
 rule_id: <config_entry_id>
+title: "Living Room"   # optional override
+show_entities: true    # default: true
+show_actions: false    # default: false
 ```
 
-The card shows the rule name, color-coded status badge, today/total enforcement counts, last enforced timestamp, bound entities, and quick-action buttons (Reset, Test Enforce, Suppress 1h).
+The card shows:
+- Rule name and color-coded status badge (idle / active / suppressed / cooldown)
+- Enforcement counters (today / total)
+- Last enforced timestamp and cooldown indicator
+- Bound entities with compliance state (✓ compliant / ⚠ violation)
+- Optional action buttons (Reset Cooldowns, Test Enforce, Suppress 1h)
 
-![Card preview](custom_components/entity_guard/docs/10_card.png)
+**Normal state — rule idle, all entities compliant**
+
+![Card: idle state](custom_components/entity_guard/docs/10_card_idle.png)
+
+**Active enforcement — entity non-compliant**
+
+![Card: active enforcement](custom_components/entity_guard/docs/11_card_active.png)
+
+**Suppressed state**
+
+![Card: suppressed](custom_components/entity_guard/docs/12_card_suppressed.png)
+
+**Actions panel open**
+
+![Card: actions](custom_components/entity_guard/docs/13_card_actions.png)
+
+**Card editor**
+
+![Card editor](custom_components/entity_guard/docs/14_card_editor.png)
 
 ### Dashboard Example
 
-![Dashboard Example](custom_components/entity_guard/docs/11_dashboard.png)
+![Dashboard with multiple rules](custom_components/entity_guard/docs/15_dashboard.png)
 
 ---
 

@@ -10,8 +10,7 @@ def test_domain() -> None:
 
 
 def test_status_values_count() -> None:
-    assert len(const.STATUS_VALUES) == 6
-    # Status set is exactly the documented six.
+    assert len(const.STATUS_VALUES) == 8
     assert set(const.STATUS_VALUES) == {
         const.STATUS_DISABLED,
         const.STATUS_SUPPRESSED,
@@ -19,6 +18,8 @@ def test_status_values_count() -> None:
         const.STATUS_COOLDOWN,
         const.STATUS_ARMED,
         const.STATUS_IDLE,
+        const.STATUS_STARTING,
+        const.STATUS_PENDING,
     }
 
 

@@ -154,7 +154,9 @@ class EntityGuardNumberBase(NumberEntity):
         new_data[self._config_key] = coerced
         self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
-        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
+        async_dispatcher_send(
+            self.hass, _signal_for_rule(self._engine.config.unique_id)
+        )
         self.async_write_ha_state()
 
 

@@ -69,7 +69,9 @@ class EntityGuardStore:
             self._data = {"version": STORE_VERSION, "rules": {}}
             return
         if not isinstance(raw, dict):
-            _LOGGER.warning("Persisted root is not a dict (%s); resetting", type(raw).__name__)
+            _LOGGER.warning(
+                "Persisted root is not a dict (%s); resetting", type(raw).__name__
+            )
             self._data = {"version": STORE_VERSION, "rules": {}}
             return
 

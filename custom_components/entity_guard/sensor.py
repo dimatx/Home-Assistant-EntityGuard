@@ -160,6 +160,7 @@ class EntityGuardStatusSensor(EntityGuardSensor):
         return {
             "suppression_reason": self._engine.state.suppression_reason,
             "target_entities": list(self._engine.config.target_entities or []),
+            "target_state": self._engine.config.target_state,
         }
 
 
@@ -266,5 +267,3 @@ class EntityGuardSuppressedUntilSensor(EntityGuardSensor):
     def extra_state_attributes(self) -> dict[str, str | None]:
         """Return suppression metadata."""
         return {"reason": self._engine.state.suppression_reason}
-
-

@@ -437,9 +437,11 @@ class RuleEngine:
             if cooldown_end is not None:
                 remaining = (cooldown_end - dt_util.now()).total_seconds()
                 if remaining > 0:
+
                     @callback
                     def _broadcast_after_cooldown(_now: datetime) -> None:
                         self._broadcast_status()
+
                     unsub = async_call_later(
                         self._hass, remaining, _broadcast_after_cooldown
                     )

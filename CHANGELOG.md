@@ -1,12 +1,11 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
-### Added
+First public release.
 
-- Initial scaffold.
+- Create rules to keep entities in a desired state — lights off, switches locked, volume capped, and more
+- Rules support conditions (arm only when other entities match a state), cooldowns, and rate limiting
+- Suppress a rule temporarily from the dashboard or via a service call
+- Custom Lovelace card with status, enforcement history, and bound entity compliance at a glance
+- Every enforcement is recorded in the HA logbook
