@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Neue Regel — Grundlagen",
+        "description": "Benenne die Regel, wähle die Zielentitäten, gegen die sie durchgesetzt wird, und lege den Regelmodus fest.",
+        "data": {
+          "rule_name": "Regelname",
+          "target_entities": "Zielentitäten",
+          "mode": "Regelmodus"
+        },
+        "data_description": {
+          "rule_name": "Anzeigename in der Benutzeroberfläche. Muss eindeutig sein.",
+          "target_entities": "Eine oder mehrere Entitäten, auf die diese Regel angewendet wird.",
+          "mode": "Der Statusmodus erzwingt einen bestimmten Status. Der Attributmodus begrenzt ein numerisches Attribut."
+        }
+      },
+      "state": {
+        "title": "Statusmodus",
+        "description": "Wenn eine Zielentität in einen der Auslöser-Status wechselt, wird sie nach der optionalen Verzögerung in den Zielstatus zurückgesetzt.",
+        "data": {
+          "trigger_states": "Auslöser-Status",
+          "target_state": "Zielstatus",
+          "delay_seconds": "Verzögerung (Sekunden)"
+        },
+        "data_description": {
+          "trigger_states": "Liste der Status, die die Durchsetzung aktivieren (z. B. on, open, unlocked). Tippe, um eigene Werte hinzuzufügen.",
+          "target_state": "Status, in den die Entität zurückgesetzt wird (z. B. off, closed, locked).",
+          "delay_seconds": "Wartezeit nach einem Auslöser, bevor durchgesetzt wird. 0 = sofort. Max. 86400 (24 Std.)."
+        }
+      },
+      "attribute": {
+        "title": "Attributmodus",
+        "description": "Wenn das Attribut einer Zielentität den Schwellenwert über- oder unterschreitet, wird es nach der optionalen Verzögerung auf den Zielwert zurückgesetzt.",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Schwellenwert",
+          "target_value": "Zielwert",
+          "delay_seconds": "Verzögerung (Sekunden)"
+        },
+        "data_description": {
+          "attribute": "Zu überwachendes Attribut.",
+          "operator": "Vergleichsoperator. Gleichheit wird absichtlich nicht unterstützt (Gleitkomma-Genauigkeit).",
+          "threshold": "Numerischer Wert, der mit dem aktuellen Attribut verglichen wird.",
+          "target_value": "Wert, auf den das Attribut gesetzt wird, wenn die Regel auslöst.",
+          "delay_seconds": "Wartezeit nach einem Auslöser, bevor durchgesetzt wird. 0 = sofort. Max. 86400 (24 Std.)."
+        }
+      },
+      "extras": {
+        "title": "Optionale Funktionen",
+        "description": "Aktiviere die Funktionen, die du konfigurieren möchtest. Jede aktivierte Option fügt einen weiteren Bildschirm hinzu. Lasse alle deaktiviert, um direkt zur Übersicht zu gelangen.",
+        "data": {
+          "add_flags": "Zusätzliche Bedingungen hinzufügen",
+          "custom_rate_limit": "Schleifenschutz anpassen",
+          "add_debounce": "Entprellung aktivieren"
+        },
+        "data_description": {
+          "add_flags": "Aktivieren, um zusätzliche Bedingungen zu verlangen (z. B. nur durchsetzen, wenn niemand zu Hause ist, nur nach Sonnenuntergang). Deaktiviert lassen, um bei jedem Auslöser durchzusetzen.",
+          "custom_rate_limit": "Der Schleifenschutz unterdrückt die Regel automatisch, wenn sie häufiger als 10 Mal pro Minute auslöst (Standard). Deaktiviert lassen, um den Standard zu verwenden. Aktivieren, um einen eigenen Wert festzulegen oder den Schleifenschutz auf einem späteren Bildschirm vollständig zu deaktivieren.",
+          "add_debounce": "Aktivieren, um schnelle Hin- und Her-Wechsel zu ignorieren. Die Regel reagiert nur, wenn der Auslöser für die auf einem späteren Bildschirm festgelegte Zeit unverändert bleibt. Deaktiviert lassen, um auf jede Änderung zu reagieren."
+        }
+      },
+      "flags": {
+        "title": "Bedingungen (optional)",
+        "description": "Zusätzliche Bedingungen, die alle erfüllt sein müssen, damit die Regel reagiert.\n\nBeispiele:\n  • person.alice = not_home — nur wenn Alice nicht zu Hause ist\n  • input_boolean.guest_mode = off — nur wenn keine Gäste da sind\n  • sun.sun = below_horizon — nur nach Sonnenuntergang\n  • binary_sensor.work_hours = on — nur während der Arbeitszeit\n\nUm eine Bedingung hinzuzufügen: Wähle eine Entität, gib den erforderlichen Status ein und klicke auf Senden.\n\nWenn du derzeit keine Bedingung möchtest, lasse beide Felder leer und klicke auf Senden, um zu überspringen.\n\nBisher hinzugefügte Bedingungen ({count}): {summary}\n\nAktiviere „Weitere hinzufügen“, um weitere zu verketten — alle müssen zutreffen, damit die Regel auslöst.",
+        "data": {
+          "entity": "Bedingungs-Entität",
+          "match_state": "Erforderlicher Status",
+          "add_another": "Weitere Bedingung im Anschluss hinzufügen"
+        },
+        "data_description": {
+          "entity": "Wähle die Entität, deren Status als Bedingung dient (z. B. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "Der Status, in dem sich die Entität befinden muss, damit die Regel auslöst (z. B. „on“, „home“, „not_home“, „below_horizon“).",
+          "add_another": "Aktivieren, um weitere Bedingungen hinzuzufügen. Deaktiviert lassen, um abzuschließen."
+        }
+      },
+      "advanced": {
+        "title": "Erweitert",
+        "description": "Lege die Optionen fest, die du im vorherigen Schritt ausgewählt hast. Das Standardlimit beträgt {default_rate} Durchsetzungen pro Minute.",
+        "data": {
+          "debounce_seconds": "Entprellungs-Fenster (Sekunden)",
+          "rate_limit_enabled": "Schleifenschutz erzwingen",
+          "max_enforcements_per_minute": "Max. Durchsetzungen pro Minute"
+        },
+        "data_description": {
+          "debounce_seconds": "Fenster in Sekunden. Min. 0, max. 86400 (24 Std.). Wird nur angezeigt, wenn die Entprellung im vorherigen Schritt aktiviert wurde.",
+          "rate_limit_enabled": "Aktivieren, um den Schleifenschutz beizubehalten (empfohlen). Deaktivieren, um ihn für diese Regel auszuschalten — Endlosschleifen werden dann nicht automatisch gestoppt.",
+          "max_enforcements_per_minute": "Wie viele Durchsetzungen pro Minute erlaubt sind, bevor sich die Regel für 15 Minuten automatisch unterdrückt. Min. 1, max. 600. Wird ignoriert, wenn der Schleifenschutz oben deaktiviert ist."
+        }
+      },
+      "safety": {
+        "title": "Sicherheitsbestätigung",
+        "description": "Diese Regel betrifft sicherheitskritische Entitäten ({entities}). Du musst das Risiko ausdrücklich bestätigen, um fortzufahren.",
+        "data": {
+          "safety_acknowledged": "Mir ist bewusst, dass diese Regel physische Hardware bewegt, und ich akzeptiere das Risiko."
+        }
+      },
+      "preview": {
+        "title": "Überprüfen und erstellen",
+        "description": "Überprüfe deine Regel unten. Klicke auf **Senden**, um sie zu erstellen, oder verwende den Zurück-Pfeil, um Änderungen vorzunehmen.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Der Regelname darf nicht leer sein.",
+      "empty_target_entities": "Wähle mindestens eine Zielentität aus.",
+      "empty_trigger_states": "Gib mindestens einen Auslöser-Status an.",
+      "empty_target_state": "Der Zielstatus darf nicht leer sein.",
+      "invalid_threshold": "Schwellenwert und Zielwert müssen numerisch sein.",
+      "invalid_delay": "Die Verzögerung muss eine ganze Zahl zwischen 0 und 86400 Sekunden (24 Std.) sein.",
+      "invalid_rate": "Die maximale Anzahl an Durchsetzungen pro Minute muss eine ganze Zahl zwischen 1 und 600 sein.",
+      "target_in_triggers": "Der Zielstatus darf nicht gleichzeitig ein Auslöser-Status sein — das würde eine Durchsetzungsschleife erzeugen.",
+      "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
+      "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
+      "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
+    },
+    "abort": {
+      "single_instance_allowed": "Es kann nur ein Entity Guard-Hub konfiguriert werden.",
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
+      "already_configured": "Diese Regel ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Regel bearbeiten",
+        "description": "Wähle aus, was geändert werden soll.",
+        "menu_options": {
+          "edit_basics": "Name bearbeiten",
+          "edit_mode": "Modusspezifische Einstellungen bearbeiten",
+          "edit_entities": "Zielentitäten hinzufügen oder entfernen",
+          "edit_flags": "Flag-Bedingungen bearbeiten",
+          "edit_advanced": "Entprellung und Ratenlimit bearbeiten"
+        }
+      },
+      "edit_basics": {
+        "title": "Name bearbeiten",
+        "data": {"rule_name": "Regelname"}
+      },
+      "edit_entities": {
+        "title": "Zielentitäten bearbeiten",
+        "data": {"target_entities": "Zielentitäten"}
+      },
+      "edit_safety": {
+        "title": "Sicherheitsbestätigung",
+        "description": "Neue sicherheitskritische Entitäten wurden hinzugefügt. Bestätige erneut, um zu speichern.",
+        "data": {
+          "safety_acknowledged": "Mir ist bewusst, dass diese Regel physische Hardware bewegt, und ich akzeptiere das Risiko."
+        }
+      },
+      "edit_state": {
+        "title": "Statusmodus bearbeiten",
+        "data": {
+          "trigger_states": "Auslöser-Status",
+          "target_state": "Zielstatus",
+          "delay_seconds": "Verzögerung (Sekunden)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Attributmodus bearbeiten",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Schwellenwert",
+          "target_value": "Zielwert",
+          "delay_seconds": "Verzögerung (Sekunden)"
+        }
+      },
+      "edit_flags": {
+        "title": "Flag-Bedingungen bearbeiten",
+        "description": "Aktuelle Flags: {summary}. Wähle „add“ zum Anhängen, „clear“ zum Entfernen aller oder „save“, um unverändert zu lassen.",
+        "data": {
+          "entity": "Flag-Entität",
+          "match_state": "Erforderlicher Status",
+          "action": "Aktion"
+        }
+      },
+      "edit_advanced": {
+        "title": "Erweiterte Einstellungen bearbeiten",
+        "data": {
+          "debounce_enabled": "Entprellung aktivieren",
+          "debounce_seconds": "Entprellungs-Fenster (Sekunden)",
+          "max_enforcements_per_minute": "Max. Durchsetzungen pro Minute"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Der Regelname darf nicht leer sein.",
+      "empty_target_entities": "Wähle mindestens eine Zielentität aus.",
+      "empty_trigger_states": "Gib mindestens einen Auslöser-Status an.",
+      "empty_target_state": "Der Zielstatus darf nicht leer sein.",
+      "invalid_threshold": "Schwellenwert und Zielwert müssen numerisch sein.",
+      "invalid_delay": "Die Verzögerung muss eine ganze Zahl zwischen 0 und 86400 Sekunden (24 Std.) sein.",
+      "invalid_rate": "Die maximale Anzahl an Durchsetzungen pro Minute muss eine ganze Zahl zwischen 1 und 600 sein.",
+      "target_in_triggers": "Der Zielstatus darf nicht gleichzeitig ein Auslöser-Status sein — das würde eine Durchsetzungsschleife erzeugen.",
+      "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
+      "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
+      "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
+    },
+    "abort": {
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
+      "hub_no_options": "Der Entity Guard-Hub hat keine bearbeitbaren Optionen."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Keine Entity Guard-Regel gefunden, die zu „{rule_id}“ passt."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Regel unterdrücken",
+      "description": "Eine Entity Guard-Regel vorübergehend unterdrücken. Die Regel wird nach der angegebenen Dauer automatisch fortgesetzt.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID oder Regelname (Titel des Konfigurationseintrags)."
+        },
+        "duration_minutes": {
+          "name": "Dauer (Minuten)",
+          "description": "Wie lange die Regel unterdrückt werden soll (1–1440 Minuten)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Unterdrückung aufheben",
+      "description": "Eine unterdrückte Entity Guard-Regel sofort fortsetzen.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID oder Regelname (Titel des Konfigurationseintrags)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Regeln auflisten",
+      "description": "Konfiguration und aktuellen Status jeder Entity Guard-Regel zurückgeben."
+    },
+    "clear_history": {
+      "name": "Regelverlauf löschen",
+      "description": "Gespeicherten Durchsetzungsverlauf (Zähler, letzte Durchsetzung, Abklingzeiten) für eine Regel löschen.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID oder Regelname (Titel des Konfigurationseintrags)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Notfall-Stopp",
+      "description": "Notabschaltung — alle Regeln deaktivieren, alle Abklingzeiten löschen, für 60 Minuten unterdrücken und den Hub-Hauptschalter ausschalten."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Deaktiviert",
+        "suppressed": "Unterdrückt",
+        "enforcing": "Setzt durch",
+        "cooldown": "Abklingzeit",
+        "armed": "Scharf",
+        "idle": "Inaktiv",
+        "starting": "Startet",
+        "pending": "Bereit zur Durchsetzung"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Status",
+        "attribute": "Attribut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Helligkeit",
+        "volume_level": "Lautstärke",
+        "temperature": "Temperatur",
+        "percentage": "Prozentsatz"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Kleiner als (<)",
+        "lte": "Kleiner oder gleich (<=)",
+        "gt": "Größer als (>)",
+        "gte": "Größer oder gleich (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Ohne Änderungen speichern",
+        "add": "Flag hinzufügen",
+        "clear": "Alle Flags löschen"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Scharf"},
+      "active": {"name": "Aktiv"},
+      "in_cooldown": {"name": "In Abklingzeit"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Zuletzt durchgesetzt"},
+      "enforcement_count_today": {"name": "Durchsetzungen heute"},
+      "enforcement_count_total": {"name": "Durchsetzungen gesamt"},
+      "cooldown_remaining": {"name": "Verbleibende Abklingzeit"},
+      "safety_status": {"name": "Sicherheitsstatus"},
+      "suppressed_until": {"name": "Unterdrückt bis"}
+    },
+    "switch": {
+      "enabled": {"name": "Aktiviert"},
+      "debounce_enabled": {"name": "Entprellung aktiviert"},
+      "master_enabled": {"name": "Hauptschalter aktiviert"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Verzögerung (Sekunden)"},
+      "debounce_seconds": {"name": "Entprellung (Sekunden)"},
+      "max_enforcements_per_minute": {"name": "Max. Durchsetzungen pro Minute"}
+    },
+    "button": {
+      "reset": {"name": "Abklingzeiten zurücksetzen"},
+      "test_enforce": {"name": "Durchsetzung testen"},
+      "clear_suppression": {"name": "Unterdrückung aufheben"}
+    }
+  }
+}

@@ -12,25 +12,24 @@ from custom_components.entity_guard.const import (
 )
 
 
-async def test_user_step_shows_menu(hass: HomeAssistant) -> None:
-    """User step presents the rule/hub menu."""
+async def test_user_step_goes_straight_to_rule(hass: HomeAssistant) -> None:
+    """User step skips menu and lands directly on the rule basics form."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
 
-    assert result["type"] == FlowResultType.MENU
-    assert set(result["menu_options"]) == {"rule", "hub"}
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "rule"
 
 
-async def test_hub_single_instance_aborts(hass: HomeAssistant, hub_entry) -> None:
-    """A second hub setup attempt aborts."""
+async def test_hub_import_single_instance_aborts(
+    hass: HomeAssistant, hub_entry
+) -> None:
+    """Importing a second hub entry aborts when one already exists."""
     hub_entry.add_to_hass(hass)
 
     result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"next_step_id": "hub"}
+        DOMAIN, context={"source": "import"}, data={}
     )
 
     assert result["type"] == FlowResultType.ABORT

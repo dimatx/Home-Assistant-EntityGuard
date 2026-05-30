@@ -57,18 +57,9 @@ Enforce desired entity state in Home Assistant via declarative rules. Replaces N
 
 This integration uses a config flow accessible from **Settings > Devices & Services > Add Integration > Entity Guard**.
 
-### Step 1: Choose Entry Type
+Adding the integration takes you straight into rule creation. The **Entity Guard Hub** (global master switch) is created automatically the first time you save a rule — no separate setup step required.
 
-Choose between setting up the global hub or creating a new rule.
-
-| Option | Description |
-|--------|-------------|
-| New rule | Create a rule binding entities to a trigger + target state |
-| Set up Entity Guard hub | Create the synthetic hub that owns the global master switch (only one allowed) |
-
-![Step 1: Choose Entry Type](custom_components/entity_guard/docs/01_choose_entry_type.png)
-
-### Step 2: Rule Basics
+### Step 1: Rule Basics
 
 | Field | Description |
 |-------|-------------|
@@ -76,9 +67,9 @@ Choose between setting up the global hub or creating a new rule.
 | Target entities | One or more entities the rule will enforce |
 | Mode | `state` (force a specific state) or `attribute` (clamp a numeric attribute) |
 
-![Step 2: Rule Basics](custom_components/entity_guard/docs/02_rule_basics.png)
+![Step 1: Rule Basics](custom_components/entity_guard/docs/02_rule_basics.png)
 
-### Step 3a: State Mode
+### Step 2a: State Mode
 
 | Field | Default | Description |
 |-------|---------|-------------|
@@ -86,9 +77,9 @@ Choose between setting up the global hub or creating a new rule.
 | Target state | `off` | State to force the entity into |
 | Delay (seconds) | `0` | Wait this long after the trigger before enforcing (0-86400) |
 
-![Step 3a: State Mode](custom_components/entity_guard/docs/03a_state_mode.png)
+![Step 2a: State Mode](custom_components/entity_guard/docs/03a_state_mode.png)
 
-### Step 3b: Attribute Mode
+### Step 2b: Attribute Mode
 
 | Field | Description |
 |-------|-------------|
@@ -98,17 +89,17 @@ Choose between setting up the global hub or creating a new rule.
 | Target value | Value to clamp the attribute to when the threshold is crossed |
 | Delay (seconds) | Wait this long before enforcing (0-86400) |
 
-![Step 3b: Attribute Mode](custom_components/entity_guard/docs/03b_attribute_mode.png)
+![Step 2b: Attribute Mode](custom_components/entity_guard/docs/03b_attribute_mode.png)
 
-### Step 4: Flags (optional)
+### Step 3: Flags (optional)
 
 Define a list of `(flag entity, match state)` conditions. The rule only fires when **all** flags match. Unavailable flag entities count as a mismatch (fail-safe).
 
 Example: a curfew flag (`input_boolean.kids_curfew == "on"`) AND a presence flag (`person.parent == "not_home"`).
 
-![Step 4: Flags](custom_components/entity_guard/docs/04_flags.png)
+![Step 3: Flags](custom_components/entity_guard/docs/04_flags.png)
 
-### Step 5: Advanced
+### Step 4: Advanced
 
 | Field | Default | Description |
 |-------|---------|-------------|
@@ -116,19 +107,19 @@ Example: a curfew flag (`input_boolean.kids_curfew == "on"`) AND a presence flag
 | Debounce (seconds) | `60` | Window during which a re-trigger is ignored (0-86400) |
 | Max enforcements per minute | `10` | Auto-suppresses the rule for 15 minutes if exceeded |
 
-![Step 5: Advanced](custom_components/entity_guard/docs/05_advanced.png)
+![Step 4: Advanced](custom_components/entity_guard/docs/05_advanced.png)
 
-### Step 6: Safety Acknowledgment (cover / lock / climate only)
+### Step 5: Safety Acknowledgment (cover / lock / climate only)
 
 If any target entity is in the `cover`, `lock`, or `climate` domain, you must check the safety acknowledgment box before the rule can be saved. This is a deliberate seatbelt against rules that physically move things.
 
-![Step 6: Safety Acknowledgment](custom_components/entity_guard/docs/06_safety_ack.png)
+![Step 5: Safety Acknowledgment](custom_components/entity_guard/docs/06_safety_ack.png)
 
-### Step 7: Preview
+### Step 6: Preview
 
-Review the assembled rule before saving. Confirm to create the config entry.
+Review the assembled rule before saving. Confirm to create the config entry. The Entity Guard Hub is created automatically alongside your first rule.
 
-![Step 7: Preview](custom_components/entity_guard/docs/07_preview.png)
+![Step 6: Preview](custom_components/entity_guard/docs/07_preview.png)
 
 ---
 

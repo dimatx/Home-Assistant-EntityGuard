@@ -45,6 +45,7 @@ async def async_setup_entry(
         [
             EntityGuardResetButton(entry, engine),
             EntityGuardTestEnforceButton(entry, engine),
+            EntityGuardClearSuppressionButton(entry, engine),
         ]
     )
 
@@ -54,7 +55,7 @@ class EntityGuardButtonBase(ButtonEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
@@ -101,3 +102,15 @@ class EntityGuardTestEnforceButton(EntityGuardButtonBase):
             _LOGGER.warning("Engine has no async_test_enforce method")
             return
         await method()
+
+
+class EntityGuardClearSuppressionButton(EntityGuardButtonBase):
+    """Button that clears active suppression for the rule."""
+
+    def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
+        """Initialize the clear suppression button."""
+        super().__init__(entry, engine, "clear_suppression", "clear_suppression")
+
+    async def async_press(self) -> None:
+        """Handle press: unsuppress the rule via the engine."""
+        await self._engine.async_unsuppress()

@@ -46,7 +46,7 @@ def _signal_master() -> str:
     try:
         from . import signal_master_update  # type: ignore[attr-defined]
 
-        return signal_master_update
+        return signal_master_update()
     except (ImportError, AttributeError):
         return "entity_guard_master_update"
 
@@ -80,13 +80,16 @@ async def async_setup_entry(
     entry_type = entry.data.get(CONF_ENTRY_TYPE)
 
     if entry_type == ENTRY_TYPE_HUB:
+        _LOGGER.debug("Adding hub master switch for entry %s", entry.entry_id)
         async_add_entities([EntityGuardMasterEnabledSwitch(hass, entry)])
         return
 
     if entry_type != ENTRY_TYPE_RULE:
+        _LOGGER.warning("Unknown entry_type=%s for entry %s", entry_type, entry.entry_id)
         return
 
     engine: RuleEngine = hass.data[DOMAIN]["engines"][entry.entry_id]
+    _LOGGER.debug("Adding rule switches for engine=%s", engine.config.name)
     async_add_entities(
         [
             EntityGuardEnabledSwitch(entry, engine),
@@ -121,7 +124,7 @@ class EntityGuardRuleSwitchBase(SwitchEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                _signal_for_rule(self._entry.entry_id),
+                _signal_for_rule(self._engine.config.unique_id),
                 self._handle_update,
             )
         )
@@ -142,7 +145,7 @@ class EntityGuardEnabledSwitch(EntityGuardRuleSwitchBase):
     @property
     def is_on(self) -> bool:
         """Return True if the rule is enabled."""
-        return bool(getattr(self._engine, "enabled", True))
+        return bool(self._engine.state.enabled)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable the rule."""
@@ -154,12 +157,8 @@ class EntityGuardEnabledSwitch(EntityGuardRuleSwitchBase):
 
     async def _set_enabled(self, value: bool) -> None:
         """Apply enabled state through the engine."""
-        setter = getattr(self._engine, "async_set_enabled", None)
-        if setter is not None:
-            await setter(value)
-        else:
-            self._engine.enabled = value  # type: ignore[attr-defined]
-            async_dispatcher_send(self.hass, _signal_for_rule(self._entry.entry_id))
+        self._engine.set_enabled(value)
+        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
         self.async_write_ha_state()
 
 
@@ -197,7 +196,7 @@ class EntityGuardDebounceEnabledSwitch(EntityGuardRuleSwitchBase):
         new_data[CONF_DEBOUNCE_ENABLED] = value
         self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
-        async_dispatcher_send(self.hass, _signal_for_rule(self._entry.entry_id))
+        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
         self.async_write_ha_state()
 
 
@@ -214,7 +213,8 @@ class EntityGuardMasterEnabledSwitch(SwitchEntity):
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_master_enabled"
         self._attr_device_info = _hub_device_info()
-        hass.data.setdefault(DOMAIN, {}).setdefault("hub_master_enabled", True)
+        initial = entry.options.get("master_enabled", True)
+        hass.data.setdefault(DOMAIN, {})["hub_master_enabled"] = initial
 
     @property
     def is_on(self) -> bool:
@@ -242,6 +242,11 @@ class EntityGuardMasterEnabledSwitch(SwitchEntity):
 
     async def _set_master(self, value: bool) -> None:
         """Apply the master switch state."""
+        _LOGGER.info("Master switch %s", "enabled" if value else "DISABLED")
+        self.hass.config_entries.async_update_entry(
+            self._entry,
+            options={**self._entry.options, "master_enabled": value},
+        )
         self.hass.data.setdefault(DOMAIN, {})["hub_master_enabled"] = value
         async_dispatcher_send(self.hass, _signal_master())
         self.async_write_ha_state()

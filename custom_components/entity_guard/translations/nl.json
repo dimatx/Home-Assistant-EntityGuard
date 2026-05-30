@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nieuwe regel — basis",
+        "description": "Geef de regel een naam, kies de doelentiteiten waarop deze wordt afgedwongen en kies de regelmodus.",
+        "data": {
+          "rule_name": "Regelnaam",
+          "target_entities": "Doelentiteiten",
+          "mode": "Regelmodus"
+        },
+        "data_description": {
+          "rule_name": "Weergavenaam die wordt getoond in de UI. Moet uniek zijn.",
+          "target_entities": "Eén of meer entiteiten die deze regel zal afdwingen.",
+          "mode": "Statusmodus dwingt een specifieke status af. Attribuutmodus begrenst een numeriek attribuut."
+        }
+      },
+      "state": {
+        "title": "Statusmodus",
+        "description": "Wanneer een doelentiteit een van de triggerstatussen aanneemt, dwing deze dan terug naar de doelstatus na de optionele vertraging.",
+        "data": {
+          "trigger_states": "Triggerstatussen",
+          "target_state": "Doelstatus",
+          "delay_seconds": "Vertraging (seconden)"
+        },
+        "data_description": {
+          "trigger_states": "Lijst van statussen die afdwinging activeren (bijv. on, open, unlocked). Typ om aangepaste waarden toe te voegen.",
+          "target_state": "Status waarnaar de entiteit wordt geforceerd (bijv. off, closed, locked).",
+          "delay_seconds": "Wacht zo lang na een trigger voordat de regel afdwingt. 0 = direct. Max 86400 (24u)."
+        }
+      },
+      "attribute": {
+        "title": "Attribuutmodus",
+        "description": "Wanneer het attribuut van een doelentiteit de drempelwaarde overschrijdt, wordt het na de optionele vertraging teruggezet naar de doelwaarde.",
+        "data": {
+          "attribute": "Attribuut",
+          "operator": "Operator",
+          "threshold": "Drempelwaarde",
+          "target_value": "Doelwaarde",
+          "delay_seconds": "Vertraging (seconden)"
+        },
+        "data_description": {
+          "attribute": "Attribuut om te bewaken.",
+          "operator": "Vergelijkingsoperator. Gelijkheid wordt opzettelijk niet ondersteund (precisie van floats).",
+          "threshold": "Numerieke waarde die wordt vergeleken met het live attribuut.",
+          "target_value": "Waarde waarop het attribuut wordt ingesteld wanneer de regel wordt geactiveerd.",
+          "delay_seconds": "Wacht zo lang na een trigger voordat de regel afdwingt. 0 = direct. Max 86400 (24u)."
+        }
+      },
+      "extras": {
+        "title": "Optionele functies",
+        "description": "Vink aan welke functies je wilt configureren. Elke aangevinkte optie voegt een vervolgscherm toe. Sla ze allemaal over om direct naar het overzicht te gaan.",
+        "data": {
+          "add_flags": "Extra voorwaarden toevoegen",
+          "custom_rate_limit": "Lusbeveiliging aanpassen",
+          "add_debounce": "Debounce inschakelen"
+        },
+        "data_description": {
+          "add_flags": "Aanvinken om extra voorwaarden te vereisen (bijv. alleen afdwingen wanneer niemand thuis is, alleen na zonsondergang). Niet aanvinken om elke keer dat de trigger afgaat af te dwingen.",
+          "custom_rate_limit": "Lusbeveiliging onderdrukt de regel automatisch als deze meer dan 10 keer per minuut wordt geactiveerd (standaard). Niet aanvinken om de standaardwaarde te gebruiken. Aanvinken om je eigen aantal in te stellen, of om lusbeveiliging in een later scherm volledig uit te schakelen.",
+          "add_debounce": "Aanvinken om snelle heen-en-weer wijzigingen te negeren. De regel werkt alleen als de trigger gelijk blijft gedurende de tijd die je in een later scherm instelt. Niet aanvinken om bij elke wijziging te handelen."
+        }
+      },
+      "flags": {
+        "title": "Voorwaarden (optioneel)",
+        "description": "Extra voorwaarden waaraan allemaal moet worden voldaan voordat de regel handelt.\n\nVoorbeelden:\n  • person.alice = not_home — alleen wanneer Alice weg is\n  • input_boolean.guest_mode = off — alleen wanneer er geen gasten zijn\n  • sun.sun = below_horizon — alleen na zonsondergang\n  • binary_sensor.work_hours = on — alleen tijdens werkuren\n\nOm een voorwaarde toe te voegen: kies een entiteit, typ de status waarin deze moet zijn en klik op Verzenden.\n\nAls je nu geen voorwaarde wilt, laat dan beide velden leeg en klik op Verzenden om over te slaan.\n\nTot nu toe toegevoegde voorwaarden ({count}): {summary}\n\nVink 'Nog een toevoegen' aan om er meer aan elkaar te koppelen — alle moeten overeenkomen om de regel te activeren.",
+        "data": {
+          "entity": "Voorwaarde-entiteit",
+          "match_state": "Vereiste status",
+          "add_another": "Nog een voorwaarde toevoegen na deze"
+        },
+        "data_description": {
+          "entity": "Kies de entiteit waarvan de status als voorwaarde dient (bijv. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "De status waarin de entiteit moet zijn om de regel te activeren (bijv. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Aanvinken om meer voorwaarden toe te voegen. Niet aanvinken om af te ronden."
+        }
+      },
+      "advanced": {
+        "title": "Geavanceerd",
+        "description": "Stel de opties in die je in het vorige scherm hebt geselecteerd. De standaard rate limit is {default_rate} afdwingingen per minuut.",
+        "data": {
+          "debounce_seconds": "Debounce-venster (seconden)",
+          "rate_limit_enabled": "Lusbeveiliging afdwingen",
+          "max_enforcements_per_minute": "Max afdwingingen per minuut"
+        },
+        "data_description": {
+          "debounce_seconds": "Venster in seconden. Min 0, max 86400 (24u). Alleen getoond wanneer debounce is ingeschakeld in de vorige stap.",
+          "rate_limit_enabled": "Aanvinken om lusbeveiliging aan te houden (aanbevolen). Uitvinken om deze voor deze regel uit te schakelen — op hol geslagen lussen worden niet automatisch gestopt.",
+          "max_enforcements_per_minute": "Hoeveel afdwingingen per minuut zijn toegestaan voordat de regel zichzelf 15 minuten onderdrukt. Min 1, max 600. Genegeerd wanneer lusbeveiliging hierboven niet is aangevinkt."
+        }
+      },
+      "safety": {
+        "title": "Veiligheidsbevestiging",
+        "description": "Deze regel is gericht op veiligheidsgevoelige entiteiten ({entities}). Je moet het risico expliciet bevestigen om door te gaan.",
+        "data": {
+          "safety_acknowledged": "Ik begrijp dat deze regel fysieke hardware zal aansturen en accepteer het risico."
+        }
+      },
+      "preview": {
+        "title": "Bekijken en aanmaken",
+        "description": "Bekijk je regel hieronder. Klik op **Verzenden** om hem aan te maken, of gebruik de terugknop om wijzigingen aan te brengen.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnaam mag niet leeg zijn.",
+      "empty_target_entities": "Kies ten minste één doelentiteit.",
+      "empty_trigger_states": "Geef ten minste één triggerstatus op.",
+      "empty_target_state": "Doelstatus mag niet leeg zijn.",
+      "invalid_threshold": "Drempelwaarde en doelwaarde moeten numeriek zijn.",
+      "invalid_delay": "Vertraging moet een geheel getal zijn tussen 0 en 86400 seconden (24u).",
+      "invalid_rate": "Max afdwingingen per minuut moet een geheel getal zijn tussen 1 en 600.",
+      "target_in_triggers": "Doelstatus mag niet ook een triggerstatus zijn — dat zou een afdwingingslus veroorzaken.",
+      "forbidden_state": "Statussen 'unavailable', 'unknown' en 'none' kunnen niet als trigger of doel worden gebruikt.",
+      "incomplete_flag": "Zowel de voorwaarde-entiteit als de vereiste status moeten zijn ingesteld.",
+      "safety_not_acknowledged": "Je moet het veiligheidsrisico bevestigen om door te gaan.",
+      "name_already_exists": "Er bestaat al een regel met deze naam."
+    },
+    "abort": {
+      "single_instance_allowed": "Er kan slechts één Entity Guard-hub worden geconfigureerd.",
+      "name_already_exists": "Er bestaat al een regel met deze naam.",
+      "already_configured": "Deze regel is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Regel bewerken",
+        "description": "Kies wat je wilt wijzigen.",
+        "menu_options": {
+          "edit_basics": "Naam bewerken",
+          "edit_mode": "Modusspecifieke instellingen bewerken",
+          "edit_entities": "Doelentiteiten toevoegen of verwijderen",
+          "edit_flags": "Voorwaarden bewerken",
+          "edit_advanced": "Debounce en rate limit bewerken"
+        }
+      },
+      "edit_basics": {
+        "title": "Naam bewerken",
+        "data": {"rule_name": "Regelnaam"}
+      },
+      "edit_entities": {
+        "title": "Doelentiteiten bewerken",
+        "data": {"target_entities": "Doelentiteiten"}
+      },
+      "edit_safety": {
+        "title": "Veiligheidsbevestiging",
+        "description": "Er zijn nieuwe veiligheidsgevoelige entiteiten toegevoegd. Bevestig opnieuw om op te slaan.",
+        "data": {
+          "safety_acknowledged": "Ik begrijp dat deze regel fysieke hardware zal aansturen en accepteer het risico."
+        }
+      },
+      "edit_state": {
+        "title": "Statusmodus bewerken",
+        "data": {
+          "trigger_states": "Triggerstatussen",
+          "target_state": "Doelstatus",
+          "delay_seconds": "Vertraging (seconden)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Attribuutmodus bewerken",
+        "data": {
+          "attribute": "Attribuut",
+          "operator": "Operator",
+          "threshold": "Drempelwaarde",
+          "target_value": "Doelwaarde",
+          "delay_seconds": "Vertraging (seconden)"
+        }
+      },
+      "edit_flags": {
+        "title": "Voorwaarden bewerken",
+        "description": "Huidige voorwaarden: {summary}. Kies 'add' om toe te voegen, 'clear' om alles te verwijderen, of 'save' om ongewijzigd te laten.",
+        "data": {
+          "entity": "Voorwaarde-entiteit",
+          "match_state": "Vereiste status",
+          "action": "Actie"
+        }
+      },
+      "edit_advanced": {
+        "title": "Geavanceerde instellingen bewerken",
+        "data": {
+          "debounce_enabled": "Debounce inschakelen",
+          "debounce_seconds": "Debounce-venster (seconden)",
+          "max_enforcements_per_minute": "Max afdwingingen per minuut"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnaam mag niet leeg zijn.",
+      "empty_target_entities": "Kies ten minste één doelentiteit.",
+      "empty_trigger_states": "Geef ten minste één triggerstatus op.",
+      "empty_target_state": "Doelstatus mag niet leeg zijn.",
+      "invalid_threshold": "Drempelwaarde en doelwaarde moeten numeriek zijn.",
+      "invalid_delay": "Vertraging moet een geheel getal zijn tussen 0 en 86400 seconden (24u).",
+      "invalid_rate": "Max afdwingingen per minuut moet een geheel getal zijn tussen 1 en 600.",
+      "target_in_triggers": "Doelstatus mag niet ook een triggerstatus zijn — dat zou een afdwingingslus veroorzaken.",
+      "forbidden_state": "Statussen 'unavailable', 'unknown' en 'none' kunnen niet als trigger of doel worden gebruikt.",
+      "incomplete_flag": "Zowel de voorwaarde-entiteit als de vereiste status moeten zijn ingesteld.",
+      "safety_not_acknowledged": "Je moet het veiligheidsrisico bevestigen om door te gaan.",
+      "name_already_exists": "Er bestaat al een regel met deze naam."
+    },
+    "abort": {
+      "name_already_exists": "Er bestaat al een regel met deze naam.",
+      "hub_no_options": "De Entity Guard-hub heeft geen bewerkbare opties."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Geen Entity Guard-regel gevonden die overeenkomt met '{rule_id}'."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Regel onderdrukken",
+      "description": "Onderdruk tijdelijk een Entity Guard-regel. De regel hervat automatisch na de duur.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID of regelnaam (titel van configuratie-item)."
+        },
+        "duration_minutes": {
+          "name": "Duur (minuten)",
+          "description": "Hoe lang de regel onderdrukt moet worden (1-1440 minuten)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Onderdrukking opheffen",
+      "description": "Hervat een onderdrukte Entity Guard-regel onmiddellijk.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID of regelnaam (titel van configuratie-item)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Regels weergeven",
+      "description": "Geeft de configuratie en huidige status van elke Entity Guard-regel terug."
+    },
+    "clear_history": {
+      "name": "Regelgeschiedenis wissen",
+      "description": "Wis de opgeslagen afdwingingsgeschiedenis (tellingen, laatst afgedwongen, cooldowns) voor een regel.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID of regelnaam (titel van configuratie-item)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Noodstop",
+      "description": "Noodstop — schakel elke regel uit, wis alle cooldowns, onderdruk gedurende 60 minuten en zet de hoofdschakelaar van de hub uit."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Uitgeschakeld",
+        "suppressed": "Onderdrukt",
+        "enforcing": "Bezig met afdwingen",
+        "cooldown": "Cooldown",
+        "armed": "Gewapend",
+        "idle": "Inactief",
+        "starting": "Bezig met starten",
+        "pending": "Op het punt af te dwingen"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Status",
+        "attribute": "Attribuut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Helderheid",
+        "volume_level": "Volumeniveau",
+        "temperature": "Temperatuur",
+        "percentage": "Percentage"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Kleiner dan (<)",
+        "lte": "Kleiner dan of gelijk aan (<=)",
+        "gt": "Groter dan (>)",
+        "gte": "Groter dan of gelijk aan (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Opslaan zonder wijzigingen",
+        "add": "Voorwaarde toevoegen",
+        "clear": "Alle voorwaarden wissen"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Gewapend"},
+      "active": {"name": "Actief"},
+      "in_cooldown": {"name": "In cooldown"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Laatst afgedwongen"},
+      "enforcement_count_today": {"name": "Afdwingingen vandaag"},
+      "enforcement_count_total": {"name": "Afdwingingen totaal"},
+      "cooldown_remaining": {"name": "Resterende cooldown"},
+      "safety_status": {"name": "Veiligheidsstatus"},
+      "suppressed_until": {"name": "Onderdrukt tot"}
+    },
+    "switch": {
+      "enabled": {"name": "Ingeschakeld"},
+      "debounce_enabled": {"name": "Debounce ingeschakeld"},
+      "master_enabled": {"name": "Hoofdschakelaar ingeschakeld"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Vertraging (seconden)"},
+      "debounce_seconds": {"name": "Debounce (seconden)"},
+      "max_enforcements_per_minute": {"name": "Max afdwingingen per minuut"}
+    },
+    "button": {
+      "reset": {"name": "Cooldowns resetten"},
+      "test_enforce": {"name": "Test afdwinging"},
+      "clear_suppression": {"name": "Onderdrukking opheffen"}
+    }
+  }
+}

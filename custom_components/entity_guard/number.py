@@ -88,6 +88,7 @@ class EntityGuardNumberBase(NumberEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_mode = NumberMode.BOX
     _attr_native_step = 1
+    _attr_available = False
 
     def __init__(
         self,
@@ -118,10 +119,11 @@ class EntityGuardNumberBase(NumberEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                _signal_for_rule(self._entry.entry_id),
+                _signal_for_rule(self._engine.config.unique_id),
                 self._handle_update,
             )
         )
+        self._attr_available = True
 
     @callback
     def _handle_update(self, *args: object) -> None:
@@ -152,7 +154,7 @@ class EntityGuardNumberBase(NumberEntity):
         new_data[self._config_key] = coerced
         self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
-        async_dispatcher_send(self.hass, _signal_for_rule(self._entry.entry_id))
+        async_dispatcher_send(self.hass, _signal_for_rule(self._engine.config.unique_id))
         self.async_write_ha_state()
 
 

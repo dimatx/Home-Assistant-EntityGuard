@@ -65,7 +65,12 @@ def _resolve_engine(hass: HomeAssistant, rule_id: str) -> Any:
         config = engine.config
         if config.unique_id == rule_id or config.name == rule_id:
             return engine
-    raise ServiceValidationError(f"No Entity Guard rule found matching '{rule_id}'")
+    raise ServiceValidationError(
+        f"No Entity Guard rule found matching '{rule_id}'",
+        translation_domain=DOMAIN,
+        translation_key="rule_not_found",
+        translation_placeholders={"rule_id": rule_id},
+    )
 
 
 async def async_register_services(hass: HomeAssistant) -> None:
@@ -109,11 +114,11 @@ async def async_register_services(hass: HomeAssistant) -> None:
                         getattr(config, "target_entities", []) or []
                     ),
                     "mode": getattr(config, "mode", None),
-                    "status": getattr(engine, "status", None),
-                    "enabled": getattr(engine, "enabled", None),
+                    "status": engine.current_status(),
+                    "enabled": engine.state.enabled,
                     "suppressed_until": (
-                        engine.suppressed_until.isoformat()
-                        if getattr(engine, "suppressed_until", None) is not None
+                        engine.state.suppressed_until.isoformat()
+                        if engine.state.suppressed_until is not None
                         else None
                     ),
                 }
@@ -123,12 +128,7 @@ async def async_register_services(hass: HomeAssistant) -> None:
     async def handle_panic_stop(call: ServiceCall) -> None:
         engines = _iter_engines(hass)
         for engine in engines:
-            try:
-                engine.enabled = False
-            except AttributeError:
-                set_enabled = getattr(engine, "async_set_enabled", None)
-                if set_enabled is not None:
-                    await set_enabled(False)
+            engine.set_enabled(False)
             await engine.async_reset_cooldowns()
             await engine.async_suppress(
                 duration_minutes=PANIC_STOP_DURATION_MINUTES,

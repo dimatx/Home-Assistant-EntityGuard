@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Ny regel — grundlæggende",
+        "description": "Navngiv reglen, vælg de målentiteter, der skal håndhæves over for, og vælg regeltilstand.",
+        "data": {
+          "rule_name": "Regelnavn",
+          "target_entities": "Målentiteter",
+          "mode": "Regeltilstand"
+        },
+        "data_description": {
+          "rule_name": "Visningsnavn der vises i brugerfladen. Skal være unikt.",
+          "target_entities": "En eller flere entiteter, som denne regel vil håndhæve.",
+          "mode": "Tilstandsmode tvinger en bestemt tilstand. Attributmode begrænser en numerisk attribut."
+        }
+      },
+      "state": {
+        "title": "Tilstandsmode",
+        "description": "Når en målentitet går ind i en af udløsertilstandene, tvinges den tilbage til måltilstanden efter den valgfrie forsinkelse.",
+        "data": {
+          "trigger_states": "Udløsertilstande",
+          "target_state": "Måltilstand",
+          "delay_seconds": "Forsinkelse (sekunder)"
+        },
+        "data_description": {
+          "trigger_states": "Liste over tilstande der aktiverer håndhævelse (f.eks. on, open, unlocked). Skriv for at tilføje brugerdefinerede værdier.",
+          "target_state": "Tilstand entiteten vil blive tvunget til (f.eks. off, closed, locked).",
+          "delay_seconds": "Vent så lang tid efter en udløser før der håndhæves. 0 = øjeblikkeligt. Maks. 86400 (24t)."
+        }
+      },
+      "attribute": {
+        "title": "Attributmode",
+        "description": "Når attributten på en målentitet krydser tærsklen, begrænses den tilbage til målværdien efter den valgfrie forsinkelse.",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Tærskel",
+          "target_value": "Målværdi",
+          "delay_seconds": "Forsinkelse (sekunder)"
+        },
+        "data_description": {
+          "attribute": "Attribut der skal overvåges.",
+          "operator": "Sammenligningsoperator. Lighed understøttes bevidst ikke (flydende kommatals-præcision).",
+          "threshold": "Numerisk værdi der sammenlignes med den aktuelle attribut.",
+          "target_value": "Værdi attributten skal sættes til, når reglen udløses.",
+          "delay_seconds": "Vent så lang tid efter en udløser før der håndhæves. 0 = øjeblikkeligt. Maks. 86400 (24t)."
+        }
+      },
+      "extras": {
+        "title": "Valgfri funktioner",
+        "description": "Marker de funktioner du vil konfigurere. Hver markeret valgmulighed tilføjer et opfølgende skærmbillede. Spring dem alle over for at gå direkte til gennemsyn.",
+        "data": {
+          "add_flags": "Tilføj ekstra betingelser",
+          "custom_rate_limit": "Tilpas løkkebeskyttelse",
+          "add_debounce": "Aktivér debounce"
+        },
+        "data_description": {
+          "add_flags": "Marker for at kræve ekstra betingelser (f.eks. håndhæv kun når ingen er hjemme, kun efter solnedgang). Lad være umarkeret for at håndhæve hver gang udløseren aktiveres.",
+          "custom_rate_limit": "Løkkebeskyttelse undertrykker automatisk reglen, hvis den udløses mere end 10 gange i minuttet (standard). Lad være umarkeret for at bruge standardværdien. Marker for at angive dit eget antal eller for helt at slå løkkebeskyttelsen fra på et senere skærmbillede.",
+          "add_debounce": "Marker for at ignorere hurtige frem-og-tilbage-ændringer. Reglen handler kun, hvis udløseren forbliver den samme i den tid, du angiver på et senere skærmbillede. Lad være umarkeret for at handle på hver ændring."
+        }
+      },
+      "flags": {
+        "title": "Betingelser (valgfrit)",
+        "description": "Ekstra betingelser, der alle skal være sande, for at reglen handler.\n\nEksempler:\n  • person.alice = not_home — kun når Alice er væk\n  • input_boolean.guest_mode = off — kun når der ikke er gæster\n  • sun.sun = below_horizon — kun efter solnedgang\n  • binary_sensor.work_hours = on — kun i arbejdstiden\n\nSådan tilføjer du en betingelse: vælg en entitet, skriv den tilstand den skal være i, og klik på Send.\n\nHvis du ikke ønsker nogen betingelse lige nu, så lad begge felter være tomme og klik på Send for at springe over.\n\nBetingelser tilføjet indtil videre ({count}): {summary}\n\nMarker 'Tilføj endnu en' for at kæde flere sammen — alle skal matche, for at reglen udløses.",
+        "data": {
+          "entity": "Betingelsesentitet",
+          "match_state": "Krævet tilstand",
+          "add_another": "Tilføj endnu en betingelse efter denne"
+        },
+        "data_description": {
+          "entity": "Vælg den entitet, hvis tilstand fungerer som betingelse (f.eks. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "Den tilstand entiteten skal være i, for at reglen udløses (f.eks. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Marker for at tilføje flere betingelser. Lad være umarkeret for at afslutte."
+        }
+      },
+      "advanced": {
+        "title": "Avanceret",
+        "description": "Indstil de muligheder du valgte til på det forrige skærmbillede. Standardgrænsen er {default_rate} håndhævelser i minuttet.",
+        "data": {
+          "debounce_seconds": "Debounce-vindue (sekunder)",
+          "rate_limit_enabled": "Håndhæv løkkebeskyttelse",
+          "max_enforcements_per_minute": "Maks. håndhævelser i minuttet"
+        },
+        "data_description": {
+          "debounce_seconds": "Vindue i sekunder. Min. 0, maks. 86400 (24t). Vises kun, når debounce blev aktiveret i forrige trin.",
+          "rate_limit_enabled": "Marker for at lade løkkebeskyttelsen være slået til (anbefales). Fjern markering for at deaktivere den for denne regel — løbske løkker vil ikke blive standset automatisk.",
+          "max_enforcements_per_minute": "Hvor mange håndhævelser i minuttet der er tilladt, før reglen automatisk undertrykkes i 15 minutter. Min. 1, maks. 600. Ignoreres når løkkebeskyttelsen er fjernet ovenfor."
+        }
+      },
+      "safety": {
+        "title": "Sikkerhedsbekræftelse",
+        "description": "Denne regel retter sig mod sikkerhedsfølsomme entiteter ({entities}). Du skal udtrykkeligt anerkende risikoen for at fortsætte.",
+        "data": {
+          "safety_acknowledged": "Jeg forstår, at denne regel vil bevæge fysisk hardware, og accepterer risikoen."
+        }
+      },
+      "preview": {
+        "title": "Gennemse og opret",
+        "description": "Gennemse din regel nedenfor. Klik på **Send** for at oprette den, eller brug tilbagepilen for at foretage ændringer.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnavn må ikke være tomt.",
+      "empty_target_entities": "Vælg mindst én målentitet.",
+      "empty_trigger_states": "Angiv mindst én udløsertilstand.",
+      "empty_target_state": "Måltilstand må ikke være tom.",
+      "invalid_threshold": "Tærskel og målværdi skal være numeriske.",
+      "invalid_delay": "Forsinkelse skal være et helt tal mellem 0 og 86400 sekunder (24t).",
+      "invalid_rate": "Maks. håndhævelser i minuttet skal være et helt tal mellem 1 og 600.",
+      "target_in_triggers": "Måltilstand kan ikke også være en udløsertilstand — det ville skabe en håndhævelsesløkke.",
+      "forbidden_state": "Tilstandene 'unavailable', 'unknown' og 'none' kan ikke bruges som udløsere eller mål.",
+      "incomplete_flag": "Både flag-entitet og krævet tilstand skal angives.",
+      "safety_not_acknowledged": "Du skal anerkende sikkerhedsrisikoen for at fortsætte.",
+      "name_already_exists": "Der findes allerede en regel med dette navn."
+    },
+    "abort": {
+      "single_instance_allowed": "Kun ét Entity Guard-hub kan konfigureres.",
+      "name_already_exists": "Der findes allerede en regel med dette navn.",
+      "already_configured": "Denne regel er allerede konfigureret."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Rediger regel",
+        "description": "Vælg hvad der skal ændres.",
+        "menu_options": {
+          "edit_basics": "Rediger navn",
+          "edit_mode": "Rediger mode-specifikke indstillinger",
+          "edit_entities": "Tilføj eller fjern målentiteter",
+          "edit_flags": "Rediger flag-betingelser",
+          "edit_advanced": "Rediger debounce og hastighedsgrænse"
+        }
+      },
+      "edit_basics": {
+        "title": "Rediger navn",
+        "data": {"rule_name": "Regelnavn"}
+      },
+      "edit_entities": {
+        "title": "Rediger målentiteter",
+        "data": {"target_entities": "Målentiteter"}
+      },
+      "edit_safety": {
+        "title": "Sikkerhedsbekræftelse",
+        "description": "Nye sikkerhedsfølsomme entiteter blev tilføjet. Bekræft igen for at gemme.",
+        "data": {
+          "safety_acknowledged": "Jeg forstår, at denne regel vil bevæge fysisk hardware, og accepterer risikoen."
+        }
+      },
+      "edit_state": {
+        "title": "Rediger tilstandsmode",
+        "data": {
+          "trigger_states": "Udløsertilstande",
+          "target_state": "Måltilstand",
+          "delay_seconds": "Forsinkelse (sekunder)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Rediger attributmode",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Tærskel",
+          "target_value": "Målværdi",
+          "delay_seconds": "Forsinkelse (sekunder)"
+        }
+      },
+      "edit_flags": {
+        "title": "Rediger flag-betingelser",
+        "description": "Aktuelle flag: {summary}. Vælg 'tilføj' for at tilføje, 'ryd' for at fjerne alle eller 'gem' for at lade være uændret.",
+        "data": {
+          "entity": "Flag-entitet",
+          "match_state": "Krævet tilstand",
+          "action": "Handling"
+        }
+      },
+      "edit_advanced": {
+        "title": "Rediger avancerede indstillinger",
+        "data": {
+          "debounce_enabled": "Aktivér debounce",
+          "debounce_seconds": "Debounce-vindue (sekunder)",
+          "max_enforcements_per_minute": "Maks. håndhævelser i minuttet"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnavn må ikke være tomt.",
+      "empty_target_entities": "Vælg mindst én målentitet.",
+      "empty_trigger_states": "Angiv mindst én udløsertilstand.",
+      "empty_target_state": "Måltilstand må ikke være tom.",
+      "invalid_threshold": "Tærskel og målværdi skal være numeriske.",
+      "invalid_delay": "Forsinkelse skal være et helt tal mellem 0 og 86400 sekunder (24t).",
+      "invalid_rate": "Maks. håndhævelser i minuttet skal være et helt tal mellem 1 og 600.",
+      "target_in_triggers": "Måltilstand kan ikke også være en udløsertilstand — det ville skabe en håndhævelsesløkke.",
+      "forbidden_state": "Tilstandene 'unavailable', 'unknown' og 'none' kan ikke bruges som udløsere eller mål.",
+      "incomplete_flag": "Både flag-entitet og krævet tilstand skal angives.",
+      "safety_not_acknowledged": "Du skal anerkende sikkerhedsrisikoen for at fortsætte.",
+      "name_already_exists": "Der findes allerede en regel med dette navn."
+    },
+    "abort": {
+      "name_already_exists": "Der findes allerede en regel med dette navn.",
+      "hub_no_options": "Entity Guard-hubben har ingen redigerbare indstillinger."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Ingen Entity Guard-regel fundet, der matcher '{rule_id}'."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Undertryk regel",
+      "description": "Undertryk midlertidigt en Entity Guard-regel. Reglen genoptages automatisk efter varigheden.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnavn (titel på konfigurationspost)."
+        },
+        "duration_minutes": {
+          "name": "Varighed (minutter)",
+          "description": "Hvor længe reglen skal undertrykkes (1-1440 minutter)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Ophæv undertrykkelse af regel",
+      "description": "Genoptag en undertrykt Entity Guard-regel med det samme.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnavn (titel på konfigurationspost)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Vis regler",
+      "description": "Returner konfigurationen og den aktuelle status for hver Entity Guard-regel."
+    },
+    "clear_history": {
+      "name": "Ryd regelhistorik",
+      "description": "Ryd lagret håndhævelseshistorik (antal, sidst håndhævet, nedkølinger) for en regel.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnavn (titel på konfigurationspost)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Nødstop",
+      "description": "Nødafbrydelse — deaktiver alle regler, ryd alle nedkølinger, undertryk i 60 minutter, og slå hubbens hovedafbryder fra."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Deaktiveret",
+        "suppressed": "Undertrykt",
+        "enforcing": "Håndhæver",
+        "cooldown": "Nedkøling",
+        "armed": "Aktiveret",
+        "idle": "Inaktiv",
+        "starting": "Starter",
+        "pending": "Klar til at håndhæve"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Tilstand",
+        "attribute": "Attribut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Lysstyrke",
+        "volume_level": "Lydstyrke",
+        "temperature": "Temperatur",
+        "percentage": "Procent"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Mindre end (<)",
+        "lte": "Mindre end eller lig med (<=)",
+        "gt": "Større end (>)",
+        "gte": "Større end eller lig med (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Gem uden ændringer",
+        "add": "Tilføj flag",
+        "clear": "Ryd alle flag"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Aktiveret"},
+      "active": {"name": "Aktiv"},
+      "in_cooldown": {"name": "I nedkøling"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Sidst håndhævet"},
+      "enforcement_count_today": {"name": "Håndhævelser i dag"},
+      "enforcement_count_total": {"name": "Håndhævelser i alt"},
+      "cooldown_remaining": {"name": "Nedkøling tilbage"},
+      "safety_status": {"name": "Sikkerhedsstatus"},
+      "suppressed_until": {"name": "Undertrykt indtil"}
+    },
+    "switch": {
+      "enabled": {"name": "Aktiveret"},
+      "debounce_enabled": {"name": "Debounce aktiveret"},
+      "master_enabled": {"name": "Hovedafbryder aktiveret"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Forsinkelse (sekunder)"},
+      "debounce_seconds": {"name": "Debounce (sekunder)"},
+      "max_enforcements_per_minute": {"name": "Maks. håndhævelser i minuttet"}
+    },
+    "button": {
+      "reset": {"name": "Nulstil nedkølinger"},
+      "test_enforce": {"name": "Test håndhævelse"},
+      "clear_suppression": {"name": "Ryd undertrykkelse"}
+    }
+  }
+}

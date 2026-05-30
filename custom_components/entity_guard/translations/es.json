@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nueva regla — básicos",
+        "description": "Asigne un nombre a la regla, elija las entidades objetivo a controlar y seleccione el modo de la regla.",
+        "data": {
+          "rule_name": "Nombre de la regla",
+          "target_entities": "Entidades objetivo",
+          "mode": "Modo de la regla"
+        },
+        "data_description": {
+          "rule_name": "Nombre visible que se muestra en la interfaz. Debe ser único.",
+          "target_entities": "Una o más entidades sobre las que esta regla actuará.",
+          "mode": "El modo Estado fuerza un estado específico. El modo Atributo limita un atributo numérico."
+        }
+      },
+      "state": {
+        "title": "Modo Estado",
+        "description": "Cuando cualquier entidad objetivo entre en uno de los estados disparadores, fuérzala de vuelta al estado objetivo tras el retardo opcional.",
+        "data": {
+          "trigger_states": "Estados disparadores",
+          "target_state": "Estado objetivo",
+          "delay_seconds": "Retardo (segundos)"
+        },
+        "data_description": {
+          "trigger_states": "Lista de estados que activan el cumplimiento (p. ej. on, open, unlocked). Escriba para añadir valores personalizados.",
+          "target_state": "Estado al que se forzará la entidad (p. ej. off, closed, locked).",
+          "delay_seconds": "Esperar este tiempo tras un disparador antes de actuar. 0 = inmediato. Máx. 86400 (24h)."
+        }
+      },
+      "attribute": {
+        "title": "Modo Atributo",
+        "description": "Cuando el atributo de cualquier entidad objetivo cruce el umbral, ajústalo de vuelta al valor objetivo tras el retardo opcional.",
+        "data": {
+          "attribute": "Atributo",
+          "operator": "Operador",
+          "threshold": "Umbral",
+          "target_value": "Valor objetivo",
+          "delay_seconds": "Retardo (segundos)"
+        },
+        "data_description": {
+          "attribute": "Atributo a monitorizar.",
+          "operator": "Operador de comparación. La igualdad no se admite intencionadamente (precisión de coma flotante).",
+          "threshold": "Valor numérico comparado con el atributo en vivo.",
+          "target_value": "Valor al que se establecerá el atributo cuando se dispare la regla.",
+          "delay_seconds": "Esperar este tiempo tras un disparador antes de actuar. 0 = inmediato. Máx. 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Funciones opcionales",
+        "description": "Marque las funciones que quiera configurar. Cada opción marcada añade una pantalla adicional. Déjelas todas sin marcar para ir directamente a la revisión.",
+        "data": {
+          "add_flags": "Añadir condiciones extra",
+          "custom_rate_limit": "Personalizar protección contra bucles",
+          "add_debounce": "Habilitar antirrebote"
+        },
+        "data_description": {
+          "add_flags": "Marque para requerir condiciones extra (p. ej. solo actuar cuando no haya nadie en casa, solo después del atardecer). Deje sin marcar para actuar cada vez que se dispare el disparador.",
+          "custom_rate_limit": "La protección contra bucles suprime automáticamente la regla si se dispara más de 10 veces por minuto (predeterminado). Deje sin marcar para usar el valor predeterminado. Marque para establecer su propio número, o para desactivar por completo la protección contra bucles en una pantalla posterior.",
+          "add_debounce": "Marque para ignorar cambios rápidos de ida y vuelta. La regla solo actuará si el disparador permanece igual durante el tiempo que establezca en una pantalla posterior. Deje sin marcar para actuar ante cada cambio."
+        }
+      },
+      "flags": {
+        "title": "Condiciones (opcional)",
+        "description": "Condiciones extra que deben cumplirse todas para que la regla actúe.\n\nEjemplos:\n  • person.alice = not_home — solo cuando Alice esté fuera\n  • input_boolean.guest_mode = off — solo cuando no haya invitados\n  • sun.sun = below_horizon — solo después del atardecer\n  • binary_sensor.work_hours = on — solo durante el horario laboral\n\nPara añadir una condición: elija una entidad, escriba el estado en el que debe estar y haga clic en Enviar.\n\nSi no quiere ninguna condición ahora, deje ambos campos vacíos y haga clic en Enviar para omitir.\n\nCondiciones añadidas hasta ahora ({count}): {summary}\n\nMarque 'Añadir otra' para encadenar más — todas deben coincidir para que la regla se dispare.",
+        "data": {
+          "entity": "Entidad de condición",
+          "match_state": "Estado requerido",
+          "add_another": "Añadir otra condición después de esta"
+        },
+        "data_description": {
+          "entity": "Elija la entidad cuyo estado actúa como condición (p. ej. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "El estado en el que debe estar la entidad para que la regla se dispare (p. ej. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Marque para añadir más condiciones. Deje sin marcar para terminar."
+        }
+      },
+      "advanced": {
+        "title": "Avanzado",
+        "description": "Configure las opciones que activó en la pantalla anterior. El límite de tasa predeterminado es {default_rate} actuaciones por minuto.",
+        "data": {
+          "debounce_seconds": "Ventana de antirrebote (segundos)",
+          "rate_limit_enabled": "Aplicar protección contra bucles",
+          "max_enforcements_per_minute": "Máx. actuaciones por minuto"
+        },
+        "data_description": {
+          "debounce_seconds": "Ventana en segundos. Mín. 0, máx. 86400 (24h). Solo se muestra cuando el antirrebote se habilitó en el paso anterior.",
+          "rate_limit_enabled": "Marque para mantener la protección contra bucles activada (recomendado). Desmarque para desactivarla en esta regla — los bucles descontrolados no se detendrán automáticamente.",
+          "max_enforcements_per_minute": "Cuántas actuaciones por minuto se permiten antes de que la regla se autosuprima durante 15 minutos. Mín. 1, máx. 600. Se ignora cuando la protección contra bucles está desmarcada arriba."
+        }
+      },
+      "safety": {
+        "title": "Reconocimiento de seguridad",
+        "description": "Esta regla afecta a entidades sensibles a la seguridad ({entities}). Debe reconocer explícitamente el riesgo para continuar.",
+        "data": {
+          "safety_acknowledged": "Entiendo que esta regla moverá hardware físico y acepto el riesgo."
+        }
+      },
+      "preview": {
+        "title": "Revisar y crear",
+        "description": "Revise su regla a continuación. Haga clic en **Enviar** para crearla, o use la flecha hacia atrás para hacer cambios.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "El nombre de la regla no puede estar vacío.",
+      "empty_target_entities": "Elija al menos una entidad objetivo.",
+      "empty_trigger_states": "Indique al menos un estado disparador.",
+      "empty_target_state": "El estado objetivo no puede estar vacío.",
+      "invalid_threshold": "El umbral y el valor objetivo deben ser numéricos.",
+      "invalid_delay": "El retardo debe ser un número entero entre 0 y 86400 segundos (24h).",
+      "invalid_rate": "El máximo de actuaciones por minuto debe ser un número entero entre 1 y 600.",
+      "target_in_triggers": "El estado objetivo no puede ser también un estado disparador — eso crearía un bucle de cumplimiento.",
+      "forbidden_state": "Los estados 'unavailable', 'unknown' y 'none' no pueden usarse como disparadores u objetivos.",
+      "incomplete_flag": "Tanto la entidad de la condición como el estado requerido deben estar definidos.",
+      "safety_not_acknowledged": "Debe reconocer el riesgo de seguridad para continuar.",
+      "name_already_exists": "Ya existe una regla con este nombre."
+    },
+    "abort": {
+      "single_instance_allowed": "Solo se puede configurar un hub de Entity Guard.",
+      "name_already_exists": "Ya existe una regla con este nombre.",
+      "already_configured": "Esta regla ya está configurada."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Editar regla",
+        "description": "Elija qué cambiar.",
+        "menu_options": {
+          "edit_basics": "Editar nombre",
+          "edit_mode": "Editar ajustes específicos del modo",
+          "edit_entities": "Añadir o eliminar entidades objetivo",
+          "edit_flags": "Editar condiciones de marca",
+          "edit_advanced": "Editar antirrebote y límite de tasa"
+        }
+      },
+      "edit_basics": {
+        "title": "Editar nombre",
+        "data": {"rule_name": "Nombre de la regla"}
+      },
+      "edit_entities": {
+        "title": "Editar entidades objetivo",
+        "data": {"target_entities": "Entidades objetivo"}
+      },
+      "edit_safety": {
+        "title": "Reconocimiento de seguridad",
+        "description": "Se han añadido nuevas entidades sensibles a la seguridad. Vuelva a reconocer para guardar.",
+        "data": {
+          "safety_acknowledged": "Entiendo que esta regla moverá hardware físico y acepto el riesgo."
+        }
+      },
+      "edit_state": {
+        "title": "Editar modo Estado",
+        "data": {
+          "trigger_states": "Estados disparadores",
+          "target_state": "Estado objetivo",
+          "delay_seconds": "Retardo (segundos)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Editar modo Atributo",
+        "data": {
+          "attribute": "Atributo",
+          "operator": "Operador",
+          "threshold": "Umbral",
+          "target_value": "Valor objetivo",
+          "delay_seconds": "Retardo (segundos)"
+        }
+      },
+      "edit_flags": {
+        "title": "Editar condiciones de marca",
+        "description": "Marcas actuales: {summary}. Elija 'añadir' para agregar, 'borrar' para eliminar todas, o 'guardar' para dejar sin cambios.",
+        "data": {
+          "entity": "Entidad de marca",
+          "match_state": "Estado requerido",
+          "action": "Acción"
+        }
+      },
+      "edit_advanced": {
+        "title": "Editar ajustes avanzados",
+        "data": {
+          "debounce_enabled": "Habilitar antirrebote",
+          "debounce_seconds": "Ventana de antirrebote (segundos)",
+          "max_enforcements_per_minute": "Máx. actuaciones por minuto"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "El nombre de la regla no puede estar vacío.",
+      "empty_target_entities": "Elija al menos una entidad objetivo.",
+      "empty_trigger_states": "Indique al menos un estado disparador.",
+      "empty_target_state": "El estado objetivo no puede estar vacío.",
+      "invalid_threshold": "El umbral y el valor objetivo deben ser numéricos.",
+      "invalid_delay": "El retardo debe ser un número entero entre 0 y 86400 segundos (24h).",
+      "invalid_rate": "El máximo de actuaciones por minuto debe ser un número entero entre 1 y 600.",
+      "target_in_triggers": "El estado objetivo no puede ser también un estado disparador — eso crearía un bucle de cumplimiento.",
+      "forbidden_state": "Los estados 'unavailable', 'unknown' y 'none' no pueden usarse como disparadores u objetivos.",
+      "incomplete_flag": "Tanto la entidad de la condición como el estado requerido deben estar definidos.",
+      "safety_not_acknowledged": "Debe reconocer el riesgo de seguridad para continuar.",
+      "name_already_exists": "Ya existe una regla con este nombre."
+    },
+    "abort": {
+      "name_already_exists": "Ya existe una regla con este nombre.",
+      "hub_no_options": "El hub de Entity Guard no tiene opciones editables."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "No se encontró ninguna regla de Entity Guard que coincida con '{rule_id}'."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Suprimir regla",
+      "description": "Suprime temporalmente una regla de Entity Guard. La regla se reanuda automáticamente tras la duración indicada.",
+      "fields": {
+        "rule_id": {
+          "name": "Regla",
+          "description": "UUID de la regla o nombre de la regla (título de la entrada de configuración)."
+        },
+        "duration_minutes": {
+          "name": "Duración (minutos)",
+          "description": "Cuánto tiempo suprimir la regla (1-1440 minutos)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Reanudar regla",
+      "description": "Reanuda inmediatamente una regla de Entity Guard suprimida.",
+      "fields": {
+        "rule_id": {
+          "name": "Regla",
+          "description": "UUID de la regla o nombre de la regla (título de la entrada de configuración)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Listar reglas",
+      "description": "Devuelve la configuración y el estado actual de cada regla de Entity Guard."
+    },
+    "clear_history": {
+      "name": "Borrar historial de la regla",
+      "description": "Borra el historial de actuaciones almacenado (recuentos, última actuación, enfriamientos) de una regla.",
+      "fields": {
+        "rule_id": {
+          "name": "Regla",
+          "description": "UUID de la regla o nombre de la regla (título de la entrada de configuración)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Parada de emergencia",
+      "description": "Apagado de emergencia — desactiva todas las reglas, borra todos los enfriamientos, suprime durante 60 minutos y apaga el interruptor maestro del hub."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Deshabilitada",
+        "suppressed": "Suprimida",
+        "enforcing": "Aplicando",
+        "cooldown": "Enfriamiento",
+        "armed": "Armada",
+        "idle": "Inactiva",
+        "starting": "Iniciando",
+        "pending": "A punto de aplicar"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Estado",
+        "attribute": "Atributo"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Brillo",
+        "volume_level": "Nivel de volumen",
+        "temperature": "Temperatura",
+        "percentage": "Porcentaje"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Menor que (<)",
+        "lte": "Menor o igual que (<=)",
+        "gt": "Mayor que (>)",
+        "gte": "Mayor o igual que (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Guardar sin cambios",
+        "add": "Añadir marca",
+        "clear": "Borrar todas las marcas"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Armada"},
+      "active": {"name": "Activa"},
+      "in_cooldown": {"name": "En enfriamiento"}
+    },
+    "sensor": {
+      "status": {"name": "Estado"},
+      "last_enforced": {"name": "Última actuación"},
+      "enforcement_count_today": {"name": "Actuaciones hoy"},
+      "enforcement_count_total": {"name": "Actuaciones totales"},
+      "cooldown_remaining": {"name": "Enfriamiento restante"},
+      "safety_status": {"name": "Estado de seguridad"},
+      "suppressed_until": {"name": "Suprimida hasta"}
+    },
+    "switch": {
+      "enabled": {"name": "Habilitada"},
+      "debounce_enabled": {"name": "Antirrebote habilitado"},
+      "master_enabled": {"name": "Maestro habilitado"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Retardo (segundos)"},
+      "debounce_seconds": {"name": "Antirrebote (segundos)"},
+      "max_enforcements_per_minute": {"name": "Máx. actuaciones por minuto"}
+    },
+    "button": {
+      "reset": {"name": "Restablecer enfriamientos"},
+      "test_enforce": {"name": "Probar actuación"},
+      "clear_suppression": {"name": "Borrar supresión"}
+    }
+  }
+}

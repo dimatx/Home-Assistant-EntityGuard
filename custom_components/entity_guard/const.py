@@ -22,6 +22,10 @@ CONF_OPERATOR = "operator"
 CONF_THRESHOLD = "threshold"
 CONF_TARGET_VALUE = "target_value"
 CONF_FLAGS = "flags"
+CONF_ADD_FLAGS = "add_flags"
+CONF_ADD_DEBOUNCE = "add_debounce"
+CONF_CUSTOM_RATE_LIMIT = "custom_rate_limit"
+CONF_RATE_LIMIT_ENABLED = "rate_limit_enabled"
 CONF_FLAG_ENTITY = "entity"
 CONF_FLAG_MATCH_STATE = "match_state"
 CONF_DEBOUNCE_ENABLED = "debounce_enabled"
@@ -88,6 +92,8 @@ STATUS_ENFORCING = "enforcing"
 STATUS_COOLDOWN = "cooldown"
 STATUS_ARMED = "armed"
 STATUS_IDLE = "idle"
+STATUS_STARTING = "starting"
+STATUS_PENDING = "pending"
 
 STATUS_VALUES = [
     STATUS_DISABLED,
@@ -96,6 +102,8 @@ STATUS_VALUES = [
     STATUS_COOLDOWN,
     STATUS_ARMED,
     STATUS_IDLE,
+    STATUS_STARTING,
+    STATUS_PENDING,
 ]
 
 # Domain service map for state mode enforcement
@@ -110,6 +118,44 @@ DOMAIN_SERVICE_MAP: dict[str, dict[str, str]] = {
     "input_boolean": {"on": "input_boolean.turn_on", "off": "input_boolean.turn_off"},
 }
 
+# Per-domain typical state values for trigger/target dropdowns.
+# custom_value=True remains on the selectors so users can still type unlisted states.
+# 'unavailable'/'unknown' are intentionally excluded — enforcement requires a reachable entity.
+DOMAIN_STATE_OPTIONS: dict[str, list[str]] = {
+    "light": ["on", "off"],
+    "switch": ["on", "off"],
+    "input_boolean": ["on", "off"],
+    "binary_sensor": ["on", "off"],
+    "fan": ["on", "off"],
+    "lock": ["locked", "unlocked", "locking", "unlocking", "jammed"],
+    "cover": ["open", "closed", "opening", "closing", "stopped"],
+    "media_player": ["playing", "paused", "idle", "off", "on", "standby"],
+    "climate": ["off", "heat", "cool", "auto", "heat_cool", "fan_only", "dry"],
+    "alarm_control_panel": [
+        "disarmed", "armed_home", "armed_away", "armed_night", "armed_vacation",
+        "pending", "triggered", "arming", "disarming",
+    ],
+    "person": ["home", "not_home"],
+    "device_tracker": ["home", "not_home"],
+    "input_select": [],  # state is user-defined option list
+    "vacuum": ["cleaning", "docked", "paused", "idle", "returning", "error"],
+    "humidifier": ["on", "off"],
+    "water_heater": ["off", "eco", "electric", "gas", "heat_pump", "high_demand"],
+    "timer": ["idle", "active", "paused"],
+    "script": ["on", "off"],
+    "automation": ["on", "off"],
+    "remote": ["on", "off"],
+    "siren": ["on", "off"],
+    "valve": ["open", "closed", "opening", "closing"],
+    "lawn_mower": ["mowing", "docked", "paused", "error"],
+}
+
+# Fallback when no recognized domain in target list.
+FALLBACK_STATE_OPTIONS = ["on", "off"]
+
+# States explicitly forbidden as trigger or target — entity is offline / state is undefined.
+FORBIDDEN_STATES = frozenset({"unavailable", "unknown", "none", ""})
+
 # Attribute clamp service map
 ATTRIBUTE_SERVICE_MAP: dict[str, tuple[str, str]] = {
     ATTR_BRIGHTNESS: ("light.turn_on", "brightness"),
@@ -117,6 +163,14 @@ ATTRIBUTE_SERVICE_MAP: dict[str, tuple[str, str]] = {
     ATTR_TEMPERATURE: ("climate.set_temperature", "temperature"),
     ATTR_PERCENTAGE: ("fan.set_percentage", "percentage"),
 }
+
+# Reverse index: domain -> list[attr] (built from ATTRIBUTE_SERVICE_MAP service prefix).
+# Used by config flow to show only attributes valid for the chosen target entities.
+ATTRIBUTES_BY_DOMAIN: dict[str, list[str]] = {}
+for _attr, (_service, _key) in ATTRIBUTE_SERVICE_MAP.items():
+    _domain = _service.split(".", 1)[0]
+    ATTRIBUTES_BY_DOMAIN.setdefault(_domain, []).append(_attr)
+del _attr, _service, _key, _domain
 
 # Events
 EVENT_ENFORCED = "entity_guard_enforced"

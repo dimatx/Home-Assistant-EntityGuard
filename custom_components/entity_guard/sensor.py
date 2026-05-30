@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -48,7 +48,7 @@ def _signal_master() -> str:
     try:
         from . import signal_master_update  # type: ignore[attr-defined]
 
-        return signal_master_update
+        return signal_master_update()
     except (ImportError, AttributeError):
         return "entity_guard_master_update"
 
@@ -92,7 +92,6 @@ async def async_setup_entry(
         EntityGuardEnforcementCountTotalSensor(entry, engine),
         EntityGuardCooldownRemainingSensor(entry, engine),
         EntityGuardSuppressedUntilSensor(entry, engine),
-        EntityGuardBlockedEntitiesSensor(entry, engine),
     ]
 
     if _has_safety_target(entry):
@@ -126,7 +125,7 @@ class EntityGuardSensor(SensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                _signal_for_rule(self._entry.entry_id),
+                _signal_for_rule(self._engine.config.unique_id),
                 self._handle_update,
             )
         )
@@ -155,6 +154,14 @@ class EntityGuardStatusSensor(EntityGuardSensor):
         """Return current status string."""
         return self._engine.current_status()
 
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Return suppression metadata and bound target entities."""
+        return {
+            "suppression_reason": self._engine.state.suppression_reason,
+            "target_entities": list(self._engine.config.target_entities or []),
+        }
+
 
 class EntityGuardLastEnforcedSensor(EntityGuardSensor):
     """Sensor exposing the last enforcement timestamp."""
@@ -168,7 +175,7 @@ class EntityGuardLastEnforcedSensor(EntityGuardSensor):
     @property
     def native_value(self) -> datetime | None:
         """Return last enforcement timestamp."""
-        return getattr(self._engine, "last_enforced", None)
+        return self._engine.state.last_enforced
 
 
 class EntityGuardEnforcementCountTodaySensor(EntityGuardSensor):
@@ -185,7 +192,7 @@ class EntityGuardEnforcementCountTodaySensor(EntityGuardSensor):
     @property
     def native_value(self) -> int:
         """Return today's enforcement count."""
-        return int(getattr(self._engine, "enforcement_count_today", 0) or 0)
+        return int(self._engine.state.enforcement_count_today or 0)
 
 
 class EntityGuardEnforcementCountTotalSensor(EntityGuardSensor):
@@ -193,7 +200,6 @@ class EntityGuardEnforcementCountTotalSensor(EntityGuardSensor):
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
         """Initialize the total counter sensor."""
@@ -204,7 +210,7 @@ class EntityGuardEnforcementCountTotalSensor(EntityGuardSensor):
     @property
     def native_value(self) -> int:
         """Return total enforcement count."""
-        return int(getattr(self._engine, "enforcement_count_total", 0) or 0)
+        return int(self._engine.state.enforcement_count_total or 0)
 
 
 class EntityGuardCooldownRemainingSensor(EntityGuardSensor):
@@ -213,7 +219,6 @@ class EntityGuardCooldownRemainingSensor(EntityGuardSensor):
     _attr_native_unit_of_measurement = "s"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
         """Initialize the cooldown remaining sensor."""
@@ -229,7 +234,6 @@ class EntityGuardSafetyStatusSensor(EntityGuardSensor):
     """Sensor reporting safety acknowledgement state."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
         """Initialize the safety status sensor."""
@@ -248,7 +252,6 @@ class EntityGuardSuppressedUntilSensor(EntityGuardSensor):
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
         """Initialize the suppressed until sensor."""
@@ -257,31 +260,11 @@ class EntityGuardSuppressedUntilSensor(EntityGuardSensor):
     @property
     def native_value(self) -> datetime | None:
         """Return suppression end timestamp."""
-        return getattr(self._engine, "suppressed_until", None)
-
-
-class EntityGuardBlockedEntitiesSensor(EntityGuardSensor):
-    """Sensor exposing blocked entity count."""
-
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
-
-    def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
-        """Initialize the blocked entities sensor."""
-        super().__init__(entry, engine, "blocked_entities", "blocked_entities")
-
-    def _entities(self) -> list[str]:
-        """Return list of blocked entity IDs."""
-        blocked = getattr(self._engine, "blocked_entities", None) or []
-        return list(blocked)
+        return self._engine.state.suppressed_until
 
     @property
-    def native_value(self) -> int:
-        """Return number of blocked entities."""
-        return len(self._entities())
+    def extra_state_attributes(self) -> dict[str, str | None]:
+        """Return suppression metadata."""
+        return {"reason": self._engine.state.suppression_reason}
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return blocked entity list as attribute."""
-        return {"entities": self._entities()}
+

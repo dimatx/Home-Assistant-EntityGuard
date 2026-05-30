@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Ny regel — grunder",
+        "description": "Namnge regeln, välj vilka entiteter som ska bevakas och välj regelläge.",
+        "data": {
+          "rule_name": "Regelnamn",
+          "target_entities": "Målentiteter",
+          "mode": "Regelläge"
+        },
+        "data_description": {
+          "rule_name": "Visningsnamn som visas i gränssnittet. Måste vara unikt.",
+          "target_entities": "En eller flera entiteter som denna regel ska tillämpas på.",
+          "mode": "Tillståndsläge framtvingar ett specifikt tillstånd. Attributläge begränsar ett numeriskt attribut."
+        }
+      },
+      "state": {
+        "title": "Tillståndsläge",
+        "description": "När någon målentitet hamnar i ett av utlösartillstånden, tvinga tillbaka den till måltillståndet efter den valfria fördröjningen.",
+        "data": {
+          "trigger_states": "Utlösartillstånd",
+          "target_state": "Måltillstånd",
+          "delay_seconds": "Fördröjning (sekunder)"
+        },
+        "data_description": {
+          "trigger_states": "Lista över tillstånd som aktiverar tillämpning (t.ex. on, open, unlocked). Skriv för att lägga till egna värden.",
+          "target_state": "Tillståndet som entiteten kommer att tvingas till (t.ex. off, closed, locked).",
+          "delay_seconds": "Vänta så här länge efter en utlösare innan tillämpning. 0 = omedelbart. Max 86400 (24h)."
+        }
+      },
+      "attribute": {
+        "title": "Attributläge",
+        "description": "När attributet på någon målentitet passerar tröskelvärdet, begränsa det tillbaka till målvärdet efter den valfria fördröjningen.",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Tröskelvärde",
+          "target_value": "Målvärde",
+          "delay_seconds": "Fördröjning (sekunder)"
+        },
+        "data_description": {
+          "attribute": "Attribut att övervaka.",
+          "operator": "Jämförelseoperator. Likhet stöds avsiktligen inte (flyttalsprecision).",
+          "threshold": "Numeriskt värde som jämförs mot det aktuella attributet.",
+          "target_value": "Värde som attributet sätts till när regeln utlöses.",
+          "delay_seconds": "Vänta så här länge efter en utlösare innan tillämpning. 0 = omedelbart. Max 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Valfria funktioner",
+        "description": "Bocka i de funktioner du vill konfigurera. Varje ibockat alternativ lägger till en uppföljningsskärm. Hoppa över alla för att gå direkt till granskning.",
+        "data": {
+          "add_flags": "Lägg till extra villkor",
+          "custom_rate_limit": "Anpassa loopskydd",
+          "add_debounce": "Aktivera avstudsning"
+        },
+        "data_description": {
+          "add_flags": "Bocka i för att kräva extra villkor (t.ex. tillämpa endast när ingen är hemma, endast efter solnedgång). Lämna obockad för att tillämpa varje gång utlösaren aktiveras.",
+          "custom_rate_limit": "Loopskydd undertrycker automatiskt regeln om den utlöses mer än 10 gånger per minut (standard). Lämna obockad för att använda standardvärdet. Bocka i för att ange ett eget värde, eller för att stänga av loopskyddet helt på en senare skärm.",
+          "add_debounce": "Bocka i för att ignorera snabba fram-och-tillbaka-ändringar. Regeln agerar endast om utlösaren förblir densamma under den tid du ställer in på en senare skärm. Lämna obockad för att agera på varje ändring."
+        }
+      },
+      "flags": {
+        "title": "Villkor (valfritt)",
+        "description": "Extra villkor som alla måste vara sanna för att regeln ska agera.\n\nExempel:\n  • person.alice = not_home — endast när Alice är borta\n  • input_boolean.guest_mode = off — endast när inga gäster\n  • sun.sun = below_horizon — endast efter solnedgång\n  • binary_sensor.work_hours = on — endast under arbetstid\n\nFör att lägga till ett villkor: välj en entitet, ange tillståndet den måste vara i, klicka sedan på Skicka.\n\nOm du inte vill ha något villkor just nu, lämna båda fälten tomma och klicka på Skicka för att hoppa över.\n\nTillagda villkor hittills ({count}): {summary}\n\nBocka i 'Lägg till ytterligare' för att kedja fler — alla måste matcha för att regeln ska utlösas.",
+        "data": {
+          "entity": "Villkorsentitet",
+          "match_state": "Krävt tillstånd",
+          "add_another": "Lägg till ytterligare ett villkor efter detta"
+        },
+        "data_description": {
+          "entity": "Välj entiteten vars tillstånd fungerar som villkor (t.ex. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "Tillståndet som entiteten måste vara i för att regeln ska utlösas (t.ex. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Bocka i för att lägga till fler villkor. Lämna obockad för att avsluta."
+        }
+      },
+      "advanced": {
+        "title": "Avancerat",
+        "description": "Ställ in de alternativ du valde på föregående skärm. Standardgränsen är {default_rate} tillämpningar per minut.",
+        "data": {
+          "debounce_seconds": "Avstudsningsfönster (sekunder)",
+          "rate_limit_enabled": "Aktivera loopskydd",
+          "max_enforcements_per_minute": "Max tillämpningar per minut"
+        },
+        "data_description": {
+          "debounce_seconds": "Fönster i sekunder. Min 0, max 86400 (24h). Visas endast när avstudsning aktiverades i föregående steg.",
+          "rate_limit_enabled": "Bocka i för att behålla loopskyddet aktivt (rekommenderas). Bocka ur för att inaktivera det för denna regel — skenande loopar stoppas inte automatiskt.",
+          "max_enforcements_per_minute": "Hur många tillämpningar per minut som tillåts innan regeln undertrycks automatiskt i 15 minuter. Min 1, max 600. Ignoreras när loopskydd är obockat ovan."
+        }
+      },
+      "safety": {
+        "title": "Säkerhetsbekräftelse",
+        "description": "Denna regel riktar sig mot säkerhetskänsliga entiteter ({entities}). Du måste uttryckligen bekräfta risken för att fortsätta.",
+        "data": {
+          "safety_acknowledged": "Jag förstår att denna regel kommer att flytta fysisk hårdvara och accepterar risken."
+        }
+      },
+      "preview": {
+        "title": "Granska och skapa",
+        "description": "Granska din regel nedan. Klicka på **Skicka** för att skapa den, eller använd bakåtpilen för att göra ändringar.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnamn kan inte vara tomt.",
+      "empty_target_entities": "Välj minst en målentitet.",
+      "empty_trigger_states": "Ange minst ett utlösartillstånd.",
+      "empty_target_state": "Måltillstånd kan inte vara tomt.",
+      "invalid_threshold": "Tröskelvärde och målvärde måste vara numeriska.",
+      "invalid_delay": "Fördröjning måste vara ett heltal mellan 0 och 86400 sekunder (24h).",
+      "invalid_rate": "Max tillämpningar per minut måste vara ett heltal mellan 1 och 600.",
+      "target_in_triggers": "Måltillstånd kan inte också vara ett utlösartillstånd — det skulle skapa en tillämpningsloop.",
+      "forbidden_state": "Tillstånden 'unavailable', 'unknown' och 'none' kan inte användas som utlösare eller mål.",
+      "incomplete_flag": "Både flaggentitet och krävt tillstånd måste anges.",
+      "safety_not_acknowledged": "Du måste bekräfta säkerhetsrisken för att fortsätta.",
+      "name_already_exists": "En regel med detta namn finns redan."
+    },
+    "abort": {
+      "single_instance_allowed": "Endast en Entity Guard-hubb kan konfigureras.",
+      "name_already_exists": "En regel med detta namn finns redan.",
+      "already_configured": "Denna regel är redan konfigurerad."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Redigera regel",
+        "description": "Välj vad som ska ändras.",
+        "menu_options": {
+          "edit_basics": "Redigera namn",
+          "edit_mode": "Redigera lägesspecifika inställningar",
+          "edit_entities": "Lägg till eller ta bort målentiteter",
+          "edit_flags": "Redigera flaggvillkor",
+          "edit_advanced": "Redigera avstudsning och hastighetsgräns"
+        }
+      },
+      "edit_basics": {
+        "title": "Redigera namn",
+        "data": {"rule_name": "Regelnamn"}
+      },
+      "edit_entities": {
+        "title": "Redigera målentiteter",
+        "data": {"target_entities": "Målentiteter"}
+      },
+      "edit_safety": {
+        "title": "Säkerhetsbekräftelse",
+        "description": "Nya säkerhetskänsliga entiteter har lagts till. Bekräfta igen för att spara.",
+        "data": {
+          "safety_acknowledged": "Jag förstår att denna regel kommer att flytta fysisk hårdvara och accepterar risken."
+        }
+      },
+      "edit_state": {
+        "title": "Redigera tillståndsläge",
+        "data": {
+          "trigger_states": "Utlösartillstånd",
+          "target_state": "Måltillstånd",
+          "delay_seconds": "Fördröjning (sekunder)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Redigera attributläge",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Operator",
+          "threshold": "Tröskelvärde",
+          "target_value": "Målvärde",
+          "delay_seconds": "Fördröjning (sekunder)"
+        }
+      },
+      "edit_flags": {
+        "title": "Redigera flaggvillkor",
+        "description": "Aktuella flaggor: {summary}. Välj 'lägg till' för att lägga till, 'rensa' för att ta bort alla, eller 'spara' för att lämna oförändrat.",
+        "data": {
+          "entity": "Flaggentitet",
+          "match_state": "Krävt tillstånd",
+          "action": "Åtgärd"
+        }
+      },
+      "edit_advanced": {
+        "title": "Redigera avancerade inställningar",
+        "data": {
+          "debounce_enabled": "Aktivera avstudsning",
+          "debounce_seconds": "Avstudsningsfönster (sekunder)",
+          "max_enforcements_per_minute": "Max tillämpningar per minut"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Regelnamn kan inte vara tomt.",
+      "empty_target_entities": "Välj minst en målentitet.",
+      "empty_trigger_states": "Ange minst ett utlösartillstånd.",
+      "empty_target_state": "Måltillstånd kan inte vara tomt.",
+      "invalid_threshold": "Tröskelvärde och målvärde måste vara numeriska.",
+      "invalid_delay": "Fördröjning måste vara ett heltal mellan 0 och 86400 sekunder (24h).",
+      "invalid_rate": "Max tillämpningar per minut måste vara ett heltal mellan 1 och 600.",
+      "target_in_triggers": "Måltillstånd kan inte också vara ett utlösartillstånd — det skulle skapa en tillämpningsloop.",
+      "forbidden_state": "Tillstånden 'unavailable', 'unknown' och 'none' kan inte användas som utlösare eller mål.",
+      "incomplete_flag": "Både flaggentitet och krävt tillstånd måste anges.",
+      "safety_not_acknowledged": "Du måste bekräfta säkerhetsrisken för att fortsätta.",
+      "name_already_exists": "En regel med detta namn finns redan."
+    },
+    "abort": {
+      "name_already_exists": "En regel med detta namn finns redan.",
+      "hub_no_options": "Entity Guard-hubben har inga redigerbara alternativ."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Ingen Entity Guard-regel som matchar '{rule_id}' hittades."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Undertryck regel",
+      "description": "Undertryck tillfälligt en Entity Guard-regel. Regeln återupptas automatiskt efter varaktigheten.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnamn (konfigurationspostens titel)."
+        },
+        "duration_minutes": {
+          "name": "Varaktighet (minuter)",
+          "description": "Hur länge regeln ska undertryckas (1-1440 minuter)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Återuppta regel",
+      "description": "Återuppta en undertryckt Entity Guard-regel omedelbart.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnamn (konfigurationspostens titel)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Lista regler",
+      "description": "Returnera konfiguration och aktuell status för varje Entity Guard-regel."
+    },
+    "clear_history": {
+      "name": "Rensa regelhistorik",
+      "description": "Rensa lagrad tillämpningshistorik (räknare, senast tillämpad, nedkylningsperioder) för en regel.",
+      "fields": {
+        "rule_id": {
+          "name": "Regel",
+          "description": "Regel-UUID eller regelnamn (konfigurationspostens titel)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Nödstopp",
+      "description": "Nödavstängning — inaktivera alla regler, rensa alla nedkylningsperioder, undertryck i 60 minuter och stäng av huvudbrytaren för hubben."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Inaktiverad",
+        "suppressed": "Undertryckt",
+        "enforcing": "Tillämpar",
+        "cooldown": "Nedkylning",
+        "armed": "Aktiverad",
+        "idle": "Vilande",
+        "starting": "Startar",
+        "pending": "Strax tillämpning"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Tillstånd",
+        "attribute": "Attribut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Ljusstyrka",
+        "volume_level": "Volymnivå",
+        "temperature": "Temperatur",
+        "percentage": "Procent"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Mindre än (<)",
+        "lte": "Mindre än eller lika med (<=)",
+        "gt": "Större än (>)",
+        "gte": "Större än eller lika med (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Spara utan ändringar",
+        "add": "Lägg till flagga",
+        "clear": "Rensa alla flaggor"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Aktiverad"},
+      "active": {"name": "Aktiv"},
+      "in_cooldown": {"name": "I nedkylning"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Senast tillämpad"},
+      "enforcement_count_today": {"name": "Tillämpningar idag"},
+      "enforcement_count_total": {"name": "Tillämpningar totalt"},
+      "cooldown_remaining": {"name": "Återstående nedkylning"},
+      "safety_status": {"name": "Säkerhetsstatus"},
+      "suppressed_until": {"name": "Undertryckt till"}
+    },
+    "switch": {
+      "enabled": {"name": "Aktiverad"},
+      "debounce_enabled": {"name": "Avstudsning aktiverad"},
+      "master_enabled": {"name": "Huvudbrytare aktiverad"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Fördröjning (sekunder)"},
+      "debounce_seconds": {"name": "Avstudsning (sekunder)"},
+      "max_enforcements_per_minute": {"name": "Max tillämpningar per minut"}
+    },
+    "button": {
+      "reset": {"name": "Återställ nedkylningsperioder"},
+      "test_enforce": {"name": "Testa tillämpning"},
+      "clear_suppression": {"name": "Rensa undertryckning"}
+    }
+  }
+}

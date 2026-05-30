@@ -2,18 +2,6 @@
   "title": "Entity Guard",
   "config": {
     "step": {
-      "user": {
-        "title": "Entity Guard",
-        "description": "Choose what to set up.",
-        "menu_options": {
-          "rule": "New rule",
-          "hub": "Set up Entity Guard hub"
-        }
-      },
-      "hub": {
-        "title": "Set up Entity Guard hub",
-        "description": "The hub owns the global master switch (switch.entity_guard_master_enabled). Only one hub instance is allowed."
-      },
       "rule": {
         "title": "New rule — basics",
         "description": "Name the rule, pick the target entities to enforce against, and choose the rule mode.",
@@ -30,7 +18,7 @@
       },
       "state": {
         "title": "State mode",
-        "description": "When the entity is in any of the trigger states, force it to the target state after the delay.",
+        "description": "When any target entity enters one of the trigger states, force it back to the target state after the optional delay.",
         "data": {
           "trigger_states": "Trigger states",
           "target_state": "Target state",
@@ -39,12 +27,12 @@
         "data_description": {
           "trigger_states": "List of states that arm enforcement (e.g. on, open, unlocked). Type to add custom values.",
           "target_state": "State the entity will be forced to (e.g. off, closed, locked).",
-          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate."
+          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate. Max 86400 (24h)."
         }
       },
       "attribute": {
         "title": "Attribute mode",
-        "description": "When the attribute crosses the threshold, clamp it to the target value after the delay.",
+        "description": "When the attribute on any target entity crosses the threshold, clamp it back to the target value after the optional delay.",
         "data": {
           "attribute": "Attribute",
           "operator": "Operator",
@@ -57,35 +45,49 @@
           "operator": "Comparison operator. Equality is intentionally not supported (float precision).",
           "threshold": "Numeric value compared against the live attribute.",
           "target_value": "Value to set the attribute to when the rule fires.",
-          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate."
+          "delay_seconds": "Wait this long after a trigger before enforcing. 0 = immediate. Max 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Optional features",
+        "description": "Tick any features you want to configure. Each ticked option adds a follow-up screen. Skip them all to go straight to review.",
+        "data": {
+          "add_flags": "Add extra conditions",
+          "custom_rate_limit": "Customize loop protection",
+          "add_debounce": "Enable debounce"
+        },
+        "data_description": {
+          "add_flags": "Tick to require extra conditions (e.g. only enforce when nobody is home, only after sunset). Leave unticked to enforce every time the trigger fires.",
+          "custom_rate_limit": "Loop protection auto-suppresses the rule if it fires more than 10 times per minute (default). Leave unticked to use the default. Tick to set your own number, or to turn loop protection off entirely on a later screen.",
+          "add_debounce": "Tick to ignore quick back-and-forth changes. The rule only acts if the trigger stays the same for the time you set on a later screen. Leave unticked to act on every change."
         }
       },
       "flags": {
-        "title": "Flag conditions",
-        "description": "Optional gating conditions (AND'd). The rule only enforces when every flag matches. Currently {count} flag(s): {summary}. Leave both fields blank and uncheck \"add another\" to finish.",
+        "title": "Conditions (optional)",
+        "description": "Extra conditions that must all be true for the rule to act.\n\nExamples:\n  • person.alice = not_home — only when Alice is away\n  • input_boolean.guest_mode = off — only when no guests\n  • sun.sun = below_horizon — only after sunset\n  • binary_sensor.work_hours = on — only during work hours\n\nTo add a condition: pick an entity, type the state it must be in, then click Submit.\n\nIf you don't want any condition right now, leave both fields empty and click Submit to skip.\n\nConditions added so far ({count}): {summary}\n\nTick 'Add another' to chain more — all must match for the rule to fire.",
         "data": {
-          "entity": "Flag entity",
+          "entity": "Condition entity",
           "match_state": "Required state",
-          "add_another": "Add another flag after this one"
+          "add_another": "Add another condition after this one"
         },
         "data_description": {
-          "entity": "Entity whose state must match for the rule to be armed.",
-          "match_state": "Exact state value the flag entity must be in (e.g. on, home, true).",
-          "add_another": "Check to keep adding flags. Uncheck to continue."
+          "entity": "Pick the entity whose state acts as a condition (e.g. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "The state the entity must be in for the rule to fire (e.g. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Tick to add more conditions. Leave unticked to finish."
         }
       },
       "advanced": {
         "title": "Advanced",
-        "description": "Debounce smooths flapping triggers. Rate limit auto-suppresses runaway loops.",
+        "description": "Set the options you opted into on the previous screen. The default rate limit is {default_rate} enforcements per minute.",
         "data": {
-          "debounce_enabled": "Enable debounce",
           "debounce_seconds": "Debounce window (seconds)",
+          "rate_limit_enabled": "Enforce loop protection",
           "max_enforcements_per_minute": "Max enforcements per minute"
         },
         "data_description": {
-          "debounce_enabled": "Coalesce rapid trigger changes within the debounce window.",
-          "debounce_seconds": "Window in seconds. Only used when debounce is enabled.",
-          "max_enforcements_per_minute": "Exceeding this rate auto-suppresses the rule for 15 minutes and fires entity_guard_loop_detected."
+          "debounce_seconds": "Window in seconds. Min 0, max 86400 (24h). Only shown when debounce was enabled on the previous step.",
+          "rate_limit_enabled": "Tick to keep loop protection on (recommended). Untick to disable it for this rule — runaway loops will not be stopped automatically.",
+          "max_enforcements_per_minute": "How many enforcements per minute are allowed before the rule auto-suppresses for 15 minutes. Min 1, max 600. Ignored when loop protection is unticked above."
         }
       },
       "safety": {
@@ -96,11 +98,8 @@
         }
       },
       "preview": {
-        "title": "Review and save",
-        "description": "{summary}",
-        "data": {
-          "confirm": "Create this rule"
-        }
+        "title": "Review and create",
+        "description": "Review your rule below. Click **Submit** to create it, or use the back arrow to make changes.\n\n---\n\n{summary}"
       }
     },
     "error": {
@@ -109,8 +108,13 @@
       "empty_trigger_states": "Provide at least one trigger state.",
       "empty_target_state": "Target state cannot be empty.",
       "invalid_threshold": "Threshold and target value must be numeric.",
+      "invalid_delay": "Delay must be a whole number between 0 and 86400 seconds (24h).",
+      "invalid_rate": "Max enforcements per minute must be a whole number between 1 and 600.",
+      "target_in_triggers": "Target state cannot also be a trigger state — that would create an enforcement loop.",
+      "forbidden_state": "States 'unavailable', 'unknown', and 'none' cannot be used as triggers or targets.",
       "incomplete_flag": "Both flag entity and required state must be set.",
-      "safety_not_acknowledged": "You must acknowledge the safety risk to continue."
+      "safety_not_acknowledged": "You must acknowledge the safety risk to continue.",
+      "name_already_exists": "A rule with this name already exists."
     },
     "abort": {
       "single_instance_allowed": "Only one Entity Guard hub can be configured.",
@@ -188,12 +192,22 @@
       "empty_trigger_states": "Provide at least one trigger state.",
       "empty_target_state": "Target state cannot be empty.",
       "invalid_threshold": "Threshold and target value must be numeric.",
+      "invalid_delay": "Delay must be a whole number between 0 and 86400 seconds (24h).",
+      "invalid_rate": "Max enforcements per minute must be a whole number between 1 and 600.",
+      "target_in_triggers": "Target state cannot also be a trigger state — that would create an enforcement loop.",
+      "forbidden_state": "States 'unavailable', 'unknown', and 'none' cannot be used as triggers or targets.",
       "incomplete_flag": "Both flag entity and required state must be set.",
-      "safety_not_acknowledged": "You must acknowledge the safety risk to continue."
+      "safety_not_acknowledged": "You must acknowledge the safety risk to continue.",
+      "name_already_exists": "A rule with this name already exists."
     },
     "abort": {
       "name_already_exists": "A rule with this name already exists.",
       "hub_no_options": "The Entity Guard hub has no editable options."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "No Entity Guard rule found matching '{rule_id}'."
     }
   },
   "services": {
@@ -248,7 +262,9 @@
         "enforcing": "Enforcing",
         "cooldown": "Cooldown",
         "armed": "Armed",
-        "idle": "Idle"
+        "idle": "Idle",
+        "starting": "Starting",
+        "pending": "About to enforce"
       }
     },
     "mode": {
@@ -293,7 +309,6 @@
       "enforcement_count_today": {"name": "Enforcements today"},
       "enforcement_count_total": {"name": "Enforcements total"},
       "cooldown_remaining": {"name": "Cooldown remaining"},
-      "blocked_entities": {"name": "Blocked entities"},
       "safety_status": {"name": "Safety status"},
       "suppressed_until": {"name": "Suppressed until"}
     },
@@ -309,7 +324,8 @@
     },
     "button": {
       "reset": {"name": "Reset cooldowns"},
-      "test_enforce": {"name": "Test enforce"}
+      "test_enforce": {"name": "Test enforce"},
+      "clear_suppression": {"name": "Clear suppression"}
     }
   }
 }

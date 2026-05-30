@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nouvelle règle — informations de base",
+        "description": "Nommez la règle, sélectionnez les entités cibles à surveiller, puis choisissez le mode de la règle.",
+        "data": {
+          "rule_name": "Nom de la règle",
+          "target_entities": "Entités cibles",
+          "mode": "Mode de la règle"
+        },
+        "data_description": {
+          "rule_name": "Nom d'affichage présenté dans l'interface. Doit être unique.",
+          "target_entities": "Une ou plusieurs entités sur lesquelles cette règle s'appliquera.",
+          "mode": "Le mode État force un état précis. Le mode Attribut limite un attribut numérique."
+        }
+      },
+      "state": {
+        "title": "Mode État",
+        "description": "Lorsqu'une entité cible passe à l'un des états déclencheurs, la forcer à revenir à l'état cible après le délai facultatif.",
+        "data": {
+          "trigger_states": "États déclencheurs",
+          "target_state": "État cible",
+          "delay_seconds": "Délai (secondes)"
+        },
+        "data_description": {
+          "trigger_states": "Liste des états qui activent l'application (par ex. on, open, unlocked). Saisissez du texte pour ajouter des valeurs personnalisées.",
+          "target_state": "État vers lequel l'entité sera forcée (par ex. off, closed, locked).",
+          "delay_seconds": "Attendre cette durée après un déclenchement avant d'appliquer. 0 = immédiat. Maximum 86400 (24 h)."
+        }
+      },
+      "attribute": {
+        "title": "Mode Attribut",
+        "description": "Lorsque l'attribut d'une entité cible franchit le seuil, le ramener à la valeur cible après le délai facultatif.",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Opérateur",
+          "threshold": "Seuil",
+          "target_value": "Valeur cible",
+          "delay_seconds": "Délai (secondes)"
+        },
+        "data_description": {
+          "attribute": "Attribut à surveiller.",
+          "operator": "Opérateur de comparaison. L'égalité n'est volontairement pas prise en charge (précision des nombres flottants).",
+          "threshold": "Valeur numérique comparée à l'attribut en temps réel.",
+          "target_value": "Valeur à laquelle l'attribut sera défini lorsque la règle se déclenche.",
+          "delay_seconds": "Attendre cette durée après un déclenchement avant d'appliquer. 0 = immédiat. Maximum 86400 (24 h)."
+        }
+      },
+      "extras": {
+        "title": "Fonctionnalités facultatives",
+        "description": "Cochez les fonctionnalités que vous souhaitez configurer. Chaque option cochée ajoute un écran de suivi. Ne cochez rien pour passer directement à la révision.",
+        "data": {
+          "add_flags": "Ajouter des conditions supplémentaires",
+          "custom_rate_limit": "Personnaliser la protection anti-boucle",
+          "add_debounce": "Activer l'anti-rebond"
+        },
+        "data_description": {
+          "add_flags": "Cochez pour exiger des conditions supplémentaires (par ex. n'appliquer que lorsque personne n'est à la maison, uniquement après le coucher du soleil). Laissez décoché pour appliquer à chaque déclenchement.",
+          "custom_rate_limit": "La protection anti-boucle supprime automatiquement la règle si elle se déclenche plus de 10 fois par minute (par défaut). Laissez décoché pour utiliser la valeur par défaut. Cochez pour définir votre propre nombre, ou pour désactiver totalement la protection anti-boucle dans un écran ultérieur.",
+          "add_debounce": "Cochez pour ignorer les changements rapides de va-et-vient. La règle n'agit que si le déclencheur reste identique pendant la durée définie sur un écran ultérieur. Laissez décoché pour agir à chaque changement."
+        }
+      },
+      "flags": {
+        "title": "Conditions (facultatif)",
+        "description": "Conditions supplémentaires qui doivent toutes être vraies pour que la règle s'applique.\n\nExemples :\n  • person.alice = not_home — uniquement quand Alice est absente\n  • input_boolean.guest_mode = off — uniquement en l'absence d'invités\n  • sun.sun = below_horizon — uniquement après le coucher du soleil\n  • binary_sensor.work_hours = on — uniquement pendant les heures de travail\n\nPour ajouter une condition : choisissez une entité, saisissez l'état requis, puis cliquez sur Soumettre.\n\nSi vous ne souhaitez aucune condition pour l'instant, laissez les deux champs vides et cliquez sur Soumettre pour passer.\n\nConditions ajoutées jusqu'à présent ({count}) : {summary}\n\nCochez « Ajouter une autre » pour en chaîner d'autres — toutes doivent correspondre pour que la règle se déclenche.",
+        "data": {
+          "entity": "Entité de la condition",
+          "match_state": "État requis",
+          "add_another": "Ajouter une autre condition après celle-ci"
+        },
+        "data_description": {
+          "entity": "Choisissez l'entité dont l'état sert de condition (par ex. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "État dans lequel l'entité doit se trouver pour que la règle se déclenche (par ex. « on », « home », « not_home », « below_horizon »).",
+          "add_another": "Cochez pour ajouter d'autres conditions. Laissez décoché pour terminer."
+        }
+      },
+      "advanced": {
+        "title": "Avancé",
+        "description": "Configurez les options que vous avez activées à l'écran précédent. La limite de fréquence par défaut est de {default_rate} applications par minute.",
+        "data": {
+          "debounce_seconds": "Fenêtre d'anti-rebond (secondes)",
+          "rate_limit_enabled": "Activer la protection anti-boucle",
+          "max_enforcements_per_minute": "Nombre maximal d'applications par minute"
+        },
+        "data_description": {
+          "debounce_seconds": "Fenêtre en secondes. Min 0, max 86400 (24 h). Affichée uniquement si l'anti-rebond a été activé à l'étape précédente.",
+          "rate_limit_enabled": "Cochez pour conserver la protection anti-boucle activée (recommandé). Décochez pour la désactiver pour cette règle — les boucles incontrôlées ne seront pas arrêtées automatiquement.",
+          "max_enforcements_per_minute": "Combien d'applications par minute sont autorisées avant que la règle ne s'auto-supprime pendant 15 minutes. Min 1, max 600. Ignoré si la protection anti-boucle est décochée ci-dessus."
+        }
+      },
+      "safety": {
+        "title": "Confirmation de sécurité",
+        "description": "Cette règle cible des entités sensibles à la sécurité ({entities}). Vous devez explicitement reconnaître le risque pour continuer.",
+        "data": {
+          "safety_acknowledged": "Je comprends que cette règle actionnera du matériel physique et j'en accepte le risque."
+        }
+      },
+      "preview": {
+        "title": "Réviser et créer",
+        "description": "Vérifiez votre règle ci-dessous. Cliquez sur **Soumettre** pour la créer, ou utilisez la flèche de retour pour modifier.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Le nom de la règle ne peut pas être vide.",
+      "empty_target_entities": "Sélectionnez au moins une entité cible.",
+      "empty_trigger_states": "Indiquez au moins un état déclencheur.",
+      "empty_target_state": "L'état cible ne peut pas être vide.",
+      "invalid_threshold": "Le seuil et la valeur cible doivent être numériques.",
+      "invalid_delay": "Le délai doit être un nombre entier compris entre 0 et 86400 secondes (24 h).",
+      "invalid_rate": "Le nombre maximal d'applications par minute doit être un nombre entier compris entre 1 et 600.",
+      "target_in_triggers": "L'état cible ne peut pas également être un état déclencheur — cela créerait une boucle d'application.",
+      "forbidden_state": "Les états « unavailable », « unknown » et « none » ne peuvent pas être utilisés comme déclencheurs ou cibles.",
+      "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
+      "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
+      "name_already_exists": "Une règle portant ce nom existe déjà."
+    },
+    "abort": {
+      "single_instance_allowed": "Un seul concentrateur Entity Guard peut être configuré.",
+      "name_already_exists": "Une règle portant ce nom existe déjà.",
+      "already_configured": "Cette règle est déjà configurée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modifier la règle",
+        "description": "Choisissez ce que vous souhaitez modifier.",
+        "menu_options": {
+          "edit_basics": "Modifier le nom",
+          "edit_mode": "Modifier les paramètres spécifiques au mode",
+          "edit_entities": "Ajouter ou supprimer des entités cibles",
+          "edit_flags": "Modifier les conditions",
+          "edit_advanced": "Modifier l'anti-rebond et la limite de fréquence"
+        }
+      },
+      "edit_basics": {
+        "title": "Modifier le nom",
+        "data": {"rule_name": "Nom de la règle"}
+      },
+      "edit_entities": {
+        "title": "Modifier les entités cibles",
+        "data": {"target_entities": "Entités cibles"}
+      },
+      "edit_safety": {
+        "title": "Confirmation de sécurité",
+        "description": "De nouvelles entités sensibles à la sécurité ont été ajoutées. Reconfirmez pour enregistrer.",
+        "data": {
+          "safety_acknowledged": "Je comprends que cette règle actionnera du matériel physique et j'en accepte le risque."
+        }
+      },
+      "edit_state": {
+        "title": "Modifier le mode État",
+        "data": {
+          "trigger_states": "États déclencheurs",
+          "target_state": "État cible",
+          "delay_seconds": "Délai (secondes)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Modifier le mode Attribut",
+        "data": {
+          "attribute": "Attribut",
+          "operator": "Opérateur",
+          "threshold": "Seuil",
+          "target_value": "Valeur cible",
+          "delay_seconds": "Délai (secondes)"
+        }
+      },
+      "edit_flags": {
+        "title": "Modifier les conditions",
+        "description": "Conditions actuelles : {summary}. Choisissez « add » pour ajouter, « clear » pour tout supprimer, ou « save » pour ne rien modifier.",
+        "data": {
+          "entity": "Entité de la condition",
+          "match_state": "État requis",
+          "action": "Action"
+        }
+      },
+      "edit_advanced": {
+        "title": "Modifier les paramètres avancés",
+        "data": {
+          "debounce_enabled": "Activer l'anti-rebond",
+          "debounce_seconds": "Fenêtre d'anti-rebond (secondes)",
+          "max_enforcements_per_minute": "Nombre maximal d'applications par minute"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Le nom de la règle ne peut pas être vide.",
+      "empty_target_entities": "Sélectionnez au moins une entité cible.",
+      "empty_trigger_states": "Indiquez au moins un état déclencheur.",
+      "empty_target_state": "L'état cible ne peut pas être vide.",
+      "invalid_threshold": "Le seuil et la valeur cible doivent être numériques.",
+      "invalid_delay": "Le délai doit être un nombre entier compris entre 0 et 86400 secondes (24 h).",
+      "invalid_rate": "Le nombre maximal d'applications par minute doit être un nombre entier compris entre 1 et 600.",
+      "target_in_triggers": "L'état cible ne peut pas également être un état déclencheur — cela créerait une boucle d'application.",
+      "forbidden_state": "Les états « unavailable », « unknown » et « none » ne peuvent pas être utilisés comme déclencheurs ou cibles.",
+      "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
+      "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
+      "name_already_exists": "Une règle portant ce nom existe déjà."
+    },
+    "abort": {
+      "name_already_exists": "Une règle portant ce nom existe déjà.",
+      "hub_no_options": "Le concentrateur Entity Guard n'a aucune option modifiable."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Aucune règle Entity Guard ne correspond à « {rule_id} »."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Supprimer une règle",
+      "description": "Supprime temporairement une règle Entity Guard. La règle reprend automatiquement après la durée indiquée.",
+      "fields": {
+        "rule_id": {
+          "name": "Règle",
+          "description": "UUID de la règle ou nom de la règle (titre de l'entrée de configuration)."
+        },
+        "duration_minutes": {
+          "name": "Durée (minutes)",
+          "description": "Durée de suppression de la règle (1 à 1440 minutes)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Annuler la suppression d'une règle",
+      "description": "Reprend immédiatement une règle Entity Guard supprimée.",
+      "fields": {
+        "rule_id": {
+          "name": "Règle",
+          "description": "UUID de la règle ou nom de la règle (titre de l'entrée de configuration)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Lister les règles",
+      "description": "Renvoie la configuration et l'état actuel de chaque règle Entity Guard."
+    },
+    "clear_history": {
+      "name": "Effacer l'historique de la règle",
+      "description": "Efface l'historique d'application enregistré (compteurs, dernière application, temps de récupération) pour une règle.",
+      "fields": {
+        "rule_id": {
+          "name": "Règle",
+          "description": "UUID de la règle ou nom de la règle (titre de l'entrée de configuration)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Arrêt d'urgence",
+      "description": "Arrêt d'urgence — désactive toutes les règles, efface tous les temps de récupération, supprime pendant 60 minutes et désactive l'interrupteur principal du concentrateur."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Désactivée",
+        "suppressed": "Supprimée",
+        "enforcing": "Application en cours",
+        "cooldown": "Temps de récupération",
+        "armed": "Armée",
+        "idle": "Inactive",
+        "starting": "Démarrage",
+        "pending": "Sur le point d'être appliquée"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "État",
+        "attribute": "Attribut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Luminosité",
+        "volume_level": "Niveau de volume",
+        "temperature": "Température",
+        "percentage": "Pourcentage"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Inférieur à (<)",
+        "lte": "Inférieur ou égal à (<=)",
+        "gt": "Supérieur à (>)",
+        "gte": "Supérieur ou égal à (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Enregistrer sans modification",
+        "add": "Ajouter une condition",
+        "clear": "Effacer toutes les conditions"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Armée"},
+      "active": {"name": "Active"},
+      "in_cooldown": {"name": "En récupération"}
+    },
+    "sensor": {
+      "status": {"name": "Statut"},
+      "last_enforced": {"name": "Dernière application"},
+      "enforcement_count_today": {"name": "Applications aujourd'hui"},
+      "enforcement_count_total": {"name": "Applications au total"},
+      "cooldown_remaining": {"name": "Récupération restante"},
+      "safety_status": {"name": "Statut de sécurité"},
+      "suppressed_until": {"name": "Supprimée jusqu'à"}
+    },
+    "switch": {
+      "enabled": {"name": "Activée"},
+      "debounce_enabled": {"name": "Anti-rebond activé"},
+      "master_enabled": {"name": "Interrupteur principal activé"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Délai (secondes)"},
+      "debounce_seconds": {"name": "Anti-rebond (secondes)"},
+      "max_enforcements_per_minute": {"name": "Nombre maximal d'applications par minute"}
+    },
+    "button": {
+      "reset": {"name": "Réinitialiser les temps de récupération"},
+      "test_enforce": {"name": "Tester l'application"},
+      "clear_suppression": {"name": "Effacer la suppression"}
+    }
+  }
+}

@@ -6,10 +6,9 @@ import json
 import logging
 from pathlib import Path
 
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -54,6 +53,7 @@ def _get_version() -> str:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Entity Guard integration."""
+    _LOGGER.debug("async_setup invoked")
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault("engines", {})
     hass.data[DOMAIN].setdefault("hub_master_enabled", True)
@@ -62,7 +62,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         store = EntityGuardStore(hass)
         await store.async_load()
         hass.data[DOMAIN]["storage"] = store
+        _LOGGER.debug("Storage initialized")
     await async_register_services(hass)
+    _LOGGER.info("Entity Guard integration loaded")
     return True
 
 
@@ -74,13 +76,25 @@ def _master_enabled_getter(hass: HomeAssistant):
         hub = domain_data.get("hub")
         if hub is not None:
             return bool(getattr(hub, "enabled", True))
-        return bool(domain_data.get("hub_master_enabled", True))
+        if "hub_master_enabled" in domain_data:
+            return bool(domain_data["hub_master_enabled"])
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_HUB:
+                return bool(entry.options.get("master_enabled", True))
+        return True
 
     return _get
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Entity Guard from a config entry."""
+    entry_type = entry.data.get(CONF_ENTRY_TYPE, ENTRY_TYPE_RULE)
+    _LOGGER.debug(
+        "async_setup_entry start: entry_id=%s type=%s title=%s",
+        entry.entry_id,
+        entry_type,
+        entry.title,
+    )
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault("engines", {})
     hass.data[DOMAIN].setdefault("hub_master_enabled", True)
@@ -89,20 +103,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         store = EntityGuardStore(hass)
         await store.async_load()
         hass.data[DOMAIN]["storage"] = store
-
-    entry_type = entry.data.get(CONF_ENTRY_TYPE, ENTRY_TYPE_RULE)
+        _LOGGER.debug("Storage lazy-initialized in setup_entry")
 
     if entry_type == ENTRY_TYPE_HUB:
+        _LOGGER.info("Setting up hub entry %s", entry.entry_id)
+        hass.data[DOMAIN]["hub_master_enabled"] = bool(
+            entry.options.get("master_enabled", True)
+        )
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS_HUB)
+        _LOGGER.debug("Hub platforms forwarded: %s", PLATFORMS_HUB)
     else:
+        _LOGGER.info("Setting up rule entry %s (%s)", entry.entry_id, entry.title)
         config = parse_rule_config(entry)
         store = hass.data[DOMAIN]["storage"]
         engine = RuleEngine(hass, config, store, _master_enabled_getter(hass))
         await engine.async_setup()
         hass.data[DOMAIN]["engines"][entry.entry_id] = engine
+        _LOGGER.debug(
+            "Rule engine ready: rule_id=%s targets=%s mode=%s",
+            config.unique_id,
+            config.target_entities,
+            config.mode,
+        )
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS_RULE)
+        # Recreate hub if missing — covers user deleting hub while rules still exist.
+        await _async_ensure_hub(hass)
 
     await _async_install_card(hass)
+    _LOGGER.debug("async_setup_entry complete: entry_id=%s", entry.entry_id)
 
     return True
 
@@ -111,6 +139,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     entry_type = entry.data.get(CONF_ENTRY_TYPE, ENTRY_TYPE_RULE)
     platforms = PLATFORMS_HUB if entry_type == ENTRY_TYPE_HUB else PLATFORMS_RULE
+    _LOGGER.debug("Unloading entry %s (type=%s)", entry.entry_id, entry_type)
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
 
@@ -119,8 +148,47 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         engine = engines.pop(entry.entry_id, None)
         if engine is not None:
             await engine.async_unload()
+            _LOGGER.debug("Engine unloaded for %s", entry.entry_id)
+    _LOGGER.info("Entry %s unloaded (ok=%s)", entry.entry_id, unload_ok)
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Block hub removal while rules still exist; recreate hub immediately if forced."""
+    if entry.data.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_HUB:
+        _LOGGER.debug("Removed rule entry %s", entry.entry_id)
+        return
+    rule_entries = [
+        e
+        for e in hass.config_entries.async_entries(DOMAIN)
+        if e.entry_id != entry.entry_id
+        and e.data.get(CONF_ENTRY_TYPE, ENTRY_TYPE_RULE) == ENTRY_TYPE_RULE
+    ]
+    if rule_entries:
+        _LOGGER.warning(
+            "Hub removed while %d rule(s) still configured — recreating hub",
+            len(rule_entries),
+        )
+        await _async_ensure_hub(hass)
+    else:
+        _LOGGER.info("Hub removed; no rules remain")
+
+
+async def _async_ensure_hub(hass: HomeAssistant) -> None:
+    """Spawn hub entry if missing. Idempotent; safe to call repeatedly."""
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_HUB:
+            _LOGGER.debug("Hub already exists: %s", entry.entry_id)
+            return
+    _LOGGER.info("Hub missing — spawning import flow to create it")
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": SOURCE_IMPORT},
+            data={},
+        )
+    )
 
 
 async def _async_install_card(hass: HomeAssistant) -> None:
@@ -143,11 +211,6 @@ async def _async_install_card(hass: HomeAssistant) -> None:
     except Exception:  # noqa: BLE001
         _LOGGER.debug("Static path %s already registered", CARD_URL)
 
-    try:
-        add_extra_js_url(hass, f"{CARD_URL}?{version}")
-    except Exception:  # noqa: BLE001
-        _LOGGER.debug("extra_js_url already registered for %s", CARD_URL)
-
     await _async_register_lovelace_resource(hass, version)
     hass.data[DOMAIN][_CARD_INSTALLED_KEY] = True
 
@@ -161,8 +224,9 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, version: str) -
     except (KeyError, AttributeError):
         _LOGGER.info(
             "Could not auto-register Lovelace resource. "
-            "Add manually: url: %s, type: module",
-            resource_url,
+            "Add manually: url: %s?%s, type: module",
+            CARD_URL,
+            version,
         )
         return
 
@@ -187,11 +251,14 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, version: str) -
     for r in existing[1:]:
         if isinstance(resources, ResourceStorageCollection):
             await resources.async_delete_item(r["id"])
+            _LOGGER.info("Removed duplicate Lovelace resource %s", r["url"])
 
     first = existing[0]
-    if first.get("url") != resource_url and isinstance(
-        resources, ResourceStorageCollection
-    ):
-        await resources.async_update_item(
-            first["id"], {"res_type": "module", "url": resource_url}
-        )
+    if first.get("url") != resource_url:
+        if isinstance(resources, ResourceStorageCollection):
+            await resources.async_update_item(
+                first["id"], {"res_type": "module", "url": resource_url}
+            )
+            _LOGGER.info("Updated Lovelace resource to %s", resource_url)
+        else:
+            first["url"] = resource_url

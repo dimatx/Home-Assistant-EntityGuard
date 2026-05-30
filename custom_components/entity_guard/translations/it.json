@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nuova regola — informazioni di base",
+        "description": "Assegna un nome alla regola, scegli le entità di destinazione da controllare e seleziona la modalità della regola.",
+        "data": {
+          "rule_name": "Nome regola",
+          "target_entities": "Entità di destinazione",
+          "mode": "Modalità regola"
+        },
+        "data_description": {
+          "rule_name": "Nome visualizzato nell'interfaccia. Deve essere univoco.",
+          "target_entities": "Una o più entità su cui questa regola verrà applicata.",
+          "mode": "La modalità Stato forza uno stato specifico. La modalità Attributo limita un attributo numerico."
+        }
+      },
+      "state": {
+        "title": "Modalità Stato",
+        "description": "Quando una qualsiasi entità di destinazione entra in uno degli stati di attivazione, riportala allo stato di destinazione dopo il ritardo opzionale.",
+        "data": {
+          "trigger_states": "Stati di attivazione",
+          "target_state": "Stato di destinazione",
+          "delay_seconds": "Ritardo (secondi)"
+        },
+        "data_description": {
+          "trigger_states": "Elenco degli stati che attivano l'applicazione (es. on, open, unlocked). Digita per aggiungere valori personalizzati.",
+          "target_state": "Stato a cui l'entità verrà forzata (es. off, closed, locked).",
+          "delay_seconds": "Attendi questo tempo dopo un'attivazione prima di applicare la regola. 0 = immediato. Massimo 86400 (24h)."
+        }
+      },
+      "attribute": {
+        "title": "Modalità Attributo",
+        "description": "Quando l'attributo di una qualsiasi entità di destinazione supera la soglia, riportalo al valore di destinazione dopo il ritardo opzionale.",
+        "data": {
+          "attribute": "Attributo",
+          "operator": "Operatore",
+          "threshold": "Soglia",
+          "target_value": "Valore di destinazione",
+          "delay_seconds": "Ritardo (secondi)"
+        },
+        "data_description": {
+          "attribute": "Attributo da monitorare.",
+          "operator": "Operatore di confronto. L'uguaglianza non è intenzionalmente supportata (precisione dei float).",
+          "threshold": "Valore numerico confrontato con l'attributo in tempo reale.",
+          "target_value": "Valore a cui impostare l'attributo quando la regola si attiva.",
+          "delay_seconds": "Attendi questo tempo dopo un'attivazione prima di applicare la regola. 0 = immediato. Massimo 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Funzionalità opzionali",
+        "description": "Seleziona le funzionalità che desideri configurare. Ogni opzione selezionata aggiunge una schermata successiva. Non selezionare nulla per andare direttamente al riepilogo.",
+        "data": {
+          "add_flags": "Aggiungi condizioni extra",
+          "custom_rate_limit": "Personalizza la protezione anti-loop",
+          "add_debounce": "Abilita debounce"
+        },
+        "data_description": {
+          "add_flags": "Seleziona per richiedere condizioni aggiuntive (es. applicare solo quando nessuno è in casa, solo dopo il tramonto). Lascia deselezionato per applicare ogni volta che il trigger si attiva.",
+          "custom_rate_limit": "La protezione anti-loop sopprime automaticamente la regola se si attiva più di 10 volte al minuto (predefinito). Lascia deselezionato per usare il valore predefinito. Seleziona per impostare un valore personalizzato o per disattivare completamente la protezione anti-loop in una schermata successiva.",
+          "add_debounce": "Seleziona per ignorare i cambiamenti rapidi avanti e indietro. La regola agisce solo se il trigger rimane invariato per il tempo impostato in una schermata successiva. Lascia deselezionato per agire ad ogni cambiamento."
+        }
+      },
+      "flags": {
+        "title": "Condizioni (opzionale)",
+        "description": "Condizioni extra che devono essere tutte vere affinché la regola agisca.\n\nEsempi:\n  • person.alice = not_home — solo quando Alice è fuori casa\n  • input_boolean.guest_mode = off — solo quando non ci sono ospiti\n  • sun.sun = below_horizon — solo dopo il tramonto\n  • binary_sensor.work_hours = on — solo durante l'orario di lavoro\n\nPer aggiungere una condizione: scegli un'entità, digita lo stato in cui deve trovarsi, poi clicca Invia.\n\nSe non vuoi alcuna condizione in questo momento, lascia entrambi i campi vuoti e clicca Invia per saltare.\n\nCondizioni aggiunte finora ({count}): {summary}\n\nSeleziona 'Aggiungi un'altra' per concatenarne altre — devono corrispondere tutte affinché la regola si attivi.",
+        "data": {
+          "entity": "Entità della condizione",
+          "match_state": "Stato richiesto",
+          "add_another": "Aggiungi un'altra condizione dopo questa"
+        },
+        "data_description": {
+          "entity": "Scegli l'entità il cui stato funge da condizione (es. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "Lo stato in cui deve trovarsi l'entità affinché la regola si attivi (es. 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Seleziona per aggiungere altre condizioni. Lascia deselezionato per terminare."
+        }
+      },
+      "advanced": {
+        "title": "Avanzate",
+        "description": "Imposta le opzioni che hai selezionato nella schermata precedente. Il limite predefinito è di {default_rate} applicazioni al minuto.",
+        "data": {
+          "debounce_seconds": "Finestra di debounce (secondi)",
+          "rate_limit_enabled": "Applica protezione anti-loop",
+          "max_enforcements_per_minute": "Numero massimo di applicazioni al minuto"
+        },
+        "data_description": {
+          "debounce_seconds": "Finestra in secondi. Min 0, max 86400 (24h). Mostrato solo se il debounce è stato abilitato nel passaggio precedente.",
+          "rate_limit_enabled": "Seleziona per mantenere attiva la protezione anti-loop (consigliato). Deseleziona per disabilitarla per questa regola — i loop incontrollati non verranno fermati automaticamente.",
+          "max_enforcements_per_minute": "Quante applicazioni al minuto sono consentite prima che la regola venga auto-soppressa per 15 minuti. Min 1, max 600. Ignorato quando la protezione anti-loop è deselezionata sopra."
+        }
+      },
+      "safety": {
+        "title": "Conferma di sicurezza",
+        "description": "Questa regola riguarda entità sensibili dal punto di vista della sicurezza ({entities}). Devi confermare esplicitamente il rischio per continuare.",
+        "data": {
+          "safety_acknowledged": "Comprendo che questa regola sposterà hardware fisico e accetto il rischio."
+        }
+      },
+      "preview": {
+        "title": "Rivedi e crea",
+        "description": "Rivedi la tua regola qui sotto. Clicca **Invia** per crearla, oppure usa la freccia indietro per apportare modifiche.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Il nome della regola non può essere vuoto.",
+      "empty_target_entities": "Scegli almeno un'entità di destinazione.",
+      "empty_trigger_states": "Fornisci almeno uno stato di attivazione.",
+      "empty_target_state": "Lo stato di destinazione non può essere vuoto.",
+      "invalid_threshold": "La soglia e il valore di destinazione devono essere numerici.",
+      "invalid_delay": "Il ritardo deve essere un numero intero compreso tra 0 e 86400 secondi (24h).",
+      "invalid_rate": "Il numero massimo di applicazioni al minuto deve essere un numero intero compreso tra 1 e 600.",
+      "target_in_triggers": "Lo stato di destinazione non può essere anche uno stato di attivazione — questo creerebbe un loop di applicazione.",
+      "forbidden_state": "Gli stati 'unavailable', 'unknown' e 'none' non possono essere usati come trigger o destinazioni.",
+      "incomplete_flag": "Devono essere impostati sia l'entità della condizione sia lo stato richiesto.",
+      "safety_not_acknowledged": "Devi confermare il rischio di sicurezza per continuare.",
+      "name_already_exists": "Esiste già una regola con questo nome."
+    },
+    "abort": {
+      "single_instance_allowed": "Può essere configurato un solo hub Entity Guard.",
+      "name_already_exists": "Esiste già una regola con questo nome.",
+      "already_configured": "Questa regola è già configurata."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modifica regola",
+        "description": "Scegli cosa modificare.",
+        "menu_options": {
+          "edit_basics": "Modifica nome",
+          "edit_mode": "Modifica impostazioni specifiche della modalità",
+          "edit_entities": "Aggiungi o rimuovi entità di destinazione",
+          "edit_flags": "Modifica condizioni",
+          "edit_advanced": "Modifica debounce e limite di frequenza"
+        }
+      },
+      "edit_basics": {
+        "title": "Modifica nome",
+        "data": {"rule_name": "Nome regola"}
+      },
+      "edit_entities": {
+        "title": "Modifica entità di destinazione",
+        "data": {"target_entities": "Entità di destinazione"}
+      },
+      "edit_safety": {
+        "title": "Conferma di sicurezza",
+        "description": "Sono state aggiunte nuove entità sensibili dal punto di vista della sicurezza. Riconferma per salvare.",
+        "data": {
+          "safety_acknowledged": "Comprendo che questa regola sposterà hardware fisico e accetto il rischio."
+        }
+      },
+      "edit_state": {
+        "title": "Modifica modalità Stato",
+        "data": {
+          "trigger_states": "Stati di attivazione",
+          "target_state": "Stato di destinazione",
+          "delay_seconds": "Ritardo (secondi)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Modifica modalità Attributo",
+        "data": {
+          "attribute": "Attributo",
+          "operator": "Operatore",
+          "threshold": "Soglia",
+          "target_value": "Valore di destinazione",
+          "delay_seconds": "Ritardo (secondi)"
+        }
+      },
+      "edit_flags": {
+        "title": "Modifica condizioni",
+        "description": "Condizioni attuali: {summary}. Scegli 'aggiungi' per aggiungerne, 'cancella' per rimuoverle tutte, oppure 'salva' per lasciarle invariate.",
+        "data": {
+          "entity": "Entità della condizione",
+          "match_state": "Stato richiesto",
+          "action": "Azione"
+        }
+      },
+      "edit_advanced": {
+        "title": "Modifica impostazioni avanzate",
+        "data": {
+          "debounce_enabled": "Abilita debounce",
+          "debounce_seconds": "Finestra di debounce (secondi)",
+          "max_enforcements_per_minute": "Numero massimo di applicazioni al minuto"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Il nome della regola non può essere vuoto.",
+      "empty_target_entities": "Scegli almeno un'entità di destinazione.",
+      "empty_trigger_states": "Fornisci almeno uno stato di attivazione.",
+      "empty_target_state": "Lo stato di destinazione non può essere vuoto.",
+      "invalid_threshold": "La soglia e il valore di destinazione devono essere numerici.",
+      "invalid_delay": "Il ritardo deve essere un numero intero compreso tra 0 e 86400 secondi (24h).",
+      "invalid_rate": "Il numero massimo di applicazioni al minuto deve essere un numero intero compreso tra 1 e 600.",
+      "target_in_triggers": "Lo stato di destinazione non può essere anche uno stato di attivazione — questo creerebbe un loop di applicazione.",
+      "forbidden_state": "Gli stati 'unavailable', 'unknown' e 'none' non possono essere usati come trigger o destinazioni.",
+      "incomplete_flag": "Devono essere impostati sia l'entità della condizione sia lo stato richiesto.",
+      "safety_not_acknowledged": "Devi confermare il rischio di sicurezza per continuare.",
+      "name_already_exists": "Esiste già una regola con questo nome."
+    },
+    "abort": {
+      "name_already_exists": "Esiste già una regola con questo nome.",
+      "hub_no_options": "L'hub Entity Guard non ha opzioni modificabili."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Nessuna regola Entity Guard trovata corrispondente a '{rule_id}'."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Sopprimi regola",
+      "description": "Sopprime temporaneamente una regola Entity Guard. La regola riprende automaticamente al termine della durata.",
+      "fields": {
+        "rule_id": {
+          "name": "Regola",
+          "description": "UUID della regola o nome della regola (titolo della voce di configurazione)."
+        },
+        "duration_minutes": {
+          "name": "Durata (minuti)",
+          "description": "Per quanto tempo sopprimere la regola (1-1440 minuti)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Riattiva regola",
+      "description": "Riprende immediatamente una regola Entity Guard soppressa.",
+      "fields": {
+        "rule_id": {
+          "name": "Regola",
+          "description": "UUID della regola o nome della regola (titolo della voce di configurazione)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Elenca regole",
+      "description": "Restituisce la configurazione e lo stato attuale di ogni regola Entity Guard."
+    },
+    "clear_history": {
+      "name": "Cancella cronologia regola",
+      "description": "Cancella la cronologia di applicazione memorizzata (conteggi, ultima applicazione, cooldown) per una regola.",
+      "fields": {
+        "rule_id": {
+          "name": "Regola",
+          "description": "UUID della regola o nome della regola (titolo della voce di configurazione)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Arresto di emergenza",
+      "description": "Arresto di emergenza — disabilita ogni regola, cancella tutti i cooldown, sopprime per 60 minuti e disattiva l'interruttore principale dell'hub."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Disabilitata",
+        "suppressed": "Soppressa",
+        "enforcing": "In applicazione",
+        "cooldown": "In cooldown",
+        "armed": "Armata",
+        "idle": "Inattiva",
+        "starting": "In avvio",
+        "pending": "In procinto di applicare"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Stato",
+        "attribute": "Attributo"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Luminosità",
+        "volume_level": "Livello volume",
+        "temperature": "Temperatura",
+        "percentage": "Percentuale"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Minore di (<)",
+        "lte": "Minore o uguale (<=)",
+        "gt": "Maggiore di (>)",
+        "gte": "Maggiore o uguale (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Salva senza modifiche",
+        "add": "Aggiungi condizione",
+        "clear": "Cancella tutte le condizioni"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Armata"},
+      "active": {"name": "Attiva"},
+      "in_cooldown": {"name": "In cooldown"}
+    },
+    "sensor": {
+      "status": {"name": "Stato"},
+      "last_enforced": {"name": "Ultima applicazione"},
+      "enforcement_count_today": {"name": "Applicazioni oggi"},
+      "enforcement_count_total": {"name": "Applicazioni totali"},
+      "cooldown_remaining": {"name": "Cooldown rimanente"},
+      "safety_status": {"name": "Stato di sicurezza"},
+      "suppressed_until": {"name": "Soppressa fino a"}
+    },
+    "switch": {
+      "enabled": {"name": "Abilitata"},
+      "debounce_enabled": {"name": "Debounce abilitato"},
+      "master_enabled": {"name": "Interruttore principale abilitato"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Ritardo (secondi)"},
+      "debounce_seconds": {"name": "Debounce (secondi)"},
+      "max_enforcements_per_minute": {"name": "Numero massimo di applicazioni al minuto"}
+    },
+    "button": {
+      "reset": {"name": "Reimposta cooldown"},
+      "test_enforce": {"name": "Test applicazione"},
+      "clear_suppression": {"name": "Rimuovi soppressione"}
+    }
+  }
+}

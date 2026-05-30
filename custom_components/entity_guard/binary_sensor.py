@@ -35,7 +35,7 @@ def _signal_master() -> str:
     try:
         from . import signal_master_update  # type: ignore[attr-defined]
 
-        return signal_master_update
+        return signal_master_update()
     except (ImportError, AttributeError):
         return "entity_guard_master_update"
 
@@ -95,7 +95,7 @@ class EntityGuardBinarySensor(BinarySensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                _signal_for_rule(self._entry.entry_id),
+                _signal_for_rule(self._engine.config.unique_id),
                 self._handle_update,
             )
         )

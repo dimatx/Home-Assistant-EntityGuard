@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nova regra — básico",
+        "description": "Atribua um nome à regra, escolha as entidades alvo a aplicar e selecione o modo da regra.",
+        "data": {
+          "rule_name": "Nome da regra",
+          "target_entities": "Entidades alvo",
+          "mode": "Modo da regra"
+        },
+        "data_description": {
+          "rule_name": "Nome de apresentação mostrado na interface. Tem de ser único.",
+          "target_entities": "Uma ou mais entidades sobre as quais esta regra irá atuar.",
+          "mode": "O modo de estado força um estado específico. O modo de atributo limita um atributo numérico."
+        }
+      },
+      "state": {
+        "title": "Modo de estado",
+        "description": "Quando qualquer entidade alvo entrar num dos estados de gatilho, força-a de volta ao estado alvo após o atraso opcional.",
+        "data": {
+          "trigger_states": "Estados de gatilho",
+          "target_state": "Estado alvo",
+          "delay_seconds": "Atraso (segundos)"
+        },
+        "data_description": {
+          "trigger_states": "Lista de estados que ativam a aplicação (ex.: on, open, unlocked). Escreva para adicionar valores personalizados.",
+          "target_state": "Estado para o qual a entidade será forçada (ex.: off, closed, locked).",
+          "delay_seconds": "Aguarda este tempo após um gatilho antes de aplicar. 0 = imediato. Máximo 86400 (24h)."
+        }
+      },
+      "attribute": {
+        "title": "Modo de atributo",
+        "description": "Quando o atributo numa entidade alvo ultrapassar o limiar, repõe-no ao valor alvo após o atraso opcional.",
+        "data": {
+          "attribute": "Atributo",
+          "operator": "Operador",
+          "threshold": "Limiar",
+          "target_value": "Valor alvo",
+          "delay_seconds": "Atraso (segundos)"
+        },
+        "data_description": {
+          "attribute": "Atributo a monitorizar.",
+          "operator": "Operador de comparação. A igualdade não é suportada intencionalmente (precisão de vírgula flutuante).",
+          "threshold": "Valor numérico comparado com o atributo em tempo real.",
+          "target_value": "Valor para o qual o atributo será definido quando a regra disparar.",
+          "delay_seconds": "Aguarda este tempo após um gatilho antes de aplicar. 0 = imediato. Máximo 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Funcionalidades opcionais",
+        "description": "Selecione as funcionalidades que deseja configurar. Cada opção selecionada adiciona um ecrã subsequente. Não selecione nenhuma para ir diretamente para a revisão.",
+        "data": {
+          "add_flags": "Adicionar condições extra",
+          "custom_rate_limit": "Personalizar proteção contra ciclos",
+          "add_debounce": "Ativar debounce"
+        },
+        "data_description": {
+          "add_flags": "Selecione para exigir condições extra (ex.: aplicar apenas quando ninguém está em casa, apenas após o pôr-do-sol). Deixe sem selecionar para aplicar sempre que o gatilho disparar.",
+          "custom_rate_limit": "A proteção contra ciclos suprime automaticamente a regra se esta disparar mais de 10 vezes por minuto (predefinição). Deixe sem selecionar para usar a predefinição. Selecione para definir o seu próprio número, ou para desligar completamente a proteção contra ciclos num ecrã posterior.",
+          "add_debounce": "Selecione para ignorar mudanças rápidas e repetidas. A regra apenas atua se o gatilho se mantiver igual durante o tempo definido num ecrã posterior. Deixe sem selecionar para atuar a cada mudança."
+        }
+      },
+      "flags": {
+        "title": "Condições (opcional)",
+        "description": "Condições extra que têm todas de ser verdadeiras para a regra atuar.\n\nExemplos:\n  • person.alice = not_home — apenas quando a Alice está fora\n  • input_boolean.guest_mode = off — apenas quando não há convidados\n  • sun.sun = below_horizon — apenas após o pôr-do-sol\n  • binary_sensor.work_hours = on — apenas durante o horário de trabalho\n\nPara adicionar uma condição: escolha uma entidade, escreva o estado em que tem de estar e clique em Submeter.\n\nSe não quiser nenhuma condição neste momento, deixe ambos os campos vazios e clique em Submeter para ignorar.\n\nCondições adicionadas até agora ({count}): {summary}\n\nSelecione 'Adicionar outra' para encadear mais — todas têm de corresponder para a regra disparar.",
+        "data": {
+          "entity": "Entidade da condição",
+          "match_state": "Estado requerido",
+          "add_another": "Adicionar outra condição depois desta"
+        },
+        "data_description": {
+          "entity": "Escolha a entidade cujo estado funciona como condição (ex.: person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "O estado em que a entidade tem de estar para a regra disparar (ex.: 'on', 'home', 'not_home', 'below_horizon').",
+          "add_another": "Selecione para adicionar mais condições. Deixe sem selecionar para terminar."
+        }
+      },
+      "advanced": {
+        "title": "Avançado",
+        "description": "Defina as opções que selecionou no ecrã anterior. O limite de taxa predefinido é {default_rate} aplicações por minuto.",
+        "data": {
+          "debounce_seconds": "Janela de debounce (segundos)",
+          "rate_limit_enabled": "Aplicar proteção contra ciclos",
+          "max_enforcements_per_minute": "Máximo de aplicações por minuto"
+        },
+        "data_description": {
+          "debounce_seconds": "Janela em segundos. Mín. 0, máx. 86400 (24h). Apenas mostrado quando o debounce foi ativado no passo anterior.",
+          "rate_limit_enabled": "Selecione para manter a proteção contra ciclos ativa (recomendado). Desmarque para a desativar nesta regra — ciclos descontrolados não serão parados automaticamente.",
+          "max_enforcements_per_minute": "Quantas aplicações por minuto são permitidas antes da regra ser auto-suprimida durante 15 minutos. Mín. 1, máx. 600. Ignorado quando a proteção contra ciclos está desmarcada acima."
+        }
+      },
+      "safety": {
+        "title": "Confirmação de segurança",
+        "description": "Esta regra atua sobre entidades sensíveis em termos de segurança ({entities}). Tem de reconhecer explicitamente o risco para continuar.",
+        "data": {
+          "safety_acknowledged": "Compreendo que esta regra irá movimentar hardware físico e aceito o risco."
+        }
+      },
+      "preview": {
+        "title": "Rever e criar",
+        "description": "Reveja a sua regra abaixo. Clique em **Submeter** para a criar, ou use a seta para trás para fazer alterações.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "O nome da regra não pode estar vazio.",
+      "empty_target_entities": "Escolha pelo menos uma entidade alvo.",
+      "empty_trigger_states": "Forneça pelo menos um estado de gatilho.",
+      "empty_target_state": "O estado alvo não pode estar vazio.",
+      "invalid_threshold": "O limiar e o valor alvo têm de ser numéricos.",
+      "invalid_delay": "O atraso tem de ser um número inteiro entre 0 e 86400 segundos (24h).",
+      "invalid_rate": "O máximo de aplicações por minuto tem de ser um número inteiro entre 1 e 600.",
+      "target_in_triggers": "O estado alvo não pode também ser um estado de gatilho — isso criaria um ciclo de aplicação.",
+      "forbidden_state": "Os estados 'unavailable', 'unknown' e 'none' não podem ser usados como gatilhos ou alvos.",
+      "incomplete_flag": "Tanto a entidade da condição como o estado requerido têm de estar definidos.",
+      "safety_not_acknowledged": "Tem de reconhecer o risco de segurança para continuar.",
+      "name_already_exists": "Já existe uma regra com este nome."
+    },
+    "abort": {
+      "single_instance_allowed": "Apenas pode ser configurado um hub Entity Guard.",
+      "name_already_exists": "Já existe uma regra com este nome.",
+      "already_configured": "Esta regra já está configurada."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Editar regra",
+        "description": "Escolha o que alterar.",
+        "menu_options": {
+          "edit_basics": "Editar nome",
+          "edit_mode": "Editar definições específicas do modo",
+          "edit_entities": "Adicionar ou remover entidades alvo",
+          "edit_flags": "Editar condições",
+          "edit_advanced": "Editar debounce e limite de taxa"
+        }
+      },
+      "edit_basics": {
+        "title": "Editar nome",
+        "data": {"rule_name": "Nome da regra"}
+      },
+      "edit_entities": {
+        "title": "Editar entidades alvo",
+        "data": {"target_entities": "Entidades alvo"}
+      },
+      "edit_safety": {
+        "title": "Confirmação de segurança",
+        "description": "Foram adicionadas novas entidades sensíveis em termos de segurança. Reconfirme para guardar.",
+        "data": {
+          "safety_acknowledged": "Compreendo que esta regra irá movimentar hardware físico e aceito o risco."
+        }
+      },
+      "edit_state": {
+        "title": "Editar modo de estado",
+        "data": {
+          "trigger_states": "Estados de gatilho",
+          "target_state": "Estado alvo",
+          "delay_seconds": "Atraso (segundos)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Editar modo de atributo",
+        "data": {
+          "attribute": "Atributo",
+          "operator": "Operador",
+          "threshold": "Limiar",
+          "target_value": "Valor alvo",
+          "delay_seconds": "Atraso (segundos)"
+        }
+      },
+      "edit_flags": {
+        "title": "Editar condições",
+        "description": "Condições atuais: {summary}. Escolha 'adicionar' para acrescentar, 'limpar' para remover todas, ou 'guardar' para deixar inalteradas.",
+        "data": {
+          "entity": "Entidade da condição",
+          "match_state": "Estado requerido",
+          "action": "Ação"
+        }
+      },
+      "edit_advanced": {
+        "title": "Editar definições avançadas",
+        "data": {
+          "debounce_enabled": "Ativar debounce",
+          "debounce_seconds": "Janela de debounce (segundos)",
+          "max_enforcements_per_minute": "Máximo de aplicações por minuto"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "O nome da regra não pode estar vazio.",
+      "empty_target_entities": "Escolha pelo menos uma entidade alvo.",
+      "empty_trigger_states": "Forneça pelo menos um estado de gatilho.",
+      "empty_target_state": "O estado alvo não pode estar vazio.",
+      "invalid_threshold": "O limiar e o valor alvo têm de ser numéricos.",
+      "invalid_delay": "O atraso tem de ser um número inteiro entre 0 e 86400 segundos (24h).",
+      "invalid_rate": "O máximo de aplicações por minuto tem de ser um número inteiro entre 1 e 600.",
+      "target_in_triggers": "O estado alvo não pode também ser um estado de gatilho — isso criaria um ciclo de aplicação.",
+      "forbidden_state": "Os estados 'unavailable', 'unknown' e 'none' não podem ser usados como gatilhos ou alvos.",
+      "incomplete_flag": "Tanto a entidade da condição como o estado requerido têm de estar definidos.",
+      "safety_not_acknowledged": "Tem de reconhecer o risco de segurança para continuar.",
+      "name_already_exists": "Já existe uma regra com este nome."
+    },
+    "abort": {
+      "name_already_exists": "Já existe uma regra com este nome.",
+      "hub_no_options": "O hub Entity Guard não tem opções editáveis."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Não foi encontrada nenhuma regra Entity Guard correspondente a '{rule_id}'."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Suprimir regra",
+      "description": "Suprime temporariamente uma regra do Entity Guard. A regra retoma automaticamente após a duração indicada.",
+      "fields": {
+        "rule_id": {
+          "name": "Regra",
+          "description": "UUID da regra ou nome da regra (título da entrada de configuração)."
+        },
+        "duration_minutes": {
+          "name": "Duração (minutos)",
+          "description": "Durante quanto tempo suprimir a regra (1-1440 minutos)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Retomar regra",
+      "description": "Retoma imediatamente uma regra do Entity Guard que esteja suprimida.",
+      "fields": {
+        "rule_id": {
+          "name": "Regra",
+          "description": "UUID da regra ou nome da regra (título da entrada de configuração)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Listar regras",
+      "description": "Devolve a configuração e o estado atual de todas as regras do Entity Guard."
+    },
+    "clear_history": {
+      "name": "Limpar histórico da regra",
+      "description": "Limpa o histórico de aplicações armazenado (contagens, última aplicação, períodos de espera) de uma regra.",
+      "fields": {
+        "rule_id": {
+          "name": "Regra",
+          "description": "UUID da regra ou nome da regra (título da entrada de configuração)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Paragem de emergência",
+      "description": "Paragem de emergência — desativa todas as regras, limpa todos os períodos de espera, suprime durante 60 minutos e desliga o interruptor principal do hub."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Desativada",
+        "suppressed": "Suprimida",
+        "enforcing": "A aplicar",
+        "cooldown": "Em espera",
+        "armed": "Armada",
+        "idle": "Inativa",
+        "starting": "A iniciar",
+        "pending": "Prestes a aplicar"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Estado",
+        "attribute": "Atributo"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Brilho",
+        "volume_level": "Nível de volume",
+        "temperature": "Temperatura",
+        "percentage": "Percentagem"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Menor que (<)",
+        "lte": "Menor ou igual (<=)",
+        "gt": "Maior que (>)",
+        "gte": "Maior ou igual (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Guardar sem alterações",
+        "add": "Adicionar condição",
+        "clear": "Limpar todas as condições"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Armada"},
+      "active": {"name": "Ativa"},
+      "in_cooldown": {"name": "Em espera"}
+    },
+    "sensor": {
+      "status": {"name": "Estado"},
+      "last_enforced": {"name": "Última aplicação"},
+      "enforcement_count_today": {"name": "Aplicações hoje"},
+      "enforcement_count_total": {"name": "Aplicações no total"},
+      "cooldown_remaining": {"name": "Tempo de espera restante"},
+      "safety_status": {"name": "Estado de segurança"},
+      "suppressed_until": {"name": "Suprimida até"}
+    },
+    "switch": {
+      "enabled": {"name": "Ativada"},
+      "debounce_enabled": {"name": "Debounce ativado"},
+      "master_enabled": {"name": "Interruptor principal ativado"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Atraso (segundos)"},
+      "debounce_seconds": {"name": "Debounce (segundos)"},
+      "max_enforcements_per_minute": {"name": "Máximo de aplicações por minuto"}
+    },
+    "button": {
+      "reset": {"name": "Repor tempos de espera"},
+      "test_enforce": {"name": "Testar aplicação"},
+      "clear_suppression": {"name": "Limpar supressão"}
+    }
+  }
+}

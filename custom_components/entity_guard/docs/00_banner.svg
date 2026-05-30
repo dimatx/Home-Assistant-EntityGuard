@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 130" width="500" height="130" font-family="Arial, Helvetica, sans-serif">
-  <!-- Shield + lock -->
-  <g transform="translate(20,20) scale(1.6)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" font-family="Arial, Helvetica, sans-serif">
+  <rect width="1200" height="300" fill="#fafafa"/>
+  <!-- Shield + lock, scaled -->
+  <g transform="translate(120,50) scale(3.125)">
     <path d="M32 4 L56 14 L56 30 C56 46 44 56 32 60 C20 56 8 46 8 30 L8 14 Z"
           fill="none" stroke="#4CAF50" stroke-width="3" stroke-linejoin="round"/>
     <path d="M24 28 V22 A8 8 0 0 1 40 22 V28"
@@ -10,6 +11,6 @@
     <circle cx="32" cy="38" r="3.5" fill="#4CAF50"/>
   </g>
   <!-- Wordmark -->
-  <text x="140" y="75" font-size="44" font-weight="bold" fill="#4CAF50">Entity Guard</text>
-  <text x="140" y="105" font-size="16" fill="#666">Declarative state enforcement for Home Assistant</text>
+  <text x="380" y="150" font-size="80" font-weight="bold" fill="#4CAF50">Entity Guard</text>
+  <text x="380" y="200" font-size="28" fill="#666">Declarative state enforcement for Home Assistant</text>
 </svg>

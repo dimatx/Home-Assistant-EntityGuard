@@ -92,6 +92,7 @@ class RuleRuntimeState:
     today_reset_date: date | None = None
     rate_limit_window: list[datetime] = field(default_factory=list)
     enabled: bool = True
+    suppression_reason: str | None = None
     reentrance_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
@@ -110,18 +111,25 @@ def parse_rule_config(entry: ConfigEntry) -> RuleConfig:
         mode=raw.get(CONF_MODE, MODE_STATE),
         trigger_states=list(raw.get(CONF_TRIGGER_STATES, DEFAULT_TRIGGER_STATES)),
         target_state=raw.get(CONF_TARGET_STATE, DEFAULT_TARGET_STATE),
-        delay_seconds=int(raw.get(CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS)),
+        delay_seconds=_to_int_or_default(
+            raw.get(CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS),
+            DEFAULT_DELAY_SECONDS,
+        ),
         attribute=raw.get(CONF_ATTRIBUTE),
         operator=raw.get(CONF_OPERATOR),
         threshold=_to_float_or_none(raw.get(CONF_THRESHOLD)),
         target_value=_to_float_or_none(raw.get(CONF_TARGET_VALUE)),
         flags=flags,
         debounce_enabled=bool(raw.get(CONF_DEBOUNCE_ENABLED, DEFAULT_DEBOUNCE_ENABLED)),
-        debounce_seconds=int(raw.get(CONF_DEBOUNCE_SECONDS, DEFAULT_DEBOUNCE_SECONDS)),
-        max_enforcements_per_minute=int(
+        debounce_seconds=_to_int_or_default(
+            raw.get(CONF_DEBOUNCE_SECONDS, DEFAULT_DEBOUNCE_SECONDS),
+            DEFAULT_DEBOUNCE_SECONDS,
+        ),
+        max_enforcements_per_minute=_to_int_or_default(
             raw.get(
                 CONF_MAX_ENFORCEMENTS_PER_MINUTE, DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE
-            )
+            ),
+            DEFAULT_MAX_ENFORCEMENTS_PER_MINUTE,
         ),
         safety_acknowledged=bool(raw.get(CONF_SAFETY_ACKNOWLEDGED, False)),
     )
@@ -135,3 +143,11 @@ def _to_float_or_none(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _to_int_or_default(value: Any, default: int) -> int:
+    """Coerce value to int, returning default on failure."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default

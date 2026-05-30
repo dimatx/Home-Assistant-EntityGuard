@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 from datetime import date, datetime
 from typing import Any
@@ -32,6 +33,8 @@ def _default_rule_blob() -> dict[str, Any]:
         "suppressed_until": None,
         "today_reset_date": None,
         "rate_limit_window": [],
+        "enabled": True,
+        "suppression_reason": None,
     }
 
 
@@ -63,6 +66,10 @@ class EntityGuardStore:
         """Load persisted state. Per-rule corruption is contained."""
         raw = await self._store.async_load()
         if raw is None:
+            self._data = {"version": STORE_VERSION, "rules": {}}
+            return
+        if not isinstance(raw, dict):
+            _LOGGER.warning("Persisted root is not a dict (%s); resetting", type(raw).__name__)
             self._data = {"version": STORE_VERSION, "rules": {}}
             return
 
@@ -111,19 +118,30 @@ class EntityGuardStore:
             "suppressed_until": blob.get("suppressed_until"),
             "today_reset_date": blob.get("today_reset_date"),
             "rate_limit_window": [t for t in rate_window_raw if isinstance(t, str)],
+            "enabled": bool(blob.get("enabled", True)),
+            "suppression_reason": (
+                blob.get("suppression_reason")
+                if isinstance(blob.get("suppression_reason"), str)
+                else None
+            ),
         }
 
     async def async_save(self) -> None:
         """Schedule a debounced save."""
         self._store.async_delay_save(self._data_provider, STORE_SAVE_DELAY_SECONDS)
 
+    async def async_save_now(self) -> None:
+        """Force immediate persist, bypassing the debounce window."""
+        await self._store.async_save(self._data_provider())
+
     def _data_provider(self) -> dict[str, Any]:
         """Snapshot used by Store for the actual write."""
-        return self._data
+        return copy.deepcopy(self._data)
 
     def get_rule_state(self, rule_id: str) -> dict[str, Any]:
         """Return persisted blob for a rule (defaults if absent)."""
-        return self._data["rules"].get(rule_id) or _default_rule_blob()
+        blob = self._data["rules"].get(rule_id)
+        return copy.deepcopy(blob) if blob else _default_rule_blob()
 
     def set_rule_state(self, rule_id: str, state: dict[str, Any]) -> None:
         """Replace the persisted blob for a rule and queue a save."""
@@ -158,6 +176,8 @@ class EntityGuardStore:
             "rate_limit_window": [
                 _serialize_dt(t) for t in state.rate_limit_window if t
             ],
+            "enabled": state.enabled,
+            "suppression_reason": state.suppression_reason,
         }
 
     @staticmethod
@@ -191,4 +211,10 @@ class EntityGuardStore:
             suppressed_until=_parse_dt(blob.get("suppressed_until")),
             today_reset_date=today_reset,
             rate_limit_window=rate_window,
+            enabled=bool(blob.get("enabled", True)),
+            suppression_reason=(
+                blob.get("suppression_reason")
+                if isinstance(blob.get("suppression_reason"), str)
+                else None
+            ),
         )

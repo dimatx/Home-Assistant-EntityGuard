@@ -8,7 +8,7 @@ from typing import Any, Callable
 
 from homeassistant.components import persistent_notification
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import Context, Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_call_later,
@@ -38,6 +38,8 @@ from .const import (
     STATUS_DISABLED,
     STATUS_ENFORCING,
     STATUS_IDLE,
+    STATUS_PENDING,
+    STATUS_STARTING,
     STATUS_SUPPRESSED,
 )
 from .models import RuleConfig, RuleRuntimeState
@@ -75,7 +77,7 @@ class RuleEngine:
         self._unsub_callbacks: list[Callable[[], None]] = []
         self._pending_enforcements: dict[str, Callable[[], None]] = {}
         self._startup_complete = False
-        self._current_status: str = STATUS_IDLE
+        self._current_status: str = STATUS_STARTING
 
     @property
     def config(self) -> RuleConfig:
@@ -89,12 +91,24 @@ class RuleEngine:
 
     async def async_setup(self) -> None:
         """Subscribe listeners, restore persisted state, schedule startup grace."""
+        _LOGGER.debug(
+            "Engine setup: rule=%s targets=%s flags=%d",
+            self._config.name,
+            self._config.target_entities,
+            len(self._config.flags),
+        )
         blob = self._store.get_rule_state(self._config.unique_id)
         restored = EntityGuardStore.blob_to_runtime(blob)
         # Preserve the freshly created lock — locks are intentionally not persisted.
         restored.reentrance_lock = self._state.reentrance_lock
-        restored.enabled = self._state.enabled
         self._state = restored
+        if blob:
+            _LOGGER.debug(
+                "Restored persisted state: total=%d today=%d suppressed_until=%s",
+                self._state.enforcement_count_total,
+                self._state.enforcement_count_today,
+                self._state.suppressed_until,
+            )
 
         self._maybe_reset_today_counter()
 
@@ -125,6 +139,7 @@ class RuleEngine:
 
     async def async_unload(self) -> None:
         """Cancel listeners and pending enforcement timers."""
+        _LOGGER.debug("Engine unload: rule=%s", self._config.name)
         for unsub in self._unsub_callbacks:
             try:
                 unsub()
@@ -140,6 +155,7 @@ class RuleEngine:
         self._pending_enforcements.clear()
 
         self._persist()
+        await self._store.async_save_now()
 
     @callback
     def _handle_state_event(self, event: Event) -> None:
@@ -161,6 +177,11 @@ class RuleEngine:
     @callback
     def _handle_startup_grace_done(self, _now: datetime) -> None:
         """After grace, evaluate every target once against current state."""
+        _LOGGER.debug(
+            "Startup grace done for rule=%s; sweeping %d targets",
+            self._config.name,
+            len(self._config.target_entities),
+        )
         self._startup_complete = True
         for entity_id in self._config.target_entities:
             current = self._hass.states.get(entity_id)
@@ -191,6 +212,7 @@ class RuleEngine:
             return
         if self._state.suppressed_until and self._state.suppressed_until <= now:
             self._state.suppressed_until = None
+            self._state.suppression_reason = None
             self._persist()
 
         if not self._flags_match():
@@ -217,7 +239,7 @@ class RuleEngine:
 
         if self._config.delay_seconds > 0:
             self._schedule_delayed_enforcement(entity_id)
-            self._set_status(STATUS_ARMED)
+            self._set_status(STATUS_PENDING)
             return
 
         await self._enforce(entity_id)
@@ -269,7 +291,9 @@ class RuleEngine:
         return end is not None and end > now
 
     def _derive_armed_or_cooldown(self, now: datetime) -> str:
-        """Pick between ARMED and COOLDOWN based on current per-entity cooldowns."""
+        """Pick between PENDING, ARMED, and COOLDOWN based on current state."""
+        if self._pending_enforcements:
+            return STATUS_PENDING
         if any(end > now for end in self._state.cooldowns.values()):
             return STATUS_COOLDOWN
         return STATUS_ARMED
@@ -287,7 +311,12 @@ class RuleEngine:
                 return
             await self._enforce(entity_id)
 
-        cancel = async_call_later(self._hass, self._config.delay_seconds, _fire)
+        @callback
+        def _fire_cb(now: datetime) -> None:
+            # async_call_later expects a sync callback; bridge to the coroutine.
+            self._hass.async_create_task(_fire(now))
+
+        cancel = async_call_later(self._hass, self._config.delay_seconds, _fire_cb)
         self._pending_enforcements[entity_id] = cancel
 
     def _cancel_pending(self, entity_id: str) -> None:
@@ -308,18 +337,20 @@ class RuleEngine:
         """Rate-limit, lock, and execute the enforcement service call."""
         now = dt_util.now()
 
-        cutoff = now - timedelta(seconds=60)
-        self._state.rate_limit_window = [
-            t for t in self._state.rate_limit_window if t > cutoff
-        ]
-        if (
-            len(self._state.rate_limit_window)
-            >= self._config.max_enforcements_per_minute
-        ):
-            await self._trigger_loop_protection(entity_id)
-            return
-
         async with self._state.reentrance_lock:
+            cutoff = now - timedelta(seconds=60)
+            self._state.rate_limit_window = [
+                t for t in self._state.rate_limit_window if t > cutoff
+            ]
+            # Limit <= 0 means user disabled the rate limit entirely; skip loop protection.
+            if (
+                self._config.max_enforcements_per_minute > 0
+                and len(self._state.rate_limit_window)
+                >= self._config.max_enforcements_per_minute
+            ):
+                await self._trigger_loop_protection(entity_id)
+                return
+
             self._set_status(STATUS_ENFORCING)
 
             service_call = self._resolve_service(entity_id)
@@ -338,9 +369,18 @@ class RuleEngine:
                 return
 
             domain, service, data = service_call
+            _LOGGER.info(
+                "Enforcing rule '%s' on %s via %s.%s",
+                self._config.name,
+                entity_id,
+                domain,
+                service,
+            )
+            _LOGGER.debug("Service call data: %s", data)
+            ctx = Context(user_id=user_id) if user_id else None
             try:
                 await self._hass.services.async_call(
-                    domain, service, data, blocking=True
+                    domain, service, data, blocking=True, context=ctx
                 )
             except Exception as err:  # noqa: BLE001
                 # Spec: target unavailable / service errors → skip silently + debug log.
@@ -354,8 +394,11 @@ class RuleEngine:
                         "error": str(err),
                     },
                 )
-                _LOGGER.debug(
-                    "Enforcement service call failed for %s: %s", entity_id, err
+                _LOGGER.warning(
+                    "Enforcement failed for %s on rule '%s': %s",
+                    entity_id,
+                    self._config.name,
+                    err,
                 )
                 self._set_status(self._derive_armed_or_cooldown(now))
                 return
@@ -394,20 +437,31 @@ class RuleEngine:
             if cooldown_end is not None:
                 remaining = (cooldown_end - dt_util.now()).total_seconds()
                 if remaining > 0:
-                    async_call_later(
-                        self._hass,
-                        remaining,
-                        lambda _n: self._broadcast_status(),
+                    @callback
+                    def _broadcast_after_cooldown(_now: datetime) -> None:
+                        self._broadcast_status()
+                    unsub = async_call_later(
+                        self._hass, remaining, _broadcast_after_cooldown
                     )
+                    self._unsub_callbacks.append(unsub)
         else:
             self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
 
     async def _trigger_loop_protection(self, entity_id: str) -> None:
         """Auto-suppress on rate-limit breach and notify the user."""
+        _LOGGER.warning(
+            "Loop protection triggered: rule='%s' entity=%s limit=%d/min — "
+            "auto-suppressing for %d min",
+            self._config.name,
+            entity_id,
+            self._config.max_enforcements_per_minute,
+            DEFAULT_LOOP_SUPPRESS_MINUTES,
+        )
         suppress_until = dt_util.now() + timedelta(
             minutes=DEFAULT_LOOP_SUPPRESS_MINUTES
         )
         self._state.suppressed_until = suppress_until
+        self._state.suppression_reason = "loop_protection"
         self._persist()
 
         self._hass.bus.async_fire(
@@ -469,11 +523,17 @@ class RuleEngine:
 
     async def async_test_enforce(self, user_id: str | None = None) -> None:
         """Force an enforcement run against every target entity."""
+        _LOGGER.info(
+            "Test enforce invoked on rule '%s' (user_id=%s)",
+            self._config.name,
+            user_id,
+        )
         for entity_id in self._config.target_entities:
             await self._enforce(entity_id, user_id=user_id)
 
     async def async_reset_cooldowns(self) -> None:
         """Clear all per-entity cooldowns immediately."""
+        _LOGGER.info("Resetting cooldowns for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
         self._persist()
         self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
@@ -483,7 +543,15 @@ class RuleEngine:
     ) -> None:
         """Suppress the rule for duration_minutes."""
         until = dt_util.now() + timedelta(minutes=duration_minutes)
+        _LOGGER.info(
+            "Suppressing rule '%s' for %.1f min (until %s, user_id=%s)",
+            self._config.name,
+            duration_minutes,
+            until.isoformat(),
+            user_id,
+        )
         self._state.suppressed_until = until
+        self._state.suppression_reason = "manual"
         self._persist()
 
         self._hass.bus.async_fire(
@@ -499,12 +567,15 @@ class RuleEngine:
 
     async def async_unsuppress(self) -> None:
         """Clear any active suppression."""
+        _LOGGER.info("Unsuppressing rule '%s'", self._config.name)
         self._state.suppressed_until = None
+        self._state.suppression_reason = None
         self._persist()
         self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
 
     async def async_clear_history(self) -> None:
         """Reset persisted counters and cooldowns."""
+        _LOGGER.info("Clearing history for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
         self._state.enforcement_count_today = 0
         self._state.enforcement_count_total = 0
@@ -515,12 +586,26 @@ class RuleEngine:
 
     def set_enabled(self, enabled: bool) -> None:
         """Toggle the rule's enabled flag (driven by per-rule switch entity)."""
+        _LOGGER.info(
+            "Rule '%s' %s",
+            self._config.name,
+            "enabled" if enabled else "DISABLED",
+        )
         self._state.enabled = enabled
+        self._persist()
         if not enabled:
             self._cancel_pending_for_entities(self._config.target_entities)
             self._set_status(STATUS_DISABLED)
         else:
-            self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
+            now = dt_util.now()
+            if self._state.suppressed_until and self._state.suppressed_until > now:
+                self._set_status(STATUS_SUPPRESSED)
+            else:
+                if self._state.suppressed_until:
+                    self._state.suppressed_until = None
+                    self._state.suppression_reason = None
+                    self._persist()
+                self._set_status(self._derive_armed_or_cooldown(now))
 
     def current_status(self) -> str:
         """Return the rule's current status string."""

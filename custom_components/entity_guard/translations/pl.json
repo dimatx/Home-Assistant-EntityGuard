@@ -1,0 +1,331 @@
+{
+  "title": "Entity Guard",
+  "config": {
+    "step": {
+      "rule": {
+        "title": "Nowa reguła — podstawy",
+        "description": "Nadaj nazwę regule, wybierz docelowe encje, na które ma działać, oraz wybierz tryb reguły.",
+        "data": {
+          "rule_name": "Nazwa reguły",
+          "target_entities": "Encje docelowe",
+          "mode": "Tryb reguły"
+        },
+        "data_description": {
+          "rule_name": "Nazwa wyświetlana w interfejsie. Musi być unikalna.",
+          "target_entities": "Jedna lub więcej encji, na które ta reguła będzie oddziaływać.",
+          "mode": "Tryb stanu wymusza określony stan. Tryb atrybutu ogranicza wartość atrybutu liczbowego."
+        }
+      },
+      "state": {
+        "title": "Tryb stanu",
+        "description": "Gdy dowolna encja docelowa wejdzie w jeden ze stanów wyzwalających, zostanie przywrócona do stanu docelowego po opcjonalnym opóźnieniu.",
+        "data": {
+          "trigger_states": "Stany wyzwalające",
+          "target_state": "Stan docelowy",
+          "delay_seconds": "Opóźnienie (sekundy)"
+        },
+        "data_description": {
+          "trigger_states": "Lista stanów uzbrajających wymuszanie (np. on, open, unlocked). Wpisz, aby dodać własne wartości.",
+          "target_state": "Stan, do którego encja zostanie wymuszona (np. off, closed, locked).",
+          "delay_seconds": "Czas oczekiwania po wyzwoleniu przed wymuszeniem. 0 = natychmiast. Maks. 86400 (24h)."
+        }
+      },
+      "attribute": {
+        "title": "Tryb atrybutu",
+        "description": "Gdy atrybut dowolnej encji docelowej przekroczy próg, zostanie ograniczony do wartości docelowej po opcjonalnym opóźnieniu.",
+        "data": {
+          "attribute": "Atrybut",
+          "operator": "Operator",
+          "threshold": "Próg",
+          "target_value": "Wartość docelowa",
+          "delay_seconds": "Opóźnienie (sekundy)"
+        },
+        "data_description": {
+          "attribute": "Atrybut do monitorowania.",
+          "operator": "Operator porównania. Równość celowo nie jest obsługiwana (precyzja liczb zmiennoprzecinkowych).",
+          "threshold": "Wartość liczbowa porównywana z bieżącym atrybutem.",
+          "target_value": "Wartość, na którą atrybut zostanie ustawiony, gdy reguła zadziała.",
+          "delay_seconds": "Czas oczekiwania po wyzwoleniu przed wymuszeniem. 0 = natychmiast. Maks. 86400 (24h)."
+        }
+      },
+      "extras": {
+        "title": "Funkcje opcjonalne",
+        "description": "Zaznacz dowolne funkcje, które chcesz skonfigurować. Każda zaznaczona opcja doda kolejny ekran. Pomiń wszystkie, aby przejść bezpośrednio do podsumowania.",
+        "data": {
+          "add_flags": "Dodaj dodatkowe warunki",
+          "custom_rate_limit": "Dostosuj ochronę przed pętlami",
+          "add_debounce": "Włącz debouncing"
+        },
+        "data_description": {
+          "add_flags": "Zaznacz, aby wymagać dodatkowych warunków (np. wymuszaj tylko gdy nikogo nie ma w domu, tylko po zachodzie słońca). Pozostaw niezaznaczone, aby wymuszać przy każdym wyzwoleniu.",
+          "custom_rate_limit": "Ochrona przed pętlami automatycznie wstrzymuje regułę, jeśli zadziała więcej niż 10 razy na minutę (domyślnie). Pozostaw niezaznaczone, aby użyć wartości domyślnej. Zaznacz, aby ustawić własną liczbę lub całkowicie wyłączyć ochronę przed pętlami na kolejnym ekranie.",
+          "add_debounce": "Zaznacz, aby ignorować szybkie zmiany tam i z powrotem. Reguła zadziała tylko, jeśli wyzwalacz pozostanie taki sam przez czas ustawiony na kolejnym ekranie. Pozostaw niezaznaczone, aby reagować na każdą zmianę."
+        }
+      },
+      "flags": {
+        "title": "Warunki (opcjonalne)",
+        "description": "Dodatkowe warunki, które wszystkie muszą być spełnione, aby reguła zadziałała.\n\nPrzykłady:\n  • person.alice = not_home — tylko gdy Alicja jest poza domem\n  • input_boolean.guest_mode = off — tylko gdy nie ma gości\n  • sun.sun = below_horizon — tylko po zachodzie słońca\n  • binary_sensor.work_hours = on — tylko w godzinach pracy\n\nAby dodać warunek: wybierz encję, wpisz stan, w którym musi się znajdować, a następnie kliknij Wyślij.\n\nJeśli nie chcesz teraz dodawać żadnego warunku, pozostaw oba pola puste i kliknij Wyślij, aby pominąć.\n\nDodane dotychczas warunki ({count}): {summary}\n\nZaznacz „Dodaj kolejny”, aby połączyć ich więcej — wszystkie muszą być spełnione, aby reguła zadziałała.",
+        "data": {
+          "entity": "Encja warunku",
+          "match_state": "Wymagany stan",
+          "add_another": "Dodaj kolejny warunek po tym"
+        },
+        "data_description": {
+          "entity": "Wybierz encję, której stan stanowi warunek (np. person.alice, input_boolean.guest_mode, sun.sun).",
+          "match_state": "Stan, w którym encja musi się znajdować, aby reguła zadziałała (np. „on”, „home”, „not_home”, „below_horizon”).",
+          "add_another": "Zaznacz, aby dodać więcej warunków. Pozostaw niezaznaczone, aby zakończyć."
+        }
+      },
+      "advanced": {
+        "title": "Zaawansowane",
+        "description": "Ustaw opcje wybrane na poprzednim ekranie. Domyślny limit to {default_rate} wymuszeń na minutę.",
+        "data": {
+          "debounce_seconds": "Okno debouncingu (sekundy)",
+          "rate_limit_enabled": "Wymuszaj ochronę przed pętlami",
+          "max_enforcements_per_minute": "Maks. wymuszeń na minutę"
+        },
+        "data_description": {
+          "debounce_seconds": "Okno w sekundach. Min. 0, maks. 86400 (24h). Wyświetlane tylko, gdy debouncing został włączony w poprzednim kroku.",
+          "rate_limit_enabled": "Zaznacz, aby pozostawić włączoną ochronę przed pętlami (zalecane). Odznacz, aby wyłączyć ją dla tej reguły — niekontrolowane pętle nie będą zatrzymywane automatycznie.",
+          "max_enforcements_per_minute": "Ile wymuszeń na minutę jest dozwolonych, zanim reguła automatycznie się wstrzyma na 15 minut. Min. 1, maks. 600. Ignorowane, gdy ochrona przed pętlami jest powyżej odznaczona."
+        }
+      },
+      "safety": {
+        "title": "Potwierdzenie bezpieczeństwa",
+        "description": "Ta reguła dotyczy encji wrażliwych pod względem bezpieczeństwa ({entities}). Aby kontynuować, musisz wyraźnie potwierdzić ryzyko.",
+        "data": {
+          "safety_acknowledged": "Rozumiem, że ta reguła będzie poruszać sprzętem fizycznym i akceptuję ryzyko."
+        }
+      },
+      "preview": {
+        "title": "Sprawdź i utwórz",
+        "description": "Przejrzyj swoją regułę poniżej. Kliknij **Wyślij**, aby ją utworzyć, lub użyj strzałki wstecz, aby wprowadzić zmiany.\n\n---\n\n{summary}"
+      }
+    },
+    "error": {
+      "empty_rule_name": "Nazwa reguły nie może być pusta.",
+      "empty_target_entities": "Wybierz co najmniej jedną encję docelową.",
+      "empty_trigger_states": "Podaj co najmniej jeden stan wyzwalający.",
+      "empty_target_state": "Stan docelowy nie może być pusty.",
+      "invalid_threshold": "Próg i wartość docelowa muszą być liczbowe.",
+      "invalid_delay": "Opóźnienie musi być liczbą całkowitą z zakresu od 0 do 86400 sekund (24h).",
+      "invalid_rate": "Maks. wymuszeń na minutę musi być liczbą całkowitą z zakresu od 1 do 600.",
+      "target_in_triggers": "Stan docelowy nie może być jednocześnie stanem wyzwalającym — utworzyłoby to pętlę wymuszania.",
+      "forbidden_state": "Stany „unavailable”, „unknown” i „none” nie mogą być używane jako wyzwalacze ani cele.",
+      "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
+      "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
+      "name_already_exists": "Reguła o tej nazwie już istnieje."
+    },
+    "abort": {
+      "single_instance_allowed": "Można skonfigurować tylko jeden hub Entity Guard.",
+      "name_already_exists": "Reguła o tej nazwie już istnieje.",
+      "already_configured": "Ta reguła jest już skonfigurowana."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edytuj regułę",
+        "description": "Wybierz, co zmienić.",
+        "menu_options": {
+          "edit_basics": "Edytuj nazwę",
+          "edit_mode": "Edytuj ustawienia trybu",
+          "edit_entities": "Dodaj lub usuń encje docelowe",
+          "edit_flags": "Edytuj warunki flag",
+          "edit_advanced": "Edytuj debouncing i limit"
+        }
+      },
+      "edit_basics": {
+        "title": "Edytuj nazwę",
+        "data": {"rule_name": "Nazwa reguły"}
+      },
+      "edit_entities": {
+        "title": "Edytuj encje docelowe",
+        "data": {"target_entities": "Encje docelowe"}
+      },
+      "edit_safety": {
+        "title": "Potwierdzenie bezpieczeństwa",
+        "description": "Dodano nowe encje wrażliwe pod względem bezpieczeństwa. Potwierdź ponownie, aby zapisać.",
+        "data": {
+          "safety_acknowledged": "Rozumiem, że ta reguła będzie poruszać sprzętem fizycznym i akceptuję ryzyko."
+        }
+      },
+      "edit_state": {
+        "title": "Edytuj tryb stanu",
+        "data": {
+          "trigger_states": "Stany wyzwalające",
+          "target_state": "Stan docelowy",
+          "delay_seconds": "Opóźnienie (sekundy)"
+        }
+      },
+      "edit_attribute": {
+        "title": "Edytuj tryb atrybutu",
+        "data": {
+          "attribute": "Atrybut",
+          "operator": "Operator",
+          "threshold": "Próg",
+          "target_value": "Wartość docelowa",
+          "delay_seconds": "Opóźnienie (sekundy)"
+        }
+      },
+      "edit_flags": {
+        "title": "Edytuj warunki flag",
+        "description": "Bieżące flagi: {summary}. Wybierz „add”, aby dodać, „clear”, aby usunąć wszystkie, lub „save”, aby pozostawić bez zmian.",
+        "data": {
+          "entity": "Encja flagi",
+          "match_state": "Wymagany stan",
+          "action": "Akcja"
+        }
+      },
+      "edit_advanced": {
+        "title": "Edytuj ustawienia zaawansowane",
+        "data": {
+          "debounce_enabled": "Włącz debouncing",
+          "debounce_seconds": "Okno debouncingu (sekundy)",
+          "max_enforcements_per_minute": "Maks. wymuszeń na minutę"
+        }
+      }
+    },
+    "error": {
+      "empty_rule_name": "Nazwa reguły nie może być pusta.",
+      "empty_target_entities": "Wybierz co najmniej jedną encję docelową.",
+      "empty_trigger_states": "Podaj co najmniej jeden stan wyzwalający.",
+      "empty_target_state": "Stan docelowy nie może być pusty.",
+      "invalid_threshold": "Próg i wartość docelowa muszą być liczbowe.",
+      "invalid_delay": "Opóźnienie musi być liczbą całkowitą z zakresu od 0 do 86400 sekund (24h).",
+      "invalid_rate": "Maks. wymuszeń na minutę musi być liczbą całkowitą z zakresu od 1 do 600.",
+      "target_in_triggers": "Stan docelowy nie może być jednocześnie stanem wyzwalającym — utworzyłoby to pętlę wymuszania.",
+      "forbidden_state": "Stany „unavailable”, „unknown” i „none” nie mogą być używane jako wyzwalacze ani cele.",
+      "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
+      "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
+      "name_already_exists": "Reguła o tej nazwie już istnieje."
+    },
+    "abort": {
+      "name_already_exists": "Reguła o tej nazwie już istnieje.",
+      "hub_no_options": "Hub Entity Guard nie ma edytowalnych opcji."
+    }
+  },
+  "exceptions": {
+    "rule_not_found": {
+      "message": "Nie znaleziono reguły Entity Guard pasującej do „{rule_id}”."
+    }
+  },
+  "services": {
+    "suppress": {
+      "name": "Wstrzymaj regułę",
+      "description": "Tymczasowo wstrzymaj regułę Entity Guard. Reguła zostanie automatycznie wznowiona po upływie czasu.",
+      "fields": {
+        "rule_id": {
+          "name": "Reguła",
+          "description": "UUID reguły lub nazwa reguły (tytuł wpisu konfiguracyjnego)."
+        },
+        "duration_minutes": {
+          "name": "Czas trwania (minuty)",
+          "description": "Jak długo wstrzymać regułę (1-1440 minut)."
+        }
+      }
+    },
+    "unsuppress": {
+      "name": "Wznów regułę",
+      "description": "Natychmiast wznów wstrzymaną regułę Entity Guard.",
+      "fields": {
+        "rule_id": {
+          "name": "Reguła",
+          "description": "UUID reguły lub nazwa reguły (tytuł wpisu konfiguracyjnego)."
+        }
+      }
+    },
+    "list_rules": {
+      "name": "Lista reguł",
+      "description": "Zwraca konfigurację i bieżący status każdej reguły Entity Guard."
+    },
+    "clear_history": {
+      "name": "Wyczyść historię reguły",
+      "description": "Wyczyść zapisaną historię wymuszeń (liczniki, ostatnie wymuszenie, czasy odnowienia) dla reguły.",
+      "fields": {
+        "rule_id": {
+          "name": "Reguła",
+          "description": "UUID reguły lub nazwa reguły (tytuł wpisu konfiguracyjnego)."
+        }
+      }
+    },
+    "panic_stop": {
+      "name": "Zatrzymanie awaryjne",
+      "description": "Awaryjne wyłączenie — wyłącza każdą regułę, czyści wszystkie czasy odnowienia, wstrzymuje na 60 minut i wyłącza główny przełącznik huba."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "disabled": "Wyłączona",
+        "suppressed": "Wstrzymana",
+        "enforcing": "Wymusza",
+        "cooldown": "Odnowienie",
+        "armed": "Uzbrojona",
+        "idle": "Bezczynna",
+        "starting": "Uruchamianie",
+        "pending": "Wkrótce wymusi"
+      }
+    },
+    "mode": {
+      "options": {
+        "state": "Stan",
+        "attribute": "Atrybut"
+      }
+    },
+    "attribute": {
+      "options": {
+        "brightness": "Jasność",
+        "volume_level": "Poziom głośności",
+        "temperature": "Temperatura",
+        "percentage": "Procent"
+      }
+    },
+    "operator": {
+      "options": {
+        "lt": "Mniejsze niż (<)",
+        "lte": "Mniejsze lub równe (<=)",
+        "gt": "Większe niż (>)",
+        "gte": "Większe lub równe (>=)"
+      }
+    },
+    "flag_action": {
+      "options": {
+        "save": "Zapisz bez zmian",
+        "add": "Dodaj flagę",
+        "clear": "Wyczyść wszystkie flagi"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "armed": {"name": "Uzbrojona"},
+      "active": {"name": "Aktywna"},
+      "in_cooldown": {"name": "W trakcie odnowienia"}
+    },
+    "sensor": {
+      "status": {"name": "Status"},
+      "last_enforced": {"name": "Ostatnie wymuszenie"},
+      "enforcement_count_today": {"name": "Wymuszenia dzisiaj"},
+      "enforcement_count_total": {"name": "Wymuszenia łącznie"},
+      "cooldown_remaining": {"name": "Pozostałe odnowienie"},
+      "safety_status": {"name": "Status bezpieczeństwa"},
+      "suppressed_until": {"name": "Wstrzymana do"}
+    },
+    "switch": {
+      "enabled": {"name": "Włączona"},
+      "debounce_enabled": {"name": "Debouncing włączony"},
+      "master_enabled": {"name": "Główny włącznik"}
+    },
+    "number": {
+      "delay_seconds": {"name": "Opóźnienie (sekundy)"},
+      "debounce_seconds": {"name": "Debouncing (sekundy)"},
+      "max_enforcements_per_minute": {"name": "Maks. wymuszeń na minutę"}
+    },
+    "button": {
+      "reset": {"name": "Resetuj odnowienia"},
+      "test_enforce": {"name": "Testuj wymuszenie"},
+      "clear_suppression": {"name": "Wyczyść wstrzymanie"}
+    }
+  }
+}
