@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Regel bewerken",
-        "description": "Kies wat je wilt wijzigen.",
+        "description": "{summary}\n\nKies wat je wilt wijzigen.",
         "menu_options": {
           "edit_basics": "Naam bewerken",
           "edit_mode": "Modusspecifieke instellingen bewerken",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Onderdrukking opheffen"
+      },
+      "clear_history": {
+        "name": "Geschiedenis wissen (tellers)"
       }
     }
   }

@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Regel bearbeiten",
-        "description": "Wähle aus, was geändert werden soll.",
+        "description": "{summary}\n\nWähle aus, was geändert werden soll.",
         "menu_options": {
           "edit_basics": "Name bearbeiten",
           "edit_mode": "Modusspezifische Einstellungen bearbeiten",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Unterdrückung aufheben"
+      },
+      "clear_history": {
+        "name": "Verlauf löschen (Zähler)"
       }
     }
   }

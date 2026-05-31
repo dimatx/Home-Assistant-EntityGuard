@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Editar regla",
-        "description": "Elija qué cambiar.",
+        "description": "{summary}\n\nElija qué cambiar.",
         "menu_options": {
           "edit_basics": "Editar nombre",
           "edit_mode": "Editar ajustes específicos del modo",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Borrar supresión"
+      },
+      "clear_history": {
+        "name": "Borrar historial (contadores)"
       }
     }
   }

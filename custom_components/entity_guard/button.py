@@ -46,6 +46,7 @@ async def async_setup_entry(
             EntityGuardResetButton(entry, engine),
             EntityGuardTestEnforceButton(entry, engine),
             EntityGuardClearSuppressionButton(entry, engine),
+            EntityGuardClearHistoryButton(entry, engine),
         ]
     )
 
@@ -114,3 +115,15 @@ class EntityGuardClearSuppressionButton(EntityGuardButtonBase):
     async def async_press(self) -> None:
         """Handle press: unsuppress the rule via the engine."""
         await self._engine.async_unsuppress()
+
+
+class EntityGuardClearHistoryButton(EntityGuardButtonBase):
+    """Button that resets enforcement counters and history for the rule."""
+
+    def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
+        """Initialize the clear history button."""
+        super().__init__(entry, engine, "clear_history", "clear_history")
+
+    async def async_press(self) -> None:
+        """Handle press: zero counters and clear cooldowns via the engine."""
+        await self._engine.async_clear_history()

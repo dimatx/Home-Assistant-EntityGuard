@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Rediger regel",
-        "description": "Vælg hvad der skal ændres.",
+        "description": "{summary}\n\nVælg hvad der skal ændres.",
         "menu_options": {
           "edit_basics": "Rediger navn",
           "edit_mode": "Rediger mode-specifikke indstillinger",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Ryd undertrykkelse"
+      },
+      "clear_history": {
+        "name": "Ryd historik (tællere)"
       }
     }
   }

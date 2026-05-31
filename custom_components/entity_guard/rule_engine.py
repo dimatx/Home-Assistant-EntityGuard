@@ -220,15 +220,7 @@ class RuleEngine:
 
         # Set status synchronously before sweep tasks run so the UI is never stuck
         # on STATUS_STARTING after grace.
-        now = dt_util.now()
-        if not self._state.enabled or not self._master_enabled_getter():
-            self._set_status(self._disabled_status())
-        elif self._state.suppressed_until and self._state.suppressed_until > now:
-            self._set_status(STATUS_SUPPRESSED)
-        elif not self._flags_match():
-            self._set_status(STATUS_CONDITIONAL)
-        else:
-            self._set_status(self._derive_armed_or_cooldown(now))
+        self._apply_idle_status()
 
         for entity_id in self._config.target_entities:
             current = self._hass.states.get(entity_id)
@@ -249,7 +241,7 @@ class RuleEngine:
                 return
 
         if not self._state.enabled or not self._master_enabled_getter():
-            self._set_status(self._disabled_status())
+            self._apply_idle_status()
             return
 
         now = dt_util.now()
@@ -612,7 +604,7 @@ class RuleEngine:
         _LOGGER.info("Resetting cooldowns for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
         self._persist()
-        self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
+        self._apply_idle_status()
 
     async def async_suppress(
         self, duration_minutes: float, user_id: str | None = None
@@ -647,7 +639,7 @@ class RuleEngine:
         self._state.suppressed_until = None
         self._state.suppression_reason = None
         self._persist()
-        self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
+        self._apply_idle_status()
 
     async def async_clear_history(self) -> None:
         """Reset persisted counters and cooldowns."""
@@ -661,7 +653,7 @@ class RuleEngine:
         self._state.last_error = None
         self._store.clear_rule_history(self._config.unique_id)
         if self._current_status == STATUS_ERROR:
-            self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
+            self._apply_idle_status()
         else:
             self._broadcast_status()
 
@@ -673,38 +665,19 @@ class RuleEngine:
             "enabled" if enabled else "DISABLED",
         )
         self._state.enabled = enabled
-        self._persist()
-        if not enabled:
-            self._cancel_pending_for_entities(self._config.target_entities)
-            self._set_status(self._disabled_status())
-        else:
+        # Re-enabling clears stale suppression so we don't strand the rule.
+        if enabled and self._state.suppressed_until:
             now = dt_util.now()
-            if self._state.suppressed_until and self._state.suppressed_until > now:
-                self._set_status(STATUS_SUPPRESSED)
-            else:
-                if self._state.suppressed_until:
-                    self._state.suppressed_until = None
-                    self._state.suppression_reason = None
-                    self._persist()
-                if not self._flags_match():
-                    self._set_status(STATUS_CONDITIONAL)
-                else:
-                    self._set_status(self._derive_armed_or_cooldown(now))
+            if self._state.suppressed_until <= now:
+                self._state.suppressed_until = None
+                self._state.suppression_reason = None
+        self._persist()
+        self._apply_idle_status()
 
     @callback
     def _handle_master_changed(self) -> None:
         """Re-derive status when the master switch toggles."""
-        if not self._state.enabled or not self._master_enabled_getter():
-            self._cancel_pending_for_entities(self._config.target_entities)
-            self._set_status(self._disabled_status())
-            return
-        now = dt_util.now()
-        if self._state.suppressed_until and self._state.suppressed_until > now:
-            self._set_status(STATUS_SUPPRESSED)
-        elif not self._flags_match():
-            self._set_status(STATUS_CONDITIONAL)
-        else:
-            self._set_status(self._derive_armed_or_cooldown(now))
+        self._apply_idle_status()
 
     def current_status(self) -> str:
         """Return the rule's current status string."""
@@ -744,6 +717,35 @@ class RuleEngine:
         if not self._master_enabled_getter():
             return STATUS_MASTER_DISABLED
         return STATUS_DISABLED
+
+    def _derive_idle_status(self, now: datetime | None = None) -> str:
+        """Single source of truth for status when idle.
+
+        Priority (highest first):
+          1. Master switch off -> MASTER_DISABLED.
+          2. Per-rule disabled -> DISABLED.
+          3. Active suppression -> SUPPRESSED.
+          4. Conditional flags unmet -> CONDITIONAL.
+          5. Otherwise -> derive ARMED / COOLDOWN.
+        """
+        if not self._master_enabled_getter():
+            return STATUS_MASTER_DISABLED
+        if not self._state.enabled:
+            return STATUS_DISABLED
+        if now is None:
+            now = dt_util.now()
+        if self._state.suppressed_until and self._state.suppressed_until > now:
+            return STATUS_SUPPRESSED
+        if not self._flags_match():
+            return STATUS_CONDITIONAL
+        return self._derive_armed_or_cooldown(now)
+
+    def _apply_idle_status(self, now: datetime | None = None) -> None:
+        """Compute and broadcast the idle status, cancelling pending if disabled."""
+        status = self._derive_idle_status(now)
+        if status in (STATUS_DISABLED, STATUS_MASTER_DISABLED):
+            self._cancel_pending_for_entities(self._config.target_entities)
+        self._set_status(status)
 
     def _broadcast_status(self) -> None:
         """Tell platforms to refresh."""

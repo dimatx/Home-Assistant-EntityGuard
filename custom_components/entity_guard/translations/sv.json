@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Redigera regel",
-        "description": "Välj vad som ska ändras.",
+        "description": "{summary}\n\nVälj vad som ska ändras.",
         "menu_options": {
           "edit_basics": "Redigera namn",
           "edit_mode": "Redigera lägesspecifika inställningar",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Rensa undertryckning"
+      },
+      "clear_history": {
+        "name": "Rensa historik (räknare)"
       }
     }
   }

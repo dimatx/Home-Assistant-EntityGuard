@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Modifica regola",
-        "description": "Scegli cosa modificare.",
+        "description": "{summary}\n\nScegli cosa modificare.",
         "menu_options": {
           "edit_basics": "Modifica nome",
           "edit_mode": "Modifica impostazioni specifiche della modalità",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Rimuovi soppressione"
+      },
+      "clear_history": {
+        "name": "Cancella storico (contatori)"
       }
     }
   }

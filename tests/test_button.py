@@ -14,6 +14,7 @@ from custom_components.entity_guard.const import (
     ENTRY_TYPE_RULE,
 )
 from custom_components.entity_guard.button import (
+    EntityGuardClearHistoryButton,
     EntityGuardClearSuppressionButton,
     EntityGuardResetButton,
     EntityGuardTestEnforceButton,
@@ -26,6 +27,7 @@ def _make_engine():
     engine.async_reset_cooldowns = AsyncMock()
     engine.async_test_enforce = AsyncMock()
     engine.async_unsuppress = AsyncMock()
+    engine.async_clear_history = AsyncMock()
     return engine
 
 
@@ -89,6 +91,19 @@ async def test_clear_suppression_button_press(hass: HomeAssistant):
 
 
 # ---------------------------------------------------------------------------
+# EntityGuardClearHistoryButton
+# ---------------------------------------------------------------------------
+
+
+async def test_clear_history_button_press(hass: HomeAssistant):
+    entry = _make_rule_entry()
+    engine = _make_engine()
+    btn = EntityGuardClearHistoryButton(entry, engine)
+    await btn.async_press()
+    engine.async_clear_history.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
 # async_setup_entry
 # ---------------------------------------------------------------------------
 
@@ -112,8 +127,9 @@ async def test_setup_entry_adds_buttons(hass: HomeAssistant):
     hass.data.setdefault(DOMAIN, {})["engines"] = {entry.entry_id: engine}
     added = []
     await async_setup_entry(hass, entry, added.extend)
-    assert len(added) == 3
+    assert len(added) == 4
     types = [type(s).__name__ for s in added]
     assert "EntityGuardResetButton" in types
     assert "EntityGuardTestEnforceButton" in types
     assert "EntityGuardClearSuppressionButton" in types
+    assert "EntityGuardClearHistoryButton" in types

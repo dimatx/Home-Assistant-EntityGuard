@@ -771,6 +771,9 @@ class EntityGuardOptionsFlow(OptionsFlow):
                 "edit_flags",
                 "edit_advanced",
             ],
+            description_placeholders={
+                "summary": _build_summary(self._working, self.hass)
+            },
         )
 
     # ------------------------------------------------------------------ Persist helper

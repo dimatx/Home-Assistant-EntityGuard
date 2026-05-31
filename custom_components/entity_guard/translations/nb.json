@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "Rediger regel",
-        "description": "Velg hva som skal endres.",
+        "description": "{summary}\n\nVelg hva som skal endres.",
         "menu_options": {
           "edit_basics": "Rediger navn",
           "edit_mode": "Rediger modusspesifikke innstillinger",
@@ -369,6 +369,9 @@
       },
       "clear_suppression": {
         "name": "Fjern undertrykkelse"
+      },
+      "clear_history": {
+        "name": "Tøm historikk (tellere)"
       }
     }
   }

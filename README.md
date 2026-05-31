@@ -166,17 +166,18 @@ Review the assembled rule before saving. Confirm to create the config entry. The
 
 ## Status state machine
 
-`sensor.<rule>_status` reports one of nine values, by priority (highest wins):
+`sensor.<rule>_status` reports one of ten values, by priority (highest wins):
 
 1. `error` -- 3+ consecutive enforcement failures (e.g. target unavailable). Auto-clears on next success or via `clear_history`.
-2. `disabled` -- `enabled=OFF` or master switch off
-3. `suppressed` -- suppress service active
-4. `enforcing` -- service call currently in flight (transient)
-5. `cooldown` -- post-enforcement cooldown active
-6. `pending` -- delayed enforcement armed, waiting on `delay_seconds`
-7. `armed` -- flags match, watching
-8. `conditional` -- one or more flag entities do not match required state
-9. `starting` -- inside the startup grace window
+2. `master_disabled` -- hub master switch is OFF (overrides every per-rule state below)
+3. `disabled` -- per-rule `enabled=OFF`
+4. `suppressed` -- suppress service active
+5. `enforcing` -- service call currently in flight (transient)
+6. `cooldown` -- post-enforcement cooldown active
+7. `pending` -- delayed enforcement armed, waiting on `delay_seconds`
+8. `armed` -- flags match, watching
+9. `conditional` -- one or more flag entities do not match required state
+10. `starting` -- inside the startup grace window
 
 ---
 
@@ -262,19 +263,21 @@ The custom card auto-registers when the integration loads. Add it to a dashboard
 ```yaml
 type: custom:entity-guard-card
 rule_id: <config_entry_id>
-title: "Living Room"   # optional override
-show_entities: true    # default: true
-show_conditions: false # default: false
-show_actions: false    # default: false
+title: "Living Room"        # optional override
+show_stats: true             # default: true  (enforcement counters)
+show_last_enforced: true     # default: true
+show_entities: true          # default: true
+show_conditions: false       # default: false
+show_actions: false          # default: false
 ```
 
 The card shows:
-- Rule name and color-coded status badge (armed / enforcing / suppressed / cooldown / conditional / error)
-- Enforcement counters (today / total)
-- Last enforced timestamp and cooldown indicator
+- Rule name and color-coded status badge (armed / enforcing / suppressed / cooldown / conditional / error / master_disabled)
+- Enforcement counters (today / total) — togglable via `show_stats`
+- Last enforced timestamp and cooldown indicator — togglable via `show_last_enforced`
 - Bound entities with compliance state (✓ compliant / ⚠ violation)
 - Optional **Conditions** section (`show_conditions: true`) — lists each flag with current vs required state; useful when status is `conditional`
-- Optional action buttons (Reset Cooldowns, Test Enforce, Suppress 1h)
+- Optional action buttons (Test Enforce, Reset Cooldowns when active, Clear History, Suppress 1h)
 
 **Normal state — rule armed, all entities compliant**
 

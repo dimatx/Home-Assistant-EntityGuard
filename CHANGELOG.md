@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.1.0-beta.10] — 2026-05-31
+
+### Added
+
+- **Clear History button** per rule — zeros today/total counters, clears cooldowns, resets last-enforced. Card exposes it under Actions; entity surfaces as `button.<rule>_clear_history`.
+- **Card config: `show_stats`** (default true) — toggle the today/total enforcement counters block.
+- **Card config: `show_last_enforced`** (default true) — toggle the "Last enforced" row.
+- **Options-flow recap** — re-opening a rule's options now shows the same summary block from the creation final step at the top of the menu, before "Pick what to change".
+
+### Fixed
+
+- **Master switch priority** — toggling a per-rule enable switch while master is OFF no longer flips the rule to `conditional`/`armed`. All status derivation now funnels through a single `_derive_idle_status` helper with strict priority: `master_disabled` > `disabled` > `suppressed` > `conditional` > `armed`/`cooldown`.
+- **Card "No rule entities found" flash on load** — card now matches via device-registry identifier instead of the (display-only) `config_entry_id` field on `hass.entities`. Skeleton "Loading…" shows until both `hass.entities` and `hass.devices` are populated; real error only surfaces once both registries are loaded and still empty for the configured rule.
+- **Last enforced "unknown"** — card's `_renderInfo` now reuses `_stateValue` to filter `unknown`/`unavailable` states, preventing a transient "unknown" flash when another rule's enforcement triggers a re-render before this rule's sensor has a value.
+
+### Changed
+
+- Action button order in card: Test Enforce → Reset Cooldowns (when active) → Clear History → Suppress 1h (visually separated to the right).
+
+## [0.1.0-beta.9] — 2026-05-31
+
+### Added
+
+- Conditions / flags step now shows the flag entity's current state inline (`{entity_id} is currently: {state}`) — visible after submission so the user can sanity-check the required-state pick.
+
+## [0.1.0-beta.8] — 2026-05-31
+
+### Added
+
+- New `master_disabled` status — distinguishes hub-master-off from per-rule disable. Card shows a dedicated badge color and label; logbook and translations updated across 11 locales.
+
+## [0.1.0-beta.7] — 2026-05-31
+
+### Fixed
+
+- Rule engine now subscribes to the master-switch dispatcher signal — toggling the hub master switch instantly re-derives every rule's status instead of waiting for the next state event.
+
+## [0.1.0-beta.6] — 2026-05-31
+
+### Fixed
+
+- Renaming a rule entry now propagates to its device-registry name and triggers a reload — previously the new name only appeared at the entry title, leaving device + child entities on the stale name.
+
 ## [0.1.0-beta.5] — 2026-05-31
 
 ### Added

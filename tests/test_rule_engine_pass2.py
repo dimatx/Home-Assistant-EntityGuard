@@ -127,6 +127,31 @@ def test_master_changed_to_on_re_derives(hass: HomeAssistant):
     assert engine.current_status() == STATUS_CONDITIONAL
 
 
+def test_set_enabled_true_when_master_off_stays_master_disabled(
+    hass: HomeAssistant,
+):
+    """set_enabled(True) must NOT override master-off (regression)."""
+    master = {"on": False}
+    engine = _make_engine(hass, _make_config())
+    engine._master_enabled_getter = lambda: master["on"]
+    hass.states.async_set("light.bedroom", "on")
+    engine._set_status(STATUS_MASTER_DISABLED)
+    engine.set_enabled(True)
+    assert engine.current_status() == STATUS_MASTER_DISABLED
+
+
+def test_set_enabled_false_when_master_off_uses_master_disabled(
+    hass: HomeAssistant,
+):
+    """set_enabled(False) with master off uses MASTER_DISABLED, not DISABLED."""
+    master = {"on": False}
+    engine = _make_engine(hass, _make_config())
+    engine._master_enabled_getter = lambda: master["on"]
+    hass.states.async_set("light.bedroom", "on")
+    engine.set_enabled(False)
+    assert engine.current_status() == STATUS_MASTER_DISABLED
+
+
 # ---------------------------------------------------------------------------
 # Delayed enforcement _fire branches
 # ---------------------------------------------------------------------------

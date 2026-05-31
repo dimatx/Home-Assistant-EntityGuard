@@ -226,6 +226,9 @@ const cardStyles = css`
     color: var(--text-primary-color, #fff);
     border-color: transparent;
   }
+  button.action.separator {
+    margin-left: auto;
+  }
   .toggle {
     display: flex;
     align-items: center;
@@ -269,34 +272,13 @@ class EntityGuardCard extends LitElement {
     return {
       hass: { attribute: false },
       _config: { state: true },
-      _entityRegistry: { state: false },
     };
   }
 
   constructor() {
     super();
-    this._entityRegistry = null;
-    this._registryLoading = false;
-  }
-
-  async _loadEntityRegistry() {
-    if (!this.hass || this._entityRegistry !== null || this._registryLoading) return;
-    this._registryLoading = true;
-    try {
-      const entries = await this.hass.callWS({ type: "config/entity_registry/list" });
-      const map = {};
-      for (const e of entries || []) map[e.entity_id] = e;
-      this._entityRegistry = map;
-    } catch (_) {
-      this._entityRegistry = {};
-    } finally {
-      this._registryLoading = false;
-      this.requestUpdate();
-    }
-  }
-
-  updated(changed) {
-    if (changed.has("hass")) this._loadEntityRegistry();
+    this._refsCache = null;
+    this._refsCacheKey = null;
   }
 
   static get styles() {
@@ -343,13 +325,73 @@ class EntityGuardCard extends LitElement {
   }
 
   /**
-   * Locate all per-rule entities by scanning the state registry for the rule_id.
+   * Locate all per-rule entities via device-registry lookup.
+   * Each rule entry creates a device with identifier ("entity_guard", entry_id).
+   * Match entities whose device_id equals that device's id.
    * Falls back to anchor entity prefix when only `entity` was given.
    */
-  _findRuleEntities() {
-    if (!this.hass) return null;
+  _findMatchIds() {
     const ruleId = this._config.rule_id;
     const anchor = this._config.entity;
+    const entities = this.hass.entities || {};
+    const devices = this.hass.devices || {};
+    const entityKeys = Object.keys(entities);
+    const deviceKeys = Object.keys(devices);
+
+    let ruleDeviceId = null;
+    if (ruleId) {
+      for (const devId of deviceKeys) {
+        const ids = devices[devId]?.identifiers;
+        if (!Array.isArray(ids)) continue;
+        for (const pair of ids) {
+          if (
+            Array.isArray(pair) &&
+            pair[0] === "entity_guard" &&
+            pair[1] === ruleId
+          ) {
+            ruleDeviceId = devId;
+            break;
+          }
+        }
+        if (ruleDeviceId) break;
+      }
+    }
+
+    const cacheKey = `${ruleId || ""}|${anchor || ""}|${ruleDeviceId || ""}|${entityKeys.length}|${deviceKeys.length}`;
+    if (this._refsCacheKey === cacheKey && this._refsCache) {
+      return this._refsCache;
+    }
+
+    const matches = [];
+    for (const entityId of entityKeys) {
+      const entry = entities[entityId];
+      if (entry?.platform !== "entity_guard") continue;
+      if (ruleDeviceId) {
+        if (entry?.device_id !== ruleDeviceId) continue;
+      } else if (anchor) {
+        if (!entityId.startsWith(this._anchorPrefix(anchor))) continue;
+      } else {
+        continue;
+      }
+      matches.push(entityId);
+    }
+
+    if (matches.length === 0 && anchor && entityKeys.length > 0) {
+      const prefix = this._anchorPrefix(anchor);
+      for (const entityId of Object.keys(this.hass.states || {})) {
+        if (entityId.startsWith(prefix)) matches.push(entityId);
+      }
+    }
+
+    if (matches.length > 0) {
+      this._refsCache = matches;
+      this._refsCacheKey = cacheKey;
+    }
+    return matches;
+  }
+
+  _findRuleEntities() {
+    if (!this.hass) return null;
     const out = {
       enabled: null,
       status: null,
@@ -361,41 +403,14 @@ class EntityGuardCard extends LitElement {
       inCooldown: null,
       reset: null,
       testEnforce: null,
+      clearHistory: null,
       bound: [],
       targetState: null,
       triggerStates: null,
     };
 
-    const entities = (this._entityRegistry && Object.keys(this._entityRegistry).length > 0)
-      ? this._entityRegistry
-      : (this.hass.entities || {});
-    const hasRegistry = Object.keys(entities).length > 0;
-    const matches = [];
-
-    if (hasRegistry) {
-      for (const [entityId, entry] of Object.entries(entities)) {
-        if (entry?.platform !== "entity_guard") continue;
-        if (ruleId && entry?.config_entry_id !== ruleId) continue;
-        if (!ruleId && anchor && !entityId.startsWith(this._anchorPrefix(anchor))) continue;
-        matches.push(entityId);
-      }
-    } else {
-      // hass.entities not populated — fall back to state scan
-      for (const entityId of Object.keys(this.hass.states || {})) {
-        if (!ruleId && anchor && !entityId.startsWith(this._anchorPrefix(anchor))) continue;
-        if (ruleId) {
-          const st = this.hass.states[entityId];
-          // status sensor carries target_entities and friendly_name; all rule entities share the same entry
-          // without registry we can only match via state attributes — accept any entity that looks like ours
-          const attrEntryId = st?.attributes?.config_entry_id;
-          if (attrEntryId && attrEntryId !== ruleId) continue;
-          if (!attrEntryId) {
-            // heuristic: skip if name clearly belongs to a different rule
-          }
-        }
-        matches.push(entityId);
-      }
-    }
+    const entities = this.hass.entities || {};
+    const matches = this._findMatchIds();
 
     for (const id of matches) {
       const st = this.hass.states[id];
@@ -422,6 +437,8 @@ class EntityGuardCard extends LitElement {
         out.reset = id;
       } else if (id.startsWith("button.") && tk === "test_enforce") {
         out.testEnforce = id;
+      } else if (id.startsWith("button.") && tk === "clear_history") {
+        out.clearHistory = id;
       }
     }
 
@@ -483,12 +500,21 @@ class EntityGuardCard extends LitElement {
       </ha-card>`;
     }
 
-    if (this._entityRegistry === null) {
-      return html`<ha-card><div class="error">Loading…</div></ha-card>`;
-    }
-
     const refs = this._findRuleEntities();
     if (!refs || (!refs.status && !refs.enabled)) {
+      const entitiesPopulated =
+        this.hass.entities && Object.keys(this.hass.entities).length > 0;
+      const devicesPopulated =
+        this.hass.devices && Object.keys(this.hass.devices).length > 0;
+      if (!entitiesPopulated || !devicesPopulated) {
+        return html`<ha-card>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;gap:8px;color:var(--secondary-text-color,#727272);">
+            <ha-icon icon="mdi:shield-lock" style="--mdi-icon-size:40px;color:var(--primary-color,#3f51b5)"></ha-icon>
+            <span style="font-weight:500;color:var(--primary-text-color)">Entity Guard</span>
+            <span style="font-size:13px">Loading…</span>
+          </div>
+        </ha-card>`;
+      }
       return html`<ha-card>
         <div class="error">
           No Entity Guard rule entities found for rule_id
@@ -522,8 +548,8 @@ class EntityGuardCard extends LitElement {
             </div>`
           : nothing}
         ${this._renderToggle(refs, enabled)}
-        ${this._renderStats(refs)}
-        ${this._renderInfo(refs)}
+        ${this._config.show_stats !== false ? this._renderStats(refs) : nothing}
+        ${this._config.show_last_enforced !== false ? this._renderInfo(refs) : nothing}
         ${this._config.show_entities !== false ? this._renderBound(refs) : nothing}
         ${this._config.show_conditions ? this._renderConditions(refs) : nothing}
         ${this._config.show_actions ? this._renderActions(refs) : nothing}
@@ -564,7 +590,7 @@ class EntityGuardCard extends LitElement {
   }
 
   _renderInfo(refs) {
-    const last = refs.lastEnforced ? this.hass.states[refs.lastEnforced]?.state : null;
+    const last = this._stateValue(refs.lastEnforced, null);
     return html`
       <div class="row">
         <span class="label">Last enforced</span>
@@ -629,14 +655,17 @@ class EntityGuardCard extends LitElement {
       <div class="entities">
         <div class="section-title">Actions</div>
         <div class="actions">
+          <button class="action primary" @click=${() => this._press(refs.testEnforce)} ?disabled=${!refs.testEnforce}>
+            Test Enforce
+          </button>
           ${refs.inCooldown && this.hass.states[refs.inCooldown]?.state === "on" ? html`
           <button class="action" @click=${() => this._press(refs.reset)} ?disabled=${!refs.reset}>
             Reset Cooldowns
           </button>` : nothing}
-          <button class="action primary" @click=${() => this._press(refs.testEnforce)} ?disabled=${!refs.testEnforce}>
-            Test Enforce
+          <button class="action" @click=${() => this._press(refs.clearHistory)} ?disabled=${!refs.clearHistory}>
+            Clear History
           </button>
-          <button class="action warn" @click=${() => this._suppress(60)}>
+          <button class="action warn separator" @click=${() => this._suppress(60)}>
             Suppress 1h
           </button>
         </div>
@@ -791,6 +820,20 @@ class EntityGuardCardEditor extends LitElement {
             @input=${(e) => this._update("title", e.target.value || undefined)}
             placeholder="Override displayed name"
           />
+        </div>
+        <div class="editor-row" style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0">Show enforcement counters</label>
+          <ha-switch
+            .checked=${this._config.show_stats !== false}
+            @change=${(e) => this._update("show_stats", e.target.checked)}
+          ></ha-switch>
+        </div>
+        <div class="editor-row" style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0">Show last enforced</label>
+          <ha-switch
+            .checked=${this._config.show_last_enforced !== false}
+            @change=${(e) => this._update("show_last_enforced", e.target.checked)}
+          ></ha-switch>
         </div>
         <div class="editor-row" style="display:flex;align-items:center;justify-content:space-between;">
           <label style="margin-bottom:0">Show bound entities</label>
