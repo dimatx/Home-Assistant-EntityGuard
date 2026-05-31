@@ -93,6 +93,40 @@ def test_startup_grace_sets_conditional_when_flags_mismatch(hass: HomeAssistant)
 
 
 # ---------------------------------------------------------------------------
+# Master switch signal handler
+# ---------------------------------------------------------------------------
+
+
+def test_master_changed_to_off_sets_disabled(hass: HomeAssistant):
+    """Engine flips to DISABLED when master toggles off, regardless of flags."""
+    flag = Flag(entity="input_boolean.x", match_state="on")
+    master = {"on": True}
+    engine = _make_engine(hass, _make_config(flags=[flag]), master=True)
+    engine._master_enabled_getter = lambda: master["on"]
+    hass.states.async_set("input_boolean.x", "off")
+    hass.states.async_set("light.bedroom", "on")
+    # Pretend startup grace completed in conditional.
+    engine._set_status(STATUS_CONDITIONAL)
+    master["on"] = False
+    engine._handle_master_changed()
+    assert engine.current_status() == STATUS_DISABLED
+
+
+def test_master_changed_to_on_re_derives(hass: HomeAssistant):
+    """Engine flips back to CONDITIONAL/ARMED when master toggles on."""
+    flag = Flag(entity="input_boolean.x", match_state="on")
+    master = {"on": False}
+    engine = _make_engine(hass, _make_config(flags=[flag]))
+    engine._master_enabled_getter = lambda: master["on"]
+    hass.states.async_set("input_boolean.x", "off")
+    hass.states.async_set("light.bedroom", "on")
+    engine._set_status(STATUS_DISABLED)
+    master["on"] = True
+    engine._handle_master_changed()
+    assert engine.current_status() == STATUS_CONDITIONAL
+
+
+# ---------------------------------------------------------------------------
 # Delayed enforcement _fire branches
 # ---------------------------------------------------------------------------
 

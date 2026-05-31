@@ -11,7 +11,10 @@ from typing import Any, Callable
 from homeassistant.components import persistent_notification
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Context, Event, HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
@@ -140,6 +143,12 @@ class RuleEngine:
                 self._hass,
                 STARTUP_GRACE_PERIOD_SECONDS,
                 self._handle_startup_grace_done,
+            )
+        )
+
+        self._unsub_callbacks.append(
+            async_dispatcher_connect(
+                self._hass, signal_master_update(), self._handle_master_changed
             )
         )
 
@@ -680,6 +689,21 @@ class RuleEngine:
                     self._set_status(STATUS_CONDITIONAL)
                 else:
                     self._set_status(self._derive_armed_or_cooldown(now))
+
+    @callback
+    def _handle_master_changed(self) -> None:
+        """Re-derive status when the master switch toggles."""
+        if not self._state.enabled or not self._master_enabled_getter():
+            self._cancel_pending_for_entities(self._config.target_entities)
+            self._set_status(STATUS_DISABLED)
+            return
+        now = dt_util.now()
+        if self._state.suppressed_until and self._state.suppressed_until > now:
+            self._set_status(STATUS_SUPPRESSED)
+        elif not self._flags_match():
+            self._set_status(STATUS_CONDITIONAL)
+        else:
+            self._set_status(self._derive_armed_or_cooldown(now))
 
     def current_status(self) -> str:
         """Return the rule's current status string."""
