@@ -220,10 +220,20 @@ class RuleEngine:
             self._cancel_pending_for_entities(self._config.target_entities)
             return
 
-        # Flag entity change re-arms; only target changes drive enforcement decisions.
-        if entity_id not in self._config.target_entities:
+        flag_entity_ids = {f.entity for f in self._config.flags}
+
+        # Flag entity change: flags just became satisfied — sweep all targets.
+        if entity_id in flag_entity_ids:
             self._set_status(self._derive_armed_or_cooldown(now))
-            return
+            for target in self._config.target_entities:
+                if target == entity_id:
+                    continue  # handled below as a target if also a target entity
+                current = self._hass.states.get(target)
+                if current is not None and self._is_triggered(target, current):
+                    self._hass.async_create_task(self.async_evaluate(target, current))
+            # If entity is flag-only, stop here; if also a target, fall through.
+            if entity_id not in self._config.target_entities:
+                return
 
         triggered = self._is_triggered(entity_id, new_state)
 
@@ -264,6 +274,8 @@ class RuleEngine:
             return False
 
         if self._config.mode == MODE_STATE:
+            if new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+                return False
             return new_state.state in self._config.trigger_states
 
         if self._config.mode == MODE_ATTRIBUTE:

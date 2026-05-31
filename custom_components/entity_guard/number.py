@@ -124,6 +124,7 @@ class EntityGuardNumberBase(NumberEntity):
             )
         )
         self._attr_available = True
+        self.async_write_ha_state()
 
     @callback
     def _handle_update(self, *args: object) -> None:

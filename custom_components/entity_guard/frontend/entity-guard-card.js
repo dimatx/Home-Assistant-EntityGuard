@@ -330,6 +330,7 @@ class EntityGuardCard extends LitElement {
       testEnforce: null,
       bound: [],
       targetState: null,
+      triggerStates: null,
     };
 
     const entities = (this._entityRegistry && Object.keys(this._entityRegistry).length > 0)
@@ -397,6 +398,7 @@ class EntityGuardCard extends LitElement {
       out.bound = targets;
     }
     out.targetState = statusEntity?.attributes?.target_state ?? null;
+    out.triggerStates = statusEntity?.attributes?.trigger_states ?? null;
 
     return out;
   }
@@ -527,7 +529,7 @@ class EntityGuardCard extends LitElement {
 
   _renderBound(refs) {
     if (!refs.bound || refs.bound.length === 0) return nothing;
-    const targetState = refs.targetState;
+    const triggerStates = refs.triggerStates;
     return html`
       <div class="entities">
         <div class="section-title">Bound entities (${refs.bound.length})</div>
@@ -535,14 +537,14 @@ class EntityGuardCard extends LitElement {
           const st = this.hass.states[id];
           const name = st?.attributes?.friendly_name || id;
           const state = st ? st.state : "unknown";
-          const compliant = targetState == null || state === targetState;
+          const compliant = !triggerStates || !triggerStates.includes(state);
           return html`
             <div class="entity-row">
               <span class="entity-name" title="${id}">${name}</span>
               <span class="entity-state">
                 ${compliant
                   ? html`${state} <span style="color:var(--success-color,#4caf50)">✓</span>`
-                  : html`<span style="color:var(--warning-color,#ff9800)">${state} → ${targetState} ⚠</span>`}
+                  : html`<span style="color:var(--warning-color,#ff9800)">${state} → ${refs.targetState} ⚠</span>`}
               </span>
             </div>
           `;

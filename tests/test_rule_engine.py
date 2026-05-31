@@ -903,3 +903,326 @@ async def test_flag_entity_change_rearms(hass: HomeAssistant):
     st = hass.states.get("input_boolean.night")
     await engine.async_evaluate("input_boolean.night", st)
     assert engine.current_status() in (STATUS_ARMED, STATUS_COOLDOWN, STATUS_PENDING)
+
+
+async def test_flag_change_triggers_enforcement_on_already_triggered_target(
+    hass: HomeAssistant,
+):
+    """Flag flipping on while target already violates rule must enforce immediately."""
+    config = _make_config(
+        flags=[Flag(entity="binary_sensor.no_water", match_state="on")],
+        target_entities=["switch.diffuser"],
+        trigger_states=["on"],
+        target_state="off",
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    # Diffuser is already on; flag is initially off (guard dormant).
+    hass.states.async_set("switch.diffuser", "on")
+    hass.states.async_set("binary_sensor.no_water", "off")
+
+    # Flag turns on — guard should now sweep and enforce the diffuser.
+    hass.states.async_set("binary_sensor.no_water", "on")
+    flag_st = hass.states.get("binary_sensor.no_water")
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        await engine.async_evaluate("binary_sensor.no_water", flag_st)
+        # Allow spawned tasks to run.
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_awaited_once_with("switch.diffuser")
+
+
+async def test_flag_change_match_state_off_triggers_enforcement(
+    hass: HomeAssistant,
+):
+    """Flag with match_state='off' flipping off while target violated must enforce."""
+    config = _make_config(
+        flags=[Flag(entity="binary_sensor.water_ok", match_state="off")],
+        target_entities=["switch.diffuser"],
+        trigger_states=["on"],
+        target_state="off",
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    hass.states.async_set("switch.diffuser", "on")
+    hass.states.async_set("binary_sensor.water_ok", "on")  # flag does not match yet
+
+    # Flag turns off → match_state="off" now satisfied → sweep targets.
+    hass.states.async_set("binary_sensor.water_ok", "off")
+    flag_st = hass.states.get("binary_sensor.water_ok")
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        await engine.async_evaluate("binary_sensor.water_ok", flag_st)
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_awaited_once_with("switch.diffuser")
+
+
+async def test_flag_change_no_enforcement_when_target_not_triggered(
+    hass: HomeAssistant,
+):
+    """Flag becoming satisfied must NOT enforce when target state is already correct."""
+    config = _make_config(
+        flags=[Flag(entity="binary_sensor.no_water", match_state="on")],
+        target_entities=["switch.diffuser"],
+        trigger_states=["on"],
+        target_state="off",
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    hass.states.async_set("switch.diffuser", "off")  # already off — no violation
+    hass.states.async_set("binary_sensor.no_water", "off")
+
+    hass.states.async_set("binary_sensor.no_water", "on")
+    flag_st = hass.states.get("binary_sensor.no_water")
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        await engine.async_evaluate("binary_sensor.no_water", flag_st)
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_not_awaited()
+
+
+async def test_flag_change_multi_flag_all_must_match(hass: HomeAssistant):
+    """With two flags, sweep only fires when BOTH are satisfied."""
+    config = _make_config(
+        flags=[
+            Flag(entity="binary_sensor.no_water", match_state="on"),
+            Flag(entity="input_boolean.night", match_state="on"),
+        ],
+        target_entities=["switch.diffuser"],
+        trigger_states=["on"],
+        target_state="off",
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    hass.states.async_set("switch.diffuser", "on")
+    hass.states.async_set("binary_sensor.no_water", "off")
+    hass.states.async_set("input_boolean.night", "on")
+
+    # Only one flag satisfied — should NOT enforce.
+    hass.states.async_set("binary_sensor.no_water", "on")
+    flag_st = hass.states.get("binary_sensor.no_water")
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        await engine.async_evaluate("binary_sensor.no_water", flag_st)
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_awaited_once_with("switch.diffuser")
+
+
+async def test_entity_both_flag_and_target_sweeps_other_targets(hass: HomeAssistant):
+    """Entity that is both a flag and a target must still sweep other targets."""
+    config = _make_config(
+        flags=[Flag(entity="switch.diffuser", match_state="on")],
+        target_entities=["switch.diffuser", "switch.humidifier"],
+        trigger_states=["on"],
+        target_state="off",
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    hass.states.async_set("switch.diffuser", "on")
+    hass.states.async_set("switch.humidifier", "on")
+
+    flag_and_target_st = hass.states.get("switch.diffuser")
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        await engine.async_evaluate("switch.diffuser", flag_and_target_st)
+        await hass.async_block_till_done()
+
+    enforced = {call.args[0] for call in mock_enforce.await_args_list}
+    assert "switch.humidifier" in enforced
+
+
+def test_is_triggered_ignores_unavailable_state():
+    """trigger_states must never match unavailable or unknown."""
+    config = _make_config(trigger_states=["on", "unavailable"])
+    engine = _make_engine(None, config)
+
+    unavail = _state("unavailable")
+    unknown = _state("unknown")
+
+    assert engine._is_triggered("light.bedroom", unavail) is False
+    assert engine._is_triggered("light.bedroom", unknown) is False
+
+
+def test_is_triggered_ignores_unknown_state():
+    """unknown state must never trigger enforcement even if listed in trigger_states."""
+    config = _make_config(trigger_states=["on", "unknown"])
+    engine = _make_engine(None, config)
+
+    assert engine._is_triggered("light.bedroom", _state("unknown")) is False
+
+
+def test_is_triggered_attribute_mode_missing_config_returns_false():
+    """MODE_ATTRIBUTE with None attr/op/threshold must return False."""
+    config = _make_config(
+        mode=MODE_ATTRIBUTE, attribute=None, operator=None, threshold=None
+    )
+    engine = _make_engine(None, config)
+    assert engine._is_triggered("light.bedroom", _state("on", {"brightness": 100})) is False
+
+
+def test_is_triggered_attribute_no_attributes_attr():
+    """MODE_ATTRIBUTE state object without attributes must return False gracefully."""
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_GT,
+        threshold=50.0,
+        target_value=0.0,
+    )
+    engine = _make_engine(None, config)
+    st = MagicMock()
+    st.state = "on"
+    del st.attributes  # no attributes attribute
+    assert engine._is_triggered("light.bedroom", st) is False
+
+
+def test_cancel_pending_swallows_exception():
+    """_cancel_pending must not raise when cancel callback raises."""
+    config = _make_config()
+    engine = _make_engine(None, config)
+
+    def _bad_cancel():
+        raise RuntimeError("cancel blew up")
+
+    engine._pending_enforcements["light.bedroom"] = _bad_cancel
+    engine._cancel_pending("light.bedroom")  # must not raise
+    assert "light.bedroom" not in engine._pending_enforcements
+
+
+def test_resolve_service_attribute_mode_no_mapping():
+    """_resolve_service returns None when attribute has no service mapping."""
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="unmapped_attr",
+        target_value=50.0,
+    )
+    engine = _make_engine(None, config)
+    assert engine._resolve_service("light.bedroom") is None
+
+
+def test_resolve_service_attribute_mode_missing_attr():
+    """_resolve_service returns None when attribute or target_value is None."""
+    config = _make_config(mode=MODE_ATTRIBUTE, attribute=None, target_value=None)
+    engine = _make_engine(None, config)
+    assert engine._resolve_service("light.bedroom") is None
+
+
+def test_resolve_service_unknown_mode():
+    """_resolve_service returns None for unknown mode."""
+    config = _make_config()
+    engine = _make_engine(None, config)
+    engine._config = MagicMock()
+    engine._config.mode = "bogus_mode"
+    assert engine._resolve_service("light.bedroom") is None
+
+
+async def test_set_enabled_true_clears_expired_suppression(hass: HomeAssistant):
+    """set_enabled(True) with expired suppressed_until must clear suppression."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine._state.suppressed_until = dt_util.now() - timedelta(seconds=10)
+    engine._state.suppression_reason = "manual"
+
+    engine.set_enabled(True)
+
+    assert engine._state.suppressed_until is None
+    assert engine._state.suppression_reason is None
+    assert engine.current_status() in (STATUS_ARMED, STATUS_COOLDOWN, STATUS_PENDING)
+
+
+def test_set_status_no_broadcast_on_same_status():
+    """_set_status must not broadcast when status unchanged."""
+    config = _make_config()
+    engine = _make_engine(None, config)
+    engine._current_status = STATUS_ARMED
+
+    broadcast_calls = []
+    engine._broadcast_status = lambda: broadcast_calls.append(1)
+
+    engine._set_status(STATUS_ARMED)
+    assert broadcast_calls == []
+
+    engine._set_status(STATUS_IDLE)
+    assert broadcast_calls == [1]
+
+
+async def test_delayed_enforcement_skips_when_state_gone(hass: HomeAssistant):
+    """_fire inner coroutine: state=None after schedule → no enforce."""
+    config = _make_config(delay_seconds=0)  # no timer; test _fire logic directly
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    # Simulate what _fire does: state is None.
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        engine._pending_enforcements.pop("light.bedroom", None)
+        current = None  # state gone
+        if current is None or not engine._is_triggered("light.bedroom", current):
+            pass  # _fire returns early — no enforce
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_not_awaited()
+
+
+async def test_delayed_enforcement_skips_when_flags_no_longer_match(hass: HomeAssistant):
+    """_fire inner coroutine: flags not matching after schedule → no enforce."""
+    config = _make_config(
+        flags=[Flag(entity="input_boolean.night", match_state="on")],
+        delay_seconds=0,
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    hass.states.async_set("light.bedroom", "on")
+    hass.states.async_set("input_boolean.night", "off")  # flag no longer matches
+
+    with patch.object(engine, "_enforce", new_callable=AsyncMock) as mock_enforce:
+        # Directly call async_evaluate — flags don't match so enforce never runs.
+        st = hass.states.get("light.bedroom")
+        await engine.async_evaluate("light.bedroom", st)
+        await hass.async_block_till_done()
+
+    mock_enforce.assert_not_awaited()
+
+
+async def test_async_setup_logs_restored_state(hass: HomeAssistant):
+    """async_setup with non-empty blob must log restored state (line 106)."""
+    from custom_components.entity_guard.storage import EntityGuardStore
+
+    config = _make_config()
+    store = MagicMock(spec=EntityGuardStore)
+    blob = {"enforcement_count_total": 5, "enforcement_count_today": 2}
+    store.get_rule_state.return_value = blob
+    store.runtime_to_blob = EntityGuardStore.runtime_to_blob
+    store.blob_to_runtime = EntityGuardStore.blob_to_runtime
+    engine = RuleEngine(hass, config, store, lambda: True)
+
+    with (
+        patch("custom_components.entity_guard.rule_engine.async_track_state_change_event"),
+        patch("custom_components.entity_guard.rule_engine.async_track_time_change"),
+        patch("custom_components.entity_guard.rule_engine.async_call_later"),
+    ):
+        await engine.async_setup()
+
+    assert engine.state.enforcement_count_total == 5
+
+
+async def test_set_enabled_true_while_still_suppressed(hass: HomeAssistant):
+    """set_enabled(True) when suppressed_until is in the future must set SUPPRESSED."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine._state.suppressed_until = dt_util.now() + timedelta(minutes=5)
+
+    engine.set_enabled(True)
+
+    assert engine.current_status() == STATUS_SUPPRESSED

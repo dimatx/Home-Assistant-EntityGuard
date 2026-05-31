@@ -132,6 +132,7 @@ class EntityGuardSensor(SensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(self.hass, _signal_master(), self._handle_update)
         )
+        self.async_write_ha_state()
 
     @callback
     def _handle_update(self, *args: object) -> None:
@@ -161,6 +162,7 @@ class EntityGuardStatusSensor(EntityGuardSensor):
             "suppression_reason": self._engine.state.suppression_reason,
             "target_entities": list(self._engine.config.target_entities or []),
             "target_state": self._engine.config.target_state,
+            "trigger_states": list(self._engine.config.trigger_states or []),
         }
 
 

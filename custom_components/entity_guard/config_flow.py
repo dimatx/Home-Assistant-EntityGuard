@@ -380,12 +380,12 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            triggers = user_input.get(CONF_TRIGGER_STATES, [])
+            triggers = [t.strip() for t in user_input.get(CONF_TRIGGER_STATES, [])]
             target = str(user_input.get(CONF_TARGET_STATE, "")).strip()
             delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
             if not triggers:
                 errors[CONF_TRIGGER_STATES] = "empty_trigger_states"
-            elif any(t.strip().lower() in FORBIDDEN_STATES for t in triggers):
+            elif any(t.lower() in FORBIDDEN_STATES for t in triggers):
                 errors[CONF_TRIGGER_STATES] = "forbidden_state"
             elif not target:
                 errors[CONF_TARGET_STATE] = "empty_target_state"
@@ -881,12 +881,12 @@ class EntityGuardOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            triggers = user_input.get(CONF_TRIGGER_STATES, [])
+            triggers = [t.strip() for t in user_input.get(CONF_TRIGGER_STATES, [])]
             target = str(user_input.get(CONF_TARGET_STATE, "")).strip()
             delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
             if not triggers:
                 errors[CONF_TRIGGER_STATES] = "empty_trigger_states"
-            elif any(t.strip().lower() in FORBIDDEN_STATES for t in triggers):
+            elif any(t.lower() in FORBIDDEN_STATES for t in triggers):
                 errors[CONF_TRIGGER_STATES] = "forbidden_state"
             elif not target:
                 errors[CONF_TARGET_STATE] = "empty_target_state"

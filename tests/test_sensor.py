@@ -42,6 +42,7 @@ def _make_engine(status=STATUS_ARMED, count_today=2, count_total=10):
     engine.config.unique_id = "test-uid"
     engine.config.target_state = "off"
     engine.config.target_entities = ["light.bedroom"]
+    engine.config.trigger_states = ["on"]
     engine.config.safety_acknowledged = False
     engine.current_status.return_value = status
     engine.state.enforcement_count_today = count_today
@@ -108,6 +109,7 @@ def test_status_sensor_extra_attrs():
     assert attrs["suppression_reason"] == "manual"
     assert "light.bedroom" in attrs["target_entities"]
     assert attrs["target_state"] == "off"
+    assert attrs["trigger_states"] == ["on"]
 
 
 def test_last_enforced_sensor_none():
