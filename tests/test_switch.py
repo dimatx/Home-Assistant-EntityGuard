@@ -127,7 +127,7 @@ async def test_debounce_switch_turn_on(hass: HomeAssistant):
     sw.async_write_ha_state = MagicMock()
     await sw.async_turn_on()
     assert engine.config.debounce_enabled is True
-    assert entry.data.get("debounce_enabled") is True
+    assert entry.options.get("debounce_enabled") is True
 
 
 async def test_debounce_switch_turn_off(hass: HomeAssistant):

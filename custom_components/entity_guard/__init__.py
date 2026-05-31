@@ -158,7 +158,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.debug("Engine unloaded for %s", entry.entry_id)
 
     if not hass.data.get(DOMAIN, {}).get("engines"):
-        async_unload_services(hass)
+        hub_remains = any(
+            e.entry_id != entry.entry_id
+            and e.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_HUB
+            for e in hass.config_entries.async_entries(DOMAIN)
+        )
+        if not hub_remains:
+            async_unload_services(hass)
 
     _LOGGER.info("Entry %s unloaded (ok=%s)", entry.entry_id, unload_ok)
 

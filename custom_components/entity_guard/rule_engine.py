@@ -83,6 +83,9 @@ class RuleEngine:
         self._pending_eval_tasks: dict[str, asyncio.Task] = {}
         self._startup_complete = False
         self._current_status: str = STATUS_STARTING
+        self._flag_entity_ids: frozenset[str] = frozenset(
+            f.entity for f in config.flags
+        )
 
     @property
     def config(self) -> RuleConfig:
@@ -232,7 +235,7 @@ class RuleEngine:
         """Evaluate a state change against the rule and enforce if appropriate."""
         if not self._startup_complete and entity_id in self._config.target_entities:
             # During grace, ignore target state events; flag changes still re-evaluate.
-            if entity_id not in {f.entity for f in self._config.flags}:
+            if entity_id not in self._flag_entity_ids:
                 return
 
         if not self._state.enabled or not self._master_enabled_getter():
@@ -254,7 +257,7 @@ class RuleEngine:
             self._cancel_pending_for_entities(self._config.target_entities)
             return
 
-        flag_entity_ids = {f.entity for f in self._config.flags}
+        flag_entity_ids = self._flag_entity_ids
 
         # Flag entity change: flags just became satisfied — sweep all targets.
         if entity_id in flag_entity_ids:
@@ -491,14 +494,21 @@ class RuleEngine:
             if cooldown_end is not None:
                 remaining = (cooldown_end - dt_util.now()).total_seconds()
                 if remaining > 0:
+                    unsub_holder: list[Callable[[], None]] = []
 
                     @callback
                     def _broadcast_after_cooldown(_now: datetime) -> None:
                         self._broadcast_status()
+                        if unsub_holder:
+                            try:
+                                self._unsub_callbacks.remove(unsub_holder[0])
+                            except ValueError:
+                                pass
 
                     unsub = async_call_later(
                         self._hass, remaining, _broadcast_after_cooldown
                     )
+                    unsub_holder.append(unsub)
                     self._unsub_callbacks.append(unsub)
         else:
             self._set_status(self._derive_armed_or_cooldown(dt_util.now()))

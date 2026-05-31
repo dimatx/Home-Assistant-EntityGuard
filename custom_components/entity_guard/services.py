@@ -27,14 +27,13 @@ from .const import (
     SERVICE_SUPPRESS,
     SERVICE_UNSUPPRESS,
 )
+from .rule_engine import signal_master_update
 
 _LOGGER = logging.getLogger(__name__)
 
 CONF_DURATION_MINUTES = "duration_minutes"
 
 PANIC_STOP_DURATION_MINUTES = 60
-
-SIGNAL_MASTER_UPDATED = f"{DOMAIN}_master_updated"
 
 SUPPRESS_SCHEMA = vol.Schema(
     {
@@ -158,7 +157,7 @@ async def async_register_services(hass: HomeAssistant) -> None:
                 )
 
         hass.data.setdefault(DOMAIN, {})["hub_master_enabled"] = False
-        async_dispatcher_send(hass, SIGNAL_MASTER_UPDATED, False)
+        async_dispatcher_send(hass, signal_master_update(), False)
         _LOGGER.warning(
             "Entity Guard panic stop: disabled %d rule(s) and suppressed for %d min",
             len(engines),

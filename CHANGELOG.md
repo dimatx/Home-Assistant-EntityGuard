@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0-beta.4] — 2026-05-31
+
+### Fixed
+
+- `async_unload_entry` no longer unloads services when a hub entry remains — previously, removing the last rule would strip services even with the hub still active.
+- `panic_stop` service now uses the correct dispatcher signal (`entity_guard_master_update`) — the master switch now updates instantly on panic stop.
+- Debounce switch (`switch.<rule>_debounce_enabled`) now persists to entry **options** instead of `data` — fixes the case where a value set via options flow would shadow the toggle.
+- Cooldown post-broadcast callback no longer leaks into `_unsub_callbacks` — entries are removed after they fire.
+
+### Changed
+
+- `flag_entity_ids` cached as `frozenset` on engine init — eliminates per-evaluation set rebuild.
+
 ## [0.1.0-beta.3] — 2026-05-31
 
 ### Changed

@@ -197,9 +197,8 @@ class EntityGuardDebounceEnabledSwitch(EntityGuardRuleSwitchBase):
             except Exception:  # pragma: no cover - defensive
                 _LOGGER.debug("Failed to update engine config debounce_enabled")
 
-        new_data = dict(self._entry.data)
-        new_data[CONF_DEBOUNCE_ENABLED] = value
-        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+        new_options = {**(self._entry.options or {}), CONF_DEBOUNCE_ENABLED: value}
+        self.hass.config_entries.async_update_entry(self._entry, options=new_options)
 
         async_dispatcher_send(
             self.hass, _signal_for_rule(self._engine.config.unique_id)
