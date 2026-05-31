@@ -157,7 +157,19 @@ class EntityGuardStatusSensor(EntityGuardSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, object]:
-        """Return suppression metadata and bound target entities."""
+        """Return suppression metadata, target entities, and flag conditions."""
+        flags = []
+        for flag in self._engine.config.flags or []:
+            state_obj = self.hass.states.get(flag.entity) if self.hass else None
+            current = state_obj.state if state_obj is not None else None
+            flags.append(
+                {
+                    "entity": flag.entity,
+                    "required": flag.match_state,
+                    "current": current,
+                    "matches": current == flag.match_state,
+                }
+            )
         return {
             "suppression_reason": self._engine.state.suppression_reason,
             "target_entities": list(self._engine.config.target_entities or []),
@@ -165,6 +177,7 @@ class EntityGuardStatusSensor(EntityGuardSensor):
             "trigger_states": list(self._engine.config.trigger_states or []),
             "consecutive_errors": int(self._engine.state.consecutive_errors or 0),
             "last_error": self._engine.state.last_error,
+            "flags": flags,
         }
 
 

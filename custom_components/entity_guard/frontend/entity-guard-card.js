@@ -522,6 +522,7 @@ class EntityGuardCard extends LitElement {
         ${this._renderToggle(refs, enabled)}
         ${this._renderStats(refs)}
         ${this._renderInfo(refs)}
+        ${this._config.show_conditions ? this._renderConditions(refs) : nothing}
         ${this._config.show_entities !== false ? this._renderBound(refs) : nothing}
         ${this._config.show_actions ? this._renderActions(refs) : nothing}
       </ha-card>
@@ -588,6 +589,31 @@ class EntityGuardCard extends LitElement {
                 ${compliant
                   ? html`${state} <span style="color:var(--success-color,#4caf50)">✓</span>`
                   : html`<span style="color:var(--warning-color,#ff9800)">${state} → ${refs.targetState} ⚠</span>`}
+              </span>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  _renderConditions(refs) {
+    const statusEntity = refs.status ? this.hass.states[refs.status] : null;
+    const flags = statusEntity?.attributes?.flags;
+    if (!Array.isArray(flags) || flags.length === 0) return nothing;
+    return html`
+      <div class="entities">
+        <div class="section-title">Conditions (${flags.length})</div>
+        ${flags.map((f) => {
+          const st = this.hass.states[f.entity];
+          const name = st?.attributes?.friendly_name || f.entity;
+          return html`
+            <div class="entity-row">
+              <span class="entity-name" title="${f.entity}">${name}</span>
+              <span class="entity-state">
+                ${f.matches
+                  ? html`${f.current ?? "unknown"} <span style="color:var(--success-color,#4caf50)">✓</span>`
+                  : html`<span style="color:var(--warning-color,#ff9800)">${f.current ?? "unknown"} → ${f.required} ⚠</span>`}
               </span>
             </div>
           `;
@@ -766,6 +792,13 @@ class EntityGuardCardEditor extends LitElement {
           <ha-switch
             .checked=${this._config.show_entities !== false}
             @change=${(e) => this._update("show_entities", e.target.checked)}
+          ></ha-switch>
+        </div>
+        <div class="editor-row" style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0">Show conditions</label>
+          <ha-switch
+            .checked=${!!this._config.show_conditions}
+            @change=${(e) => this._update("show_conditions", e.target.checked)}
           ></ha-switch>
         </div>
         <div class="editor-row" style="display:flex;align-items:center;justify-content:space-between;">

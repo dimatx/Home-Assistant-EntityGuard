@@ -264,6 +264,7 @@ type: custom:entity-guard-card
 rule_id: <config_entry_id>
 title: "Living Room"   # optional override
 show_entities: true    # default: true
+show_conditions: false # default: false
 show_actions: false    # default: false
 ```
 

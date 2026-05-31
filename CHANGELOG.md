@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.5] — 2026-05-31
+
+### Added
+
+- Status sensor `flags` attribute — exposes each configured flag with `entity`, `required`, `current`, `matches` so dashboards can see which conditions are unmet.
+- Lovelace card `show_conditions` toggle (default off) — when enabled, renders a "Conditions" section listing each flag with current vs required state.
+
 ## [0.1.0-beta.4] — 2026-05-31
 
 ### Fixed

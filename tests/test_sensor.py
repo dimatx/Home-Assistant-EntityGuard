@@ -44,6 +44,9 @@ def _make_engine(status=STATUS_ARMED, count_today=2, count_total=10):
     engine.config.target_entities = ["light.bedroom"]
     engine.config.trigger_states = ["on"]
     engine.config.safety_acknowledged = False
+    engine.config.flags = []
+    engine.state.consecutive_errors = 0
+    engine.state.last_error = None
     engine.current_status.return_value = status
     engine.state.enforcement_count_today = count_today
     engine.state.enforcement_count_total = count_total
@@ -110,6 +113,25 @@ def test_status_sensor_extra_attrs():
     assert "light.bedroom" in attrs["target_entities"]
     assert attrs["target_state"] == "off"
     assert attrs["trigger_states"] == ["on"]
+    assert attrs["flags"] == []
+
+
+def test_status_sensor_flags_attribute(hass: HomeAssistant):
+    flag = MagicMock()
+    flag.entity = "input_boolean.guest_mode"
+    flag.match_state = "on"
+    entry = _make_rule_entry()
+    engine = _make_engine()
+    engine.config.flags = [flag]
+    hass.states.async_set("input_boolean.guest_mode", "off")
+    sensor = EntityGuardStatusSensor(entry, engine)
+    sensor.hass = hass
+    flags = sensor.extra_state_attributes["flags"]
+    assert len(flags) == 1
+    assert flags[0]["entity"] == "input_boolean.guest_mode"
+    assert flags[0]["required"] == "on"
+    assert flags[0]["current"] == "off"
+    assert flags[0]["matches"] is False
 
 
 def test_last_enforced_sensor_none():
