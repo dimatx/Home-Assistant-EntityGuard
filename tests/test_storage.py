@@ -47,6 +47,11 @@ def test_parse_dt_invalid():
     assert _parse_dt("not-a-date") is None
 
 
+def test_parse_dt_typeerror():
+    # Non-string truthy value triggers TypeError in parse_datetime → except branch
+    assert _parse_dt(123) is None
+
+
 def test_default_rule_blob_structure():
     blob = _default_rule_blob()
     assert blob["cooldowns"] == {}
