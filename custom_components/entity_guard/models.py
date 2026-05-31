@@ -93,6 +93,8 @@ class RuleRuntimeState:
     rate_limit_window: list[datetime] = field(default_factory=list)
     enabled: bool = True
     suppression_reason: str | None = None
+    consecutive_errors: int = 0
+    last_error: str | None = None
     reentrance_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 

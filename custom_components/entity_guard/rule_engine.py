@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_LOOP_SUPPRESS_MINUTES,
     DOMAIN,
     DOMAIN_SERVICE_MAP,
+    ERROR_THRESHOLD,
     EVENT_ENFORCED,
     EVENT_LOOP_DETECTED,
     EVENT_SKIPPED,
@@ -36,10 +37,11 @@ from .const import (
     OPERATOR_LT,
     STARTUP_GRACE_PERIOD_SECONDS,
     STATUS_ARMED,
+    STATUS_CONDITIONAL,
     STATUS_COOLDOWN,
     STATUS_DISABLED,
     STATUS_ENFORCING,
-    STATUS_IDLE,
+    STATUS_ERROR,
     STATUS_PENDING,
     STATUS_STARTING,
     STATUS_SUPPRESSED,
@@ -195,13 +197,26 @@ class RuleEngine:
 
     @callback
     def _handle_startup_grace_done(self, _now: datetime) -> None:
-        """After grace, evaluate every target once against current state."""
+        """After grace, set correct status and evaluate every target once."""
         _LOGGER.debug(
             "Startup grace done for rule=%s; sweeping %d targets",
             self._config.name,
             len(self._config.target_entities),
         )
         self._startup_complete = True
+
+        # Set status synchronously before sweep tasks run so the UI is never stuck
+        # on STATUS_STARTING after grace.
+        now = dt_util.now()
+        if not self._state.enabled or not self._master_enabled_getter():
+            self._set_status(STATUS_DISABLED)
+        elif self._state.suppressed_until and self._state.suppressed_until > now:
+            self._set_status(STATUS_SUPPRESSED)
+        elif not self._flags_match():
+            self._set_status(STATUS_CONDITIONAL)
+        else:
+            self._set_status(self._derive_armed_or_cooldown(now))
+
         for entity_id in self._config.target_entities:
             current = self._hass.states.get(entity_id)
             self._schedule_eval_task(entity_id, current)
@@ -235,7 +250,7 @@ class RuleEngine:
             self._persist()
 
         if not self._flags_match():
-            self._set_status(STATUS_IDLE)
+            self._set_status(STATUS_CONDITIONAL)
             self._cancel_pending_for_entities(self._config.target_entities)
             return
 
@@ -431,13 +446,21 @@ class RuleEngine:
                     self._config.name,
                     err,
                 )
-                self._set_status(self._derive_armed_or_cooldown(now))
+                self._state.consecutive_errors += 1
+                self._state.last_error = str(err)
+                self._persist()
+                if self._state.consecutive_errors >= ERROR_THRESHOLD:
+                    self._set_status(STATUS_ERROR)
+                else:
+                    self._set_status(self._derive_armed_or_cooldown(now))
                 return
 
             self._state.enforcement_count_today += 1
             self._state.enforcement_count_total += 1
             self._state.last_enforced = now
             self._state.rate_limit_window.append(now)
+            self._state.consecutive_errors = 0
+            self._state.last_error = None
 
             if self._config.debounce_enabled and self._config.debounce_seconds > 0:
                 self._state.cooldowns[entity_id] = now + timedelta(
@@ -614,8 +637,13 @@ class RuleEngine:
         self._state.enforcement_count_total = 0
         self._state.last_enforced = None
         self._state.rate_limit_window.clear()
+        self._state.consecutive_errors = 0
+        self._state.last_error = None
         self._store.clear_rule_history(self._config.unique_id)
-        self._broadcast_status()
+        if self._current_status == STATUS_ERROR:
+            self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
+        else:
+            self._broadcast_status()
 
     def set_enabled(self, enabled: bool) -> None:
         """Toggle the rule's enabled flag (driven by per-rule switch entity)."""
@@ -638,7 +666,10 @@ class RuleEngine:
                     self._state.suppressed_until = None
                     self._state.suppression_reason = None
                     self._persist()
-                self._set_status(self._derive_armed_or_cooldown(now))
+                if not self._flags_match():
+                    self._set_status(STATUS_CONDITIONAL)
+                else:
+                    self._set_status(self._derive_armed_or_cooldown(now))
 
     def current_status(self) -> str:
         """Return the rule's current status string."""

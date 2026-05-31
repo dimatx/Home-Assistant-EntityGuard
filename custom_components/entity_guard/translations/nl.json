@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Fout",
         "disabled": "Uitgeschakeld",
         "suppressed": "Onderdrukt",
         "enforcing": "Bezig met afdwingen",
         "cooldown": "Cooldown",
         "armed": "Gewapend",
-        "idle": "Inactief",
+        "conditional": "Wachten op voorwaarden",
         "starting": "Bezig met starten",
         "pending": "Op het punt af te dwingen"
       }

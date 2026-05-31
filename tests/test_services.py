@@ -169,7 +169,7 @@ async def test_clear_history_service(hass: HomeAssistant):
 
 
 async def test_list_rules_service(hass: HomeAssistant):
-    eng = _make_engine(unique_id="r1", name="Night Lights", status="idle")
+    eng = _make_engine(unique_id="r1", name="Night Lights", status="conditional")
     _inject_engines(hass, eng)
     await async_register_services(hass)
     result = await hass.services.async_call(
@@ -180,7 +180,7 @@ async def test_list_rules_service(hass: HomeAssistant):
     assert len(rules) == 1
     assert rules[0]["rule_id"] == "r1"
     assert rules[0]["name"] == "Night Lights"
-    assert rules[0]["status"] == "idle"
+    assert rules[0]["status"] == "conditional"
 
 
 # ---------------------------------------------------------------------------

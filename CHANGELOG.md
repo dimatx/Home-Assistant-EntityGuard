@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0-beta.3] — 2026-05-31
+
+### Changed
+
+- Status `idle` renamed to `conditional` — the chip now reads "Waiting on conditions" when flag entities are configured but their states do not match the required values. Disambiguates from rules with no flags configured.
+
+### Added
+
+- New `error` status — surfaces after 3 consecutive enforcement failures (e.g. target entity unavailable). Auto-clears on next successful enforcement or via `clear_history` service. Status sensor exposes `consecutive_errors` and `last_error` attributes.
+- Lovelace card shows an error banner with the failure detail when status is `error`.
+
+### Fixed
+
+- Card no longer flashes "No Entity Guard rule entities found" while the entity registry loads (rule selection or `show_entities` / `show_actions` toggle in the editor).
+- All 11 translations updated for the new statuses.
+
 ## [0.1.0-beta.2] — 2026-05-31
 
 ### Fixed

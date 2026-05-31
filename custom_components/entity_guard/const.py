@@ -86,25 +86,30 @@ STORE_VERSION = 1
 STORE_SAVE_DELAY_SECONDS = 10
 
 # Status values
+STATUS_ERROR = "error"
 STATUS_DISABLED = "disabled"
 STATUS_SUPPRESSED = "suppressed"
+STATUS_STARTING = "starting"
+STATUS_CONDITIONAL = "conditional"
 STATUS_ENFORCING = "enforcing"
+STATUS_PENDING = "pending"
 STATUS_COOLDOWN = "cooldown"
 STATUS_ARMED = "armed"
-STATUS_IDLE = "idle"
-STATUS_STARTING = "starting"
-STATUS_PENDING = "pending"
 
 STATUS_VALUES = [
+    STATUS_ERROR,
     STATUS_DISABLED,
     STATUS_SUPPRESSED,
+    STATUS_STARTING,
+    STATUS_CONDITIONAL,
     STATUS_ENFORCING,
+    STATUS_PENDING,
     STATUS_COOLDOWN,
     STATUS_ARMED,
-    STATUS_IDLE,
-    STATUS_STARTING,
-    STATUS_PENDING,
 ]
+
+# Error tracking
+ERROR_THRESHOLD = 3
 
 # Domain service map for state mode enforcement
 DOMAIN_SERVICE_MAP: dict[str, dict[str, str]] = {

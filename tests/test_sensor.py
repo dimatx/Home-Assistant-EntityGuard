@@ -95,9 +95,9 @@ def test_has_safety_target_empty():
 
 def test_status_sensor_native_value():
     entry = _make_rule_entry()
-    engine = _make_engine(status="idle")
+    engine = _make_engine(status="conditional")
     sensor = EntityGuardStatusSensor(entry, engine)
-    assert sensor.native_value == "idle"
+    assert sensor.native_value == "conditional"
 
 
 def test_status_sensor_extra_attrs():

@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Error",
         "disabled": "Disabled",
         "suppressed": "Suppressed",
         "enforcing": "Enforcing",
         "cooldown": "Cooldown",
         "armed": "Armed",
-        "idle": "Idle",
+        "conditional": "Waiting on conditions",
         "starting": "Starting",
         "pending": "About to enforce"
       }

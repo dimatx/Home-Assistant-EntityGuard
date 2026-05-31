@@ -35,6 +35,8 @@ def _default_rule_blob() -> dict[str, Any]:
         "rate_limit_window": [],
         "enabled": True,
         "suppression_reason": None,
+        "consecutive_errors": 0,
+        "last_error": None,
     }
 
 
@@ -126,6 +128,12 @@ class EntityGuardStore:
                 if isinstance(blob.get("suppression_reason"), str)
                 else None
             ),
+            "consecutive_errors": int(blob.get("consecutive_errors", 0) or 0),
+            "last_error": (
+                blob.get("last_error")
+                if isinstance(blob.get("last_error"), str)
+                else None
+            ),
         }
 
     async def async_save(self) -> None:
@@ -180,6 +188,8 @@ class EntityGuardStore:
             ],
             "enabled": state.enabled,
             "suppression_reason": state.suppression_reason,
+            "consecutive_errors": state.consecutive_errors,
+            "last_error": state.last_error,
         }
 
     @staticmethod
@@ -217,6 +227,12 @@ class EntityGuardStore:
             suppression_reason=(
                 blob.get("suppression_reason")
                 if isinstance(blob.get("suppression_reason"), str)
+                else None
+            ),
+            consecutive_errors=int(blob.get("consecutive_errors", 0) or 0),
+            last_error=(
+                blob.get("last_error")
+                if isinstance(blob.get("last_error"), str)
                 else None
             ),
         )

@@ -10,17 +10,31 @@ def test_domain() -> None:
 
 
 def test_status_values_count() -> None:
-    assert len(const.STATUS_VALUES) == 8
+    assert len(const.STATUS_VALUES) == 9
     assert set(const.STATUS_VALUES) == {
+        const.STATUS_ERROR,
         const.STATUS_DISABLED,
         const.STATUS_SUPPRESSED,
         const.STATUS_ENFORCING,
         const.STATUS_COOLDOWN,
         const.STATUS_ARMED,
-        const.STATUS_IDLE,
+        const.STATUS_CONDITIONAL,
         const.STATUS_STARTING,
         const.STATUS_PENDING,
     }
+
+
+def test_status_values_unique() -> None:
+    assert len(const.STATUS_VALUES) == len(set(const.STATUS_VALUES))
+
+
+def test_no_legacy_idle_status() -> None:
+    assert not hasattr(const, "STATUS_IDLE")
+    assert "idle" not in const.STATUS_VALUES
+
+
+def test_error_threshold() -> None:
+    assert const.ERROR_THRESHOLD == 3
 
 
 def test_supported_operators_excludes_equality() -> None:

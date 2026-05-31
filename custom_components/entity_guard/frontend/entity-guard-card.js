@@ -61,23 +61,25 @@ const css = LitElement.prototype.css || (() => {
 })();
 
 const STATUS_COLORS = {
+  error: "#f44336",
   disabled: "#9e9e9e",
   suppressed: "#ff9800",
   enforcing: "#2196f3",
   cooldown: "#ffc107",
   armed: "#4caf50",
-  idle: "#bdbdbd",
+  conditional: "#bdbdbd",
   starting: "#03a9f4",
   pending: "#ff5722",
 };
 
 const STATUS_LABELS = {
+  error: "Error",
   disabled: "Disabled",
   suppressed: "Suppressed",
   enforcing: "Enforcing",
   cooldown: "Cooldown",
   armed: "Armed",
-  idle: "Idle",
+  conditional: "Waiting on conditions",
   starting: "Starting",
   pending: "About to enforce",
 };
@@ -232,6 +234,32 @@ const cardStyles = css`
     color: var(--error-color, #db4437);
     font-size: 13px;
   }
+  .error-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 16px 0;
+    padding: 8px 12px;
+    background: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #f44336;
+    border-radius: 4px;
+    color: var(--primary-text-color);
+  }
+  .error-banner ha-icon {
+    color: #f44336;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .error-title {
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .error-detail {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+    word-break: break-word;
+  }
 `;
 
 class EntityGuardCard extends LitElement {
@@ -246,19 +274,22 @@ class EntityGuardCard extends LitElement {
   constructor() {
     super();
     this._entityRegistry = null;
+    this._registryLoading = false;
   }
 
   async _loadEntityRegistry() {
-    if (!this.hass || this._entityRegistry !== null) return;
-    this._entityRegistry = {};
+    if (!this.hass || this._entityRegistry !== null || this._registryLoading) return;
+    this._registryLoading = true;
     try {
       const entries = await this.hass.callWS({ type: "config/entity_registry/list" });
       const map = {};
       for (const e of entries || []) map[e.entity_id] = e;
       this._entityRegistry = map;
-      this.requestUpdate();
     } catch (_) {
       this._entityRegistry = {};
+    } finally {
+      this._registryLoading = false;
+      this.requestUpdate();
     }
   }
 
@@ -464,10 +495,13 @@ class EntityGuardCard extends LitElement {
       </ha-card>`;
     }
 
-    const status = this._stateValue(refs.status, "idle");
-    const color = STATUS_COLORS[status] || STATUS_COLORS.idle;
+    const status = this._stateValue(refs.status, "conditional");
+    const color = STATUS_COLORS[status] || STATUS_COLORS.conditional;
     const label = STATUS_LABELS[status] || status;
     const enabled = this.hass.states[refs.enabled]?.state === "on";
+    const statusEntity = refs.status ? this.hass.states[refs.status] : null;
+    const lastError = statusEntity?.attributes?.last_error;
+    const consecutiveErrors = statusEntity?.attributes?.consecutive_errors;
 
     return html`
       <ha-card>
@@ -476,6 +510,15 @@ class EntityGuardCard extends LitElement {
           <span class="badge" style="background-color: ${color}">${label}</span>
         </div>
         <div class="divider"></div>
+        ${status === "error" && lastError
+          ? html`<div class="error-banner">
+              <ha-icon icon="mdi:alert-circle"></ha-icon>
+              <div>
+                <div class="error-title">${consecutiveErrors} consecutive failure${consecutiveErrors === 1 ? "" : "s"}</div>
+                <div class="error-detail">${lastError}</div>
+              </div>
+            </div>`
+          : nothing}
         ${this._renderToggle(refs, enabled)}
         ${this._renderStats(refs)}
         ${this._renderInfo(refs)}

@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from custom_components.entity_guard.const import (
+    ERROR_THRESHOLD,
     MODE_ATTRIBUTE,
     MODE_STATE,
     OPERATOR_GE,
@@ -20,7 +21,8 @@ from custom_components.entity_guard.const import (
     STATUS_COOLDOWN,
     STATUS_DISABLED,
     STATUS_ENFORCING,
-    STATUS_IDLE,
+    STATUS_ERROR,
+    STATUS_CONDITIONAL,
     STATUS_PENDING,
     STATUS_STARTING,
     STATUS_SUPPRESSED,
@@ -479,7 +481,7 @@ async def test_evaluate_flags_not_matched(hass: HomeAssistant):
     hass.states.async_set("light.bedroom", "on")
     st = hass.states.get("light.bedroom")
     await engine.async_evaluate("light.bedroom", st)
-    assert engine.current_status() == STATUS_IDLE
+    assert engine.current_status() == STATUS_CONDITIONAL
 
 
 # ---------------------------------------------------------------------------
@@ -644,7 +646,7 @@ def test_is_armed(hass: HomeAssistant):
     engine = _make_engine(hass)
     engine._current_status = STATUS_ARMED
     assert engine.is_armed() is True
-    engine._current_status = STATUS_IDLE
+    engine._current_status = STATUS_CONDITIONAL
     assert engine.is_armed() is False
 
 
@@ -1155,7 +1157,7 @@ def test_set_status_no_broadcast_on_same_status():
     engine._set_status(STATUS_ARMED)
     assert broadcast_calls == []
 
-    engine._set_status(STATUS_IDLE)
+    engine._set_status(STATUS_CONDITIONAL)
     assert broadcast_calls == [1]
 
 
@@ -1233,3 +1235,144 @@ async def test_set_enabled_true_while_still_suppressed(hass: HomeAssistant):
     engine.set_enabled(True)
 
     assert engine.current_status() == STATUS_SUPPRESSED
+
+
+# ---------------------------------------------------------------------------
+# error status: consecutive failures, threshold, recovery
+# ---------------------------------------------------------------------------
+
+
+async def test_first_failure_does_not_set_error(hass: HomeAssistant):
+    """A single enforcement failure must NOT flip status to error."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    async def _fail(call):
+        raise RuntimeError("boom")
+
+    hass.services.async_register("light", "turn_off", _fail)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.state.consecutive_errors == 1
+    assert engine.state.last_error == "boom"
+    assert engine.current_status() != STATUS_ERROR
+
+
+async def test_threshold_failures_set_error(hass: HomeAssistant):
+    """ERROR_THRESHOLD consecutive failures must set status to error."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    async def _fail(call):
+        raise RuntimeError("device offline")
+
+    hass.services.async_register("light", "turn_off", _fail)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    for _ in range(ERROR_THRESHOLD):
+        await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.state.consecutive_errors == ERROR_THRESHOLD
+    assert engine.state.last_error == "device offline"
+    assert engine.current_status() == STATUS_ERROR
+
+
+async def test_successful_enforcement_clears_error(hass: HomeAssistant):
+    """A successful enforcement after error must reset counter and status."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    engine._state.consecutive_errors = ERROR_THRESHOLD
+    engine._state.last_error = "previous error"
+    engine._set_status(STATUS_ERROR)
+
+    hass.services.async_register("light", "turn_off", AsyncMock())
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.state.consecutive_errors == 0
+    assert engine.state.last_error is None
+    assert engine.current_status() != STATUS_ERROR
+
+
+async def test_clear_history_clears_error_state(hass: HomeAssistant):
+    """async_clear_history must reset error counters and exit error status."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine._state.consecutive_errors = 5
+    engine._state.last_error = "boom"
+    engine._set_status(STATUS_ERROR)
+
+    await engine.async_clear_history()
+
+    assert engine.state.consecutive_errors == 0
+    assert engine.state.last_error is None
+    assert engine.current_status() != STATUS_ERROR
+
+
+async def test_consecutive_errors_persisted_via_blob(hass: HomeAssistant):
+    """consecutive_errors and last_error must round-trip through storage."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._state.consecutive_errors = 7
+    engine._state.last_error = "kaboom"
+
+    blob = EntityGuardStore.runtime_to_blob(engine._state)
+    assert blob["consecutive_errors"] == 7
+    assert blob["last_error"] == "kaboom"
+
+    restored = EntityGuardStore.blob_to_runtime(blob)
+    assert restored.consecutive_errors == 7
+    assert restored.last_error == "kaboom"
+
+
+# ---------------------------------------------------------------------------
+# conditional status: flag entities configured but not matching
+# ---------------------------------------------------------------------------
+
+
+async def test_no_flags_means_no_conditional(hass: HomeAssistant):
+    """A rule with no flags should never end up in conditional state."""
+    config = _make_config(flags=[])
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    assert engine._flags_match() is True
+
+
+async def test_flags_not_matching_yields_conditional(hass: HomeAssistant):
+    """When flag entity state mismatches required match_state, status -> conditional."""
+    config = _make_config(
+        flags=[Flag(entity="input_boolean.night", match_state="on")],
+        target_entities=["light.bedroom"],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("input_boolean.night", "off")
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_CONDITIONAL
+
+
+async def test_flags_matching_clears_conditional(hass: HomeAssistant):
+    """When flag entity satisfies match_state, status leaves conditional."""
+    config = _make_config(
+        flags=[Flag(entity="input_boolean.night", match_state="on")],
+        target_entities=["light.bedroom"],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine._set_status(STATUS_CONDITIONAL)
+    hass.states.async_set("input_boolean.night", "on")
+    hass.states.async_set("light.bedroom", "off")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() != STATUS_CONDITIONAL

@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Fel",
         "disabled": "Inaktiverad",
         "suppressed": "Undertryckt",
         "enforcing": "Tillämpar",
         "cooldown": "Nedkylning",
         "armed": "Aktiverad",
-        "idle": "Vilande",
+        "conditional": "Väntar på villkor",
         "starting": "Startar",
         "pending": "Strax tillämpning"
       }

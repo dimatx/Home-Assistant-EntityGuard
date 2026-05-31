@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Erreur",
         "disabled": "Désactivée",
         "suppressed": "Supprimée",
         "enforcing": "Application en cours",
         "cooldown": "Temps de récupération",
         "armed": "Armée",
-        "idle": "Inactive",
+        "conditional": "En attente de conditions",
         "starting": "Démarrage",
         "pending": "Sur le point d'être appliquée"
       }

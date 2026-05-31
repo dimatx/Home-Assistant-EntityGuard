@@ -163,6 +163,8 @@ class EntityGuardStatusSensor(EntityGuardSensor):
             "target_entities": list(self._engine.config.target_entities or []),
             "target_state": self._engine.config.target_state,
             "trigger_states": list(self._engine.config.trigger_states or []),
+            "consecutive_errors": int(self._engine.state.consecutive_errors or 0),
+            "last_error": self._engine.state.last_error,
         }
 
 

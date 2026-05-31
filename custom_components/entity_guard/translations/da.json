@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Fejl",
         "disabled": "Deaktiveret",
         "suppressed": "Undertrykt",
         "enforcing": "Håndhæver",
         "cooldown": "Nedkøling",
         "armed": "Aktiveret",
-        "idle": "Inaktiv",
+        "conditional": "Venter på betingelser",
         "starting": "Starter",
         "pending": "Klar til at håndhæve"
       }

@@ -257,12 +257,13 @@
   "selector": {
     "status": {
       "options": {
+        "error": "Fehler",
         "disabled": "Deaktiviert",
         "suppressed": "Unterdrückt",
         "enforcing": "Setzt durch",
         "cooldown": "Abklingzeit",
         "armed": "Scharf",
-        "idle": "Inaktiv",
+        "conditional": "Warten auf Bedingungen",
         "starting": "Startet",
         "pending": "Bereit zur Durchsetzung"
       }
