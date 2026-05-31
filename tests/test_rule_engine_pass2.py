@@ -11,6 +11,7 @@ from homeassistant.util import dt as dt_util
 from custom_components.entity_guard.const import (
     STATUS_CONDITIONAL,
     STATUS_DISABLED,
+    STATUS_MASTER_DISABLED,
     STATUS_SUPPRESSED,
 )
 from custom_components.entity_guard.models import Flag, RuleConfig
@@ -70,7 +71,7 @@ def test_startup_grace_sets_disabled_when_master_off(hass: HomeAssistant):
     hass.states.async_set("light.bedroom", "on")
     with patch.object(hass, "async_create_task"):
         engine._handle_startup_grace_done(MagicMock())
-    assert engine.current_status() == STATUS_DISABLED
+    assert engine.current_status() == STATUS_MASTER_DISABLED
 
 
 def test_startup_grace_sets_suppressed(hass: HomeAssistant):
@@ -109,7 +110,7 @@ def test_master_changed_to_off_sets_disabled(hass: HomeAssistant):
     engine._set_status(STATUS_CONDITIONAL)
     master["on"] = False
     engine._handle_master_changed()
-    assert engine.current_status() == STATUS_DISABLED
+    assert engine.current_status() == STATUS_MASTER_DISABLED
 
 
 def test_master_changed_to_on_re_derives(hass: HomeAssistant):

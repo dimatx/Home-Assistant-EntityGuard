@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Rediger navn",
-        "data": {"rule_name": "Regelnavn"}
+        "data": {
+          "rule_name": "Regelnavn"
+        }
       },
       "edit_entities": {
         "title": "Rediger målenheter",
-        "data": {"target_entities": "Målenheter"}
+        "data": {
+          "target_entities": "Målenheter"
+        }
       },
       "edit_safety": {
         "title": "Sikkerhetsbekreftelse",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Feil",
         "disabled": "Deaktivert",
+        "master_disabled": "Hoved deaktivert",
         "suppressed": "Undertrykt",
         "enforcing": "Håndhever",
         "cooldown": "Nedkjøling",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Aktivert"},
-      "active": {"name": "Aktiv"},
-      "in_cooldown": {"name": "Under nedkjøling"}
+      "armed": {
+        "name": "Aktivert"
+      },
+      "active": {
+        "name": "Aktiv"
+      },
+      "in_cooldown": {
+        "name": "Under nedkjøling"
+      }
     },
     "sensor": {
-      "status": {"name": "Status"},
-      "last_enforced": {"name": "Sist håndhevet"},
-      "enforcement_count_today": {"name": "Håndhevinger i dag"},
-      "enforcement_count_total": {"name": "Håndhevinger totalt"},
-      "cooldown_remaining": {"name": "Gjenstående nedkjøling"},
-      "safety_status": {"name": "Sikkerhetsstatus"},
-      "suppressed_until": {"name": "Undertrykt til"}
+      "status": {
+        "name": "Status"
+      },
+      "last_enforced": {
+        "name": "Sist håndhevet"
+      },
+      "enforcement_count_today": {
+        "name": "Håndhevinger i dag"
+      },
+      "enforcement_count_total": {
+        "name": "Håndhevinger totalt"
+      },
+      "cooldown_remaining": {
+        "name": "Gjenstående nedkjøling"
+      },
+      "safety_status": {
+        "name": "Sikkerhetsstatus"
+      },
+      "suppressed_until": {
+        "name": "Undertrykt til"
+      }
     },
     "switch": {
-      "enabled": {"name": "Aktivert"},
-      "debounce_enabled": {"name": "Debounce aktivert"},
-      "master_enabled": {"name": "Hovedbryter aktivert"}
+      "enabled": {
+        "name": "Aktivert"
+      },
+      "debounce_enabled": {
+        "name": "Debounce aktivert"
+      },
+      "master_enabled": {
+        "name": "Hovedbryter aktivert"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Forsinkelse (sekunder)"},
-      "debounce_seconds": {"name": "Debounce (sekunder)"},
-      "max_enforcements_per_minute": {"name": "Maks håndhevinger per minutt"}
+      "delay_seconds": {
+        "name": "Forsinkelse (sekunder)"
+      },
+      "debounce_seconds": {
+        "name": "Debounce (sekunder)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Maks håndhevinger per minutt"
+      }
     },
     "button": {
-      "reset": {"name": "Tilbakestill nedkjølinger"},
-      "test_enforce": {"name": "Test håndheving"},
-      "clear_suppression": {"name": "Fjern undertrykkelse"}
+      "reset": {
+        "name": "Tilbakestill nedkjølinger"
+      },
+      "test_enforce": {
+        "name": "Test håndheving"
+      },
+      "clear_suppression": {
+        "name": "Fjern undertrykkelse"
+      }
     }
   }
 }

@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Editar nombre",
-        "data": {"rule_name": "Nombre de la regla"}
+        "data": {
+          "rule_name": "Nombre de la regla"
+        }
       },
       "edit_entities": {
         "title": "Editar entidades objetivo",
-        "data": {"target_entities": "Entidades objetivo"}
+        "data": {
+          "target_entities": "Entidades objetivo"
+        }
       },
       "edit_safety": {
         "title": "Reconocimiento de seguridad",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Error",
         "disabled": "Deshabilitada",
+        "master_disabled": "Maestro deshabilitado",
         "suppressed": "Suprimida",
         "enforcing": "Aplicando",
         "cooldown": "Enfriamiento",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Armada"},
-      "active": {"name": "Activa"},
-      "in_cooldown": {"name": "En enfriamiento"}
+      "armed": {
+        "name": "Armada"
+      },
+      "active": {
+        "name": "Activa"
+      },
+      "in_cooldown": {
+        "name": "En enfriamiento"
+      }
     },
     "sensor": {
-      "status": {"name": "Estado"},
-      "last_enforced": {"name": "Última actuación"},
-      "enforcement_count_today": {"name": "Actuaciones hoy"},
-      "enforcement_count_total": {"name": "Actuaciones totales"},
-      "cooldown_remaining": {"name": "Enfriamiento restante"},
-      "safety_status": {"name": "Estado de seguridad"},
-      "suppressed_until": {"name": "Suprimida hasta"}
+      "status": {
+        "name": "Estado"
+      },
+      "last_enforced": {
+        "name": "Última actuación"
+      },
+      "enforcement_count_today": {
+        "name": "Actuaciones hoy"
+      },
+      "enforcement_count_total": {
+        "name": "Actuaciones totales"
+      },
+      "cooldown_remaining": {
+        "name": "Enfriamiento restante"
+      },
+      "safety_status": {
+        "name": "Estado de seguridad"
+      },
+      "suppressed_until": {
+        "name": "Suprimida hasta"
+      }
     },
     "switch": {
-      "enabled": {"name": "Habilitada"},
-      "debounce_enabled": {"name": "Antirrebote habilitado"},
-      "master_enabled": {"name": "Maestro habilitado"}
+      "enabled": {
+        "name": "Habilitada"
+      },
+      "debounce_enabled": {
+        "name": "Antirrebote habilitado"
+      },
+      "master_enabled": {
+        "name": "Maestro habilitado"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Retardo (segundos)"},
-      "debounce_seconds": {"name": "Antirrebote (segundos)"},
-      "max_enforcements_per_minute": {"name": "Máx. actuaciones por minuto"}
+      "delay_seconds": {
+        "name": "Retardo (segundos)"
+      },
+      "debounce_seconds": {
+        "name": "Antirrebote (segundos)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Máx. actuaciones por minuto"
+      }
     },
     "button": {
-      "reset": {"name": "Restablecer enfriamientos"},
-      "test_enforce": {"name": "Probar actuación"},
-      "clear_suppression": {"name": "Borrar supresión"}
+      "reset": {
+        "name": "Restablecer enfriamientos"
+      },
+      "test_enforce": {
+        "name": "Probar actuación"
+      },
+      "clear_suppression": {
+        "name": "Borrar supresión"
+      }
     }
   }
 }

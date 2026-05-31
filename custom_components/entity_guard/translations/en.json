@@ -259,6 +259,7 @@
       "options": {
         "error": "Error",
         "disabled": "Disabled",
+        "master_disabled": "Master disabled",
         "suppressed": "Suppressed",
         "enforcing": "Enforcing",
         "cooldown": "Cooldown",

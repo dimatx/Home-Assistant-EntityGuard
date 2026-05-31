@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Name bearbeiten",
-        "data": {"rule_name": "Regelname"}
+        "data": {
+          "rule_name": "Regelname"
+        }
       },
       "edit_entities": {
         "title": "Zielentitäten bearbeiten",
-        "data": {"target_entities": "Zielentitäten"}
+        "data": {
+          "target_entities": "Zielentitäten"
+        }
       },
       "edit_safety": {
         "title": "Sicherheitsbestätigung",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Fehler",
         "disabled": "Deaktiviert",
+        "master_disabled": "Master deaktiviert",
         "suppressed": "Unterdrückt",
         "enforcing": "Setzt durch",
         "cooldown": "Abklingzeit",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Scharf"},
-      "active": {"name": "Aktiv"},
-      "in_cooldown": {"name": "In Abklingzeit"}
+      "armed": {
+        "name": "Scharf"
+      },
+      "active": {
+        "name": "Aktiv"
+      },
+      "in_cooldown": {
+        "name": "In Abklingzeit"
+      }
     },
     "sensor": {
-      "status": {"name": "Status"},
-      "last_enforced": {"name": "Zuletzt durchgesetzt"},
-      "enforcement_count_today": {"name": "Durchsetzungen heute"},
-      "enforcement_count_total": {"name": "Durchsetzungen gesamt"},
-      "cooldown_remaining": {"name": "Verbleibende Abklingzeit"},
-      "safety_status": {"name": "Sicherheitsstatus"},
-      "suppressed_until": {"name": "Unterdrückt bis"}
+      "status": {
+        "name": "Status"
+      },
+      "last_enforced": {
+        "name": "Zuletzt durchgesetzt"
+      },
+      "enforcement_count_today": {
+        "name": "Durchsetzungen heute"
+      },
+      "enforcement_count_total": {
+        "name": "Durchsetzungen gesamt"
+      },
+      "cooldown_remaining": {
+        "name": "Verbleibende Abklingzeit"
+      },
+      "safety_status": {
+        "name": "Sicherheitsstatus"
+      },
+      "suppressed_until": {
+        "name": "Unterdrückt bis"
+      }
     },
     "switch": {
-      "enabled": {"name": "Aktiviert"},
-      "debounce_enabled": {"name": "Entprellung aktiviert"},
-      "master_enabled": {"name": "Hauptschalter aktiviert"}
+      "enabled": {
+        "name": "Aktiviert"
+      },
+      "debounce_enabled": {
+        "name": "Entprellung aktiviert"
+      },
+      "master_enabled": {
+        "name": "Hauptschalter aktiviert"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Verzögerung (Sekunden)"},
-      "debounce_seconds": {"name": "Entprellung (Sekunden)"},
-      "max_enforcements_per_minute": {"name": "Max. Durchsetzungen pro Minute"}
+      "delay_seconds": {
+        "name": "Verzögerung (Sekunden)"
+      },
+      "debounce_seconds": {
+        "name": "Entprellung (Sekunden)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Max. Durchsetzungen pro Minute"
+      }
     },
     "button": {
-      "reset": {"name": "Abklingzeiten zurücksetzen"},
-      "test_enforce": {"name": "Durchsetzung testen"},
-      "clear_suppression": {"name": "Unterdrückung aufheben"}
+      "reset": {
+        "name": "Abklingzeiten zurücksetzen"
+      },
+      "test_enforce": {
+        "name": "Durchsetzung testen"
+      },
+      "clear_suppression": {
+        "name": "Unterdrückung aufheben"
+      }
     }
   }
 }

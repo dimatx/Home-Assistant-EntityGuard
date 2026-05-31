@@ -10,10 +10,11 @@ def test_domain() -> None:
 
 
 def test_status_values_count() -> None:
-    assert len(const.STATUS_VALUES) == 9
+    assert len(const.STATUS_VALUES) == 10
     assert set(const.STATUS_VALUES) == {
         const.STATUS_ERROR,
         const.STATUS_DISABLED,
+        const.STATUS_MASTER_DISABLED,
         const.STATUS_SUPPRESSED,
         const.STATUS_ENFORCING,
         const.STATUS_COOLDOWN,

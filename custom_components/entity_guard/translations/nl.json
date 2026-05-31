@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Naam bewerken",
-        "data": {"rule_name": "Regelnaam"}
+        "data": {
+          "rule_name": "Regelnaam"
+        }
       },
       "edit_entities": {
         "title": "Doelentiteiten bewerken",
-        "data": {"target_entities": "Doelentiteiten"}
+        "data": {
+          "target_entities": "Doelentiteiten"
+        }
       },
       "edit_safety": {
         "title": "Veiligheidsbevestiging",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Fout",
         "disabled": "Uitgeschakeld",
+        "master_disabled": "Master uitgeschakeld",
         "suppressed": "Onderdrukt",
         "enforcing": "Bezig met afdwingen",
         "cooldown": "Cooldown",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Gewapend"},
-      "active": {"name": "Actief"},
-      "in_cooldown": {"name": "In cooldown"}
+      "armed": {
+        "name": "Gewapend"
+      },
+      "active": {
+        "name": "Actief"
+      },
+      "in_cooldown": {
+        "name": "In cooldown"
+      }
     },
     "sensor": {
-      "status": {"name": "Status"},
-      "last_enforced": {"name": "Laatst afgedwongen"},
-      "enforcement_count_today": {"name": "Afdwingingen vandaag"},
-      "enforcement_count_total": {"name": "Afdwingingen totaal"},
-      "cooldown_remaining": {"name": "Resterende cooldown"},
-      "safety_status": {"name": "Veiligheidsstatus"},
-      "suppressed_until": {"name": "Onderdrukt tot"}
+      "status": {
+        "name": "Status"
+      },
+      "last_enforced": {
+        "name": "Laatst afgedwongen"
+      },
+      "enforcement_count_today": {
+        "name": "Afdwingingen vandaag"
+      },
+      "enforcement_count_total": {
+        "name": "Afdwingingen totaal"
+      },
+      "cooldown_remaining": {
+        "name": "Resterende cooldown"
+      },
+      "safety_status": {
+        "name": "Veiligheidsstatus"
+      },
+      "suppressed_until": {
+        "name": "Onderdrukt tot"
+      }
     },
     "switch": {
-      "enabled": {"name": "Ingeschakeld"},
-      "debounce_enabled": {"name": "Debounce ingeschakeld"},
-      "master_enabled": {"name": "Hoofdschakelaar ingeschakeld"}
+      "enabled": {
+        "name": "Ingeschakeld"
+      },
+      "debounce_enabled": {
+        "name": "Debounce ingeschakeld"
+      },
+      "master_enabled": {
+        "name": "Hoofdschakelaar ingeschakeld"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Vertraging (seconden)"},
-      "debounce_seconds": {"name": "Debounce (seconden)"},
-      "max_enforcements_per_minute": {"name": "Max afdwingingen per minuut"}
+      "delay_seconds": {
+        "name": "Vertraging (seconden)"
+      },
+      "debounce_seconds": {
+        "name": "Debounce (seconden)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Max afdwingingen per minuut"
+      }
     },
     "button": {
-      "reset": {"name": "Cooldowns resetten"},
-      "test_enforce": {"name": "Test afdwinging"},
-      "clear_suppression": {"name": "Onderdrukking opheffen"}
+      "reset": {
+        "name": "Cooldowns resetten"
+      },
+      "test_enforce": {
+        "name": "Test afdwinging"
+      },
+      "clear_suppression": {
+        "name": "Onderdrukking opheffen"
+      }
     }
   }
 }

@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Edytuj nazwę",
-        "data": {"rule_name": "Nazwa reguły"}
+        "data": {
+          "rule_name": "Nazwa reguły"
+        }
       },
       "edit_entities": {
         "title": "Edytuj encje docelowe",
-        "data": {"target_entities": "Encje docelowe"}
+        "data": {
+          "target_entities": "Encje docelowe"
+        }
       },
       "edit_safety": {
         "title": "Potwierdzenie bezpieczeństwa",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Błąd",
         "disabled": "Wyłączona",
+        "master_disabled": "Master wyłączony",
         "suppressed": "Wstrzymana",
         "enforcing": "Wymusza",
         "cooldown": "Odnowienie",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Uzbrojona"},
-      "active": {"name": "Aktywna"},
-      "in_cooldown": {"name": "W trakcie odnowienia"}
+      "armed": {
+        "name": "Uzbrojona"
+      },
+      "active": {
+        "name": "Aktywna"
+      },
+      "in_cooldown": {
+        "name": "W trakcie odnowienia"
+      }
     },
     "sensor": {
-      "status": {"name": "Status"},
-      "last_enforced": {"name": "Ostatnie wymuszenie"},
-      "enforcement_count_today": {"name": "Wymuszenia dzisiaj"},
-      "enforcement_count_total": {"name": "Wymuszenia łącznie"},
-      "cooldown_remaining": {"name": "Pozostałe odnowienie"},
-      "safety_status": {"name": "Status bezpieczeństwa"},
-      "suppressed_until": {"name": "Wstrzymana do"}
+      "status": {
+        "name": "Status"
+      },
+      "last_enforced": {
+        "name": "Ostatnie wymuszenie"
+      },
+      "enforcement_count_today": {
+        "name": "Wymuszenia dzisiaj"
+      },
+      "enforcement_count_total": {
+        "name": "Wymuszenia łącznie"
+      },
+      "cooldown_remaining": {
+        "name": "Pozostałe odnowienie"
+      },
+      "safety_status": {
+        "name": "Status bezpieczeństwa"
+      },
+      "suppressed_until": {
+        "name": "Wstrzymana do"
+      }
     },
     "switch": {
-      "enabled": {"name": "Włączona"},
-      "debounce_enabled": {"name": "Debouncing włączony"},
-      "master_enabled": {"name": "Główny włącznik"}
+      "enabled": {
+        "name": "Włączona"
+      },
+      "debounce_enabled": {
+        "name": "Debouncing włączony"
+      },
+      "master_enabled": {
+        "name": "Główny włącznik"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Opóźnienie (sekundy)"},
-      "debounce_seconds": {"name": "Debouncing (sekundy)"},
-      "max_enforcements_per_minute": {"name": "Maks. wymuszeń na minutę"}
+      "delay_seconds": {
+        "name": "Opóźnienie (sekundy)"
+      },
+      "debounce_seconds": {
+        "name": "Debouncing (sekundy)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Maks. wymuszeń na minutę"
+      }
     },
     "button": {
-      "reset": {"name": "Resetuj odnowienia"},
-      "test_enforce": {"name": "Testuj wymuszenie"},
-      "clear_suppression": {"name": "Wyczyść wstrzymanie"}
+      "reset": {
+        "name": "Resetuj odnowienia"
+      },
+      "test_enforce": {
+        "name": "Testuj wymuszenie"
+      },
+      "clear_suppression": {
+        "name": "Wyczyść wstrzymanie"
+      }
     }
   }
 }

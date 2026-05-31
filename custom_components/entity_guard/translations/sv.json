@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Redigera namn",
-        "data": {"rule_name": "Regelnamn"}
+        "data": {
+          "rule_name": "Regelnamn"
+        }
       },
       "edit_entities": {
         "title": "Redigera målentiteter",
-        "data": {"target_entities": "Målentiteter"}
+        "data": {
+          "target_entities": "Målentiteter"
+        }
       },
       "edit_safety": {
         "title": "Säkerhetsbekräftelse",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Fel",
         "disabled": "Inaktiverad",
+        "master_disabled": "Master inaktiverad",
         "suppressed": "Undertryckt",
         "enforcing": "Tillämpar",
         "cooldown": "Nedkylning",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Aktiverad"},
-      "active": {"name": "Aktiv"},
-      "in_cooldown": {"name": "I nedkylning"}
+      "armed": {
+        "name": "Aktiverad"
+      },
+      "active": {
+        "name": "Aktiv"
+      },
+      "in_cooldown": {
+        "name": "I nedkylning"
+      }
     },
     "sensor": {
-      "status": {"name": "Status"},
-      "last_enforced": {"name": "Senast tillämpad"},
-      "enforcement_count_today": {"name": "Tillämpningar idag"},
-      "enforcement_count_total": {"name": "Tillämpningar totalt"},
-      "cooldown_remaining": {"name": "Återstående nedkylning"},
-      "safety_status": {"name": "Säkerhetsstatus"},
-      "suppressed_until": {"name": "Undertryckt till"}
+      "status": {
+        "name": "Status"
+      },
+      "last_enforced": {
+        "name": "Senast tillämpad"
+      },
+      "enforcement_count_today": {
+        "name": "Tillämpningar idag"
+      },
+      "enforcement_count_total": {
+        "name": "Tillämpningar totalt"
+      },
+      "cooldown_remaining": {
+        "name": "Återstående nedkylning"
+      },
+      "safety_status": {
+        "name": "Säkerhetsstatus"
+      },
+      "suppressed_until": {
+        "name": "Undertryckt till"
+      }
     },
     "switch": {
-      "enabled": {"name": "Aktiverad"},
-      "debounce_enabled": {"name": "Avstudsning aktiverad"},
-      "master_enabled": {"name": "Huvudbrytare aktiverad"}
+      "enabled": {
+        "name": "Aktiverad"
+      },
+      "debounce_enabled": {
+        "name": "Avstudsning aktiverad"
+      },
+      "master_enabled": {
+        "name": "Huvudbrytare aktiverad"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Fördröjning (sekunder)"},
-      "debounce_seconds": {"name": "Avstudsning (sekunder)"},
-      "max_enforcements_per_minute": {"name": "Max tillämpningar per minut"}
+      "delay_seconds": {
+        "name": "Fördröjning (sekunder)"
+      },
+      "debounce_seconds": {
+        "name": "Avstudsning (sekunder)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Max tillämpningar per minut"
+      }
     },
     "button": {
-      "reset": {"name": "Återställ nedkylningsperioder"},
-      "test_enforce": {"name": "Testa tillämpning"},
-      "clear_suppression": {"name": "Rensa undertryckning"}
+      "reset": {
+        "name": "Återställ nedkylningsperioder"
+      },
+      "test_enforce": {
+        "name": "Testa tillämpning"
+      },
+      "clear_suppression": {
+        "name": "Rensa undertryckning"
+      }
     }
   }
 }

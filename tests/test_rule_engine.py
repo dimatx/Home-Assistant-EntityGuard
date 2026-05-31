@@ -20,6 +20,7 @@ from custom_components.entity_guard.const import (
     STATUS_ARMED,
     STATUS_COOLDOWN,
     STATUS_DISABLED,
+    STATUS_MASTER_DISABLED,
     STATUS_ENFORCING,
     STATUS_ERROR,
     STATUS_CONDITIONAL,
@@ -400,7 +401,7 @@ async def test_evaluate_disabled_returns_early(hass: HomeAssistant):
     hass.states.async_set("light.bedroom", "on")
     st = hass.states.get("light.bedroom")
     await engine.async_evaluate("light.bedroom", st)
-    assert engine.current_status() == STATUS_DISABLED
+    assert engine.current_status() == STATUS_MASTER_DISABLED
 
 
 async def test_evaluate_rule_disabled(hass: HomeAssistant):

@@ -137,11 +137,15 @@
       },
       "edit_basics": {
         "title": "Editar nome",
-        "data": {"rule_name": "Nome da regra"}
+        "data": {
+          "rule_name": "Nome da regra"
+        }
       },
       "edit_entities": {
         "title": "Editar entidades alvo",
-        "data": {"target_entities": "Entidades alvo"}
+        "data": {
+          "target_entities": "Entidades alvo"
+        }
       },
       "edit_safety": {
         "title": "Confirmação de segurança",
@@ -259,6 +263,7 @@
       "options": {
         "error": "Erro",
         "disabled": "Desativada",
+        "master_disabled": "Mestre desativado",
         "suppressed": "Suprimida",
         "enforcing": "A aplicar",
         "cooldown": "Em espera",
@@ -300,33 +305,71 @@
   },
   "entity": {
     "binary_sensor": {
-      "armed": {"name": "Armada"},
-      "active": {"name": "Ativa"},
-      "in_cooldown": {"name": "Em espera"}
+      "armed": {
+        "name": "Armada"
+      },
+      "active": {
+        "name": "Ativa"
+      },
+      "in_cooldown": {
+        "name": "Em espera"
+      }
     },
     "sensor": {
-      "status": {"name": "Estado"},
-      "last_enforced": {"name": "Última aplicação"},
-      "enforcement_count_today": {"name": "Aplicações hoje"},
-      "enforcement_count_total": {"name": "Aplicações no total"},
-      "cooldown_remaining": {"name": "Tempo de espera restante"},
-      "safety_status": {"name": "Estado de segurança"},
-      "suppressed_until": {"name": "Suprimida até"}
+      "status": {
+        "name": "Estado"
+      },
+      "last_enforced": {
+        "name": "Última aplicação"
+      },
+      "enforcement_count_today": {
+        "name": "Aplicações hoje"
+      },
+      "enforcement_count_total": {
+        "name": "Aplicações no total"
+      },
+      "cooldown_remaining": {
+        "name": "Tempo de espera restante"
+      },
+      "safety_status": {
+        "name": "Estado de segurança"
+      },
+      "suppressed_until": {
+        "name": "Suprimida até"
+      }
     },
     "switch": {
-      "enabled": {"name": "Ativada"},
-      "debounce_enabled": {"name": "Debounce ativado"},
-      "master_enabled": {"name": "Interruptor principal ativado"}
+      "enabled": {
+        "name": "Ativada"
+      },
+      "debounce_enabled": {
+        "name": "Debounce ativado"
+      },
+      "master_enabled": {
+        "name": "Interruptor principal ativado"
+      }
     },
     "number": {
-      "delay_seconds": {"name": "Atraso (segundos)"},
-      "debounce_seconds": {"name": "Debounce (segundos)"},
-      "max_enforcements_per_minute": {"name": "Máximo de aplicações por minuto"}
+      "delay_seconds": {
+        "name": "Atraso (segundos)"
+      },
+      "debounce_seconds": {
+        "name": "Debounce (segundos)"
+      },
+      "max_enforcements_per_minute": {
+        "name": "Máximo de aplicações por minuto"
+      }
     },
     "button": {
-      "reset": {"name": "Repor tempos de espera"},
-      "test_enforce": {"name": "Testar aplicação"},
-      "clear_suppression": {"name": "Limpar supressão"}
+      "reset": {
+        "name": "Repor tempos de espera"
+      },
+      "test_enforce": {
+        "name": "Testar aplicação"
+      },
+      "clear_suppression": {
+        "name": "Limpar supressão"
+      }
     }
   }
 }

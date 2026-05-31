@@ -63,6 +63,7 @@ const css = LitElement.prototype.css || (() => {
 const STATUS_COLORS = {
   error: "#f44336",
   disabled: "#9e9e9e",
+  master_disabled: "#616161",
   suppressed: "#ff9800",
   enforcing: "#2196f3",
   cooldown: "#ffc107",
@@ -75,6 +76,7 @@ const STATUS_COLORS = {
 const STATUS_LABELS = {
   error: "Error",
   disabled: "Disabled",
+  master_disabled: "Master disabled",
   suppressed: "Suppressed",
   enforcing: "Enforcing",
   cooldown: "Cooldown",

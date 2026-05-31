@@ -45,6 +45,7 @@ from .const import (
     STATUS_DISABLED,
     STATUS_ENFORCING,
     STATUS_ERROR,
+    STATUS_MASTER_DISABLED,
     STATUS_PENDING,
     STATUS_STARTING,
     STATUS_SUPPRESSED,
@@ -221,7 +222,7 @@ class RuleEngine:
         # on STATUS_STARTING after grace.
         now = dt_util.now()
         if not self._state.enabled or not self._master_enabled_getter():
-            self._set_status(STATUS_DISABLED)
+            self._set_status(self._disabled_status())
         elif self._state.suppressed_until and self._state.suppressed_until > now:
             self._set_status(STATUS_SUPPRESSED)
         elif not self._flags_match():
@@ -248,7 +249,7 @@ class RuleEngine:
                 return
 
         if not self._state.enabled or not self._master_enabled_getter():
-            self._set_status(STATUS_DISABLED)
+            self._set_status(self._disabled_status())
             return
 
         now = dt_util.now()
@@ -675,7 +676,7 @@ class RuleEngine:
         self._persist()
         if not enabled:
             self._cancel_pending_for_entities(self._config.target_entities)
-            self._set_status(STATUS_DISABLED)
+            self._set_status(self._disabled_status())
         else:
             now = dt_util.now()
             if self._state.suppressed_until and self._state.suppressed_until > now:
@@ -695,7 +696,7 @@ class RuleEngine:
         """Re-derive status when the master switch toggles."""
         if not self._state.enabled or not self._master_enabled_getter():
             self._cancel_pending_for_entities(self._config.target_entities)
-            self._set_status(STATUS_DISABLED)
+            self._set_status(self._disabled_status())
             return
         now = dt_util.now()
         if self._state.suppressed_until and self._state.suppressed_until > now:
@@ -737,6 +738,12 @@ class RuleEngine:
             return
         self._current_status = status
         self._broadcast_status()
+
+    def _disabled_status(self) -> str:
+        """Return MASTER_DISABLED if master is off, else DISABLED (per-rule)."""
+        if not self._master_enabled_getter():
+            return STATUS_MASTER_DISABLED
+        return STATUS_DISABLED
 
     def _broadcast_status(self) -> None:
         """Tell platforms to refresh."""
