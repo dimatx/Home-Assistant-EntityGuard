@@ -86,7 +86,9 @@ async def async_register_services(hass: HomeAssistant) -> None:
                 user_id=call.context.user_id,
             )
         except Exception as err:  # noqa: BLE001
-            raise HomeAssistantError(f"Failed to suppress rule '{rule_id}': {err}") from err
+            raise HomeAssistantError(
+                f"Failed to suppress rule '{rule_id}': {err}"
+            ) from err
         _LOGGER.info(
             "Suppressed rule %s for %d minute(s)",
             engine.config.name,
@@ -99,7 +101,9 @@ async def async_register_services(hass: HomeAssistant) -> None:
         try:
             await engine.async_unsuppress()
         except Exception as err:  # noqa: BLE001
-            raise HomeAssistantError(f"Failed to unsuppress rule '{rule_id}': {err}") from err
+            raise HomeAssistantError(
+                f"Failed to unsuppress rule '{rule_id}': {err}"
+            ) from err
         _LOGGER.info("Unsuppressed rule %s", engine.config.name)
 
     async def handle_clear_history(call: ServiceCall) -> None:
@@ -108,7 +112,9 @@ async def async_register_services(hass: HomeAssistant) -> None:
         try:
             await engine.async_clear_history()
         except Exception as err:  # noqa: BLE001
-            raise HomeAssistantError(f"Failed to clear history for rule '{rule_id}': {err}") from err
+            raise HomeAssistantError(
+                f"Failed to clear history for rule '{rule_id}': {err}"
+            ) from err
         _LOGGER.info("Cleared history for rule %s", engine.config.name)
 
     async def handle_list_rules(call: ServiceCall) -> ServiceResponse:
