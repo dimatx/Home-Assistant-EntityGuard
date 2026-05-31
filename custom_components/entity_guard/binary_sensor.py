@@ -102,6 +102,7 @@ class EntityGuardBinarySensor(BinarySensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(self.hass, _signal_master(), self._handle_update)
         )
+        self.async_write_ha_state()
 
     @callback
     def _handle_update(self, *args: object) -> None:

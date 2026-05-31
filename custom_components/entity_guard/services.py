@@ -14,7 +14,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
@@ -80,10 +80,13 @@ async def async_register_services(hass: HomeAssistant) -> None:
         rule_id: str = call.data[CONF_RULE_ID]
         duration_minutes: int = call.data[CONF_DURATION_MINUTES]
         engine = _resolve_engine(hass, rule_id)
-        await engine.async_suppress(
-            duration_minutes=duration_minutes,
-            user_id=call.context.user_id,
-        )
+        try:
+            await engine.async_suppress(
+                duration_minutes=duration_minutes,
+                user_id=call.context.user_id,
+            )
+        except Exception as err:  # noqa: BLE001
+            raise HomeAssistantError(f"Failed to suppress rule '{rule_id}': {err}") from err
         _LOGGER.info(
             "Suppressed rule %s for %d minute(s)",
             engine.config.name,
@@ -93,13 +96,19 @@ async def async_register_services(hass: HomeAssistant) -> None:
     async def handle_unsuppress(call: ServiceCall) -> None:
         rule_id: str = call.data[CONF_RULE_ID]
         engine = _resolve_engine(hass, rule_id)
-        await engine.async_unsuppress()
+        try:
+            await engine.async_unsuppress()
+        except Exception as err:  # noqa: BLE001
+            raise HomeAssistantError(f"Failed to unsuppress rule '{rule_id}': {err}") from err
         _LOGGER.info("Unsuppressed rule %s", engine.config.name)
 
     async def handle_clear_history(call: ServiceCall) -> None:
         rule_id: str = call.data[CONF_RULE_ID]
         engine = _resolve_engine(hass, rule_id)
-        await engine.async_clear_history()
+        try:
+            await engine.async_clear_history()
+        except Exception as err:  # noqa: BLE001
+            raise HomeAssistantError(f"Failed to clear history for rule '{rule_id}': {err}") from err
         _LOGGER.info("Cleared history for rule %s", engine.config.name)
 
     async def handle_list_rules(call: ServiceCall) -> ServiceResponse:
@@ -128,12 +137,19 @@ async def async_register_services(hass: HomeAssistant) -> None:
     async def handle_panic_stop(call: ServiceCall) -> None:
         engines = _iter_engines(hass)
         for engine in engines:
-            engine.set_enabled(False)
-            await engine.async_reset_cooldowns()
-            await engine.async_suppress(
-                duration_minutes=PANIC_STOP_DURATION_MINUTES,
-                user_id=call.context.user_id,
-            )
+            try:
+                engine.set_enabled(False)
+                await engine.async_reset_cooldowns()
+                await engine.async_suppress(
+                    duration_minutes=PANIC_STOP_DURATION_MINUTES,
+                    user_id=call.context.user_id,
+                )
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning(
+                    "Panic stop partial failure on rule '%s': %s",
+                    getattr(engine.config, "name", "?"),
+                    err,
+                )
 
         hass.data.setdefault(DOMAIN, {})["hub_master_enabled"] = False
         async_dispatcher_send(hass, SIGNAL_MASTER_UPDATED, False)

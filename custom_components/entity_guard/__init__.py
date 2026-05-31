@@ -21,7 +21,7 @@ from .const import (
 )
 from .models import parse_rule_config
 from .rule_engine import RuleEngine, signal_for_rule, signal_master_update
-from .services import async_register_services
+from .services import async_register_services, async_unload_services
 from .storage import EntityGuardStore
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -117,7 +117,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config = parse_rule_config(entry)
         store = hass.data[DOMAIN]["storage"]
         engine = RuleEngine(hass, config, store, _master_enabled_getter(hass))
-        await engine.async_setup()
+        try:
+            await engine.async_setup()
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception(
+                "Engine setup failed for rule entry %s; entry will not load",
+                entry.entry_id,
+            )
+            return False
         hass.data[DOMAIN]["engines"][entry.entry_id] = engine
         _LOGGER.debug(
             "Rule engine ready: rule_id=%s targets=%s mode=%s",
@@ -149,6 +156,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if engine is not None:
             await engine.async_unload()
             _LOGGER.debug("Engine unloaded for %s", entry.entry_id)
+
+    if not hass.data.get(DOMAIN, {}).get("engines"):
+        async_unload_services(hass)
+
     _LOGGER.info("Entry %s unloaded (ok=%s)", entry.entry_id, unload_ok)
 
     return unload_ok
@@ -182,13 +193,18 @@ async def _async_ensure_hub(hass: HomeAssistant) -> None:
             _LOGGER.debug("Hub already exists: %s", entry.entry_id)
             return
     _LOGGER.info("Hub missing — spawning import flow to create it")
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": SOURCE_IMPORT},
-            data={},
-        )
-    )
+
+    async def _create_hub() -> None:
+        try:
+            await hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": SOURCE_IMPORT},
+                data={},
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Failed to auto-create hub entry")
+
+    hass.async_create_task(_create_hub())
 
 
 async def _async_install_card(hass: HomeAssistant) -> None:

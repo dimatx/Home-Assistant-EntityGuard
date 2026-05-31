@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import bisect
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Callable
@@ -76,6 +78,7 @@ class RuleEngine:
         self._state: RuleRuntimeState = RuleRuntimeState()
         self._unsub_callbacks: list[Callable[[], None]] = []
         self._pending_enforcements: dict[str, Callable[[], None]] = {}
+        self._pending_eval_tasks: dict[str, asyncio.Task] = {}
         self._startup_complete = False
         self._current_status: str = STATUS_STARTING
 
@@ -154,17 +157,33 @@ class RuleEngine:
                 _LOGGER.debug("Pending enforcement cancel failed", exc_info=True)
         self._pending_enforcements.clear()
 
+        for task in list(self._pending_eval_tasks.values()):
+            task.cancel()
+        self._pending_eval_tasks.clear()
+
         self._persist()
         await self._store.async_save_now()
 
     @callback
     def _handle_state_event(self, event: Event) -> None:
-        """State change listener — schedules async evaluation."""
+        """State change listener — schedules async evaluation, deduplicating per entity."""
         entity_id = event.data.get("entity_id")
         new_state = event.data.get("new_state")
         if entity_id is None:
             return
-        self._hass.async_create_task(self.async_evaluate(entity_id, new_state))
+        self._schedule_eval_task(entity_id, new_state)
+
+    def _schedule_eval_task(self, entity_id: str, new_state: Any) -> None:
+        """Schedule async_evaluate for entity_id, cancelling any prior pending task."""
+        existing = self._pending_eval_tasks.pop(entity_id, None)
+        if existing is not None and not existing.done():
+            existing.cancel()
+        task = self._hass.async_create_task(self.async_evaluate(entity_id, new_state))
+        if task is not None:
+            self._pending_eval_tasks[entity_id] = task
+            task.add_done_callback(
+                lambda t, eid=entity_id: self._pending_eval_tasks.pop(eid, None)
+            )
 
     @callback
     def _handle_midnight(self, _now: datetime) -> None:
@@ -185,7 +204,7 @@ class RuleEngine:
         self._startup_complete = True
         for entity_id in self._config.target_entities:
             current = self._hass.states.get(entity_id)
-            self._hass.async_create_task(self.async_evaluate(entity_id, current))
+            self._schedule_eval_task(entity_id, current)
 
     def _maybe_reset_today_counter(self) -> None:
         """Reset today counter if persisted reset date is stale."""
@@ -230,7 +249,7 @@ class RuleEngine:
                     continue  # handled below as a target if also a target entity
                 current = self._hass.states.get(target)
                 if current is not None and self._is_triggered(target, current):
-                    self._hass.async_create_task(self.async_evaluate(target, current))
+                    self._schedule_eval_task(target, current)
             # If entity is flag-only, stop here; if also a target, fall through.
             if entity_id not in self._config.target_entities:
                 return
@@ -351,9 +370,9 @@ class RuleEngine:
 
         async with self._state.reentrance_lock:
             cutoff = now - timedelta(seconds=60)
-            self._state.rate_limit_window = [
-                t for t in self._state.rate_limit_window if t > cutoff
-            ]
+            idx = bisect.bisect_left(self._state.rate_limit_window, cutoff)
+            if idx:
+                del self._state.rate_limit_window[:idx]
             # Limit <= 0 means user disabled the rate limit entirely; skip loop protection.
             if (
                 self._config.max_enforcements_per_minute > 0
