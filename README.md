@@ -273,6 +273,7 @@ The card shows:
 - Enforcement counters (today / total)
 - Last enforced timestamp and cooldown indicator
 - Bound entities with compliance state (✓ compliant / ⚠ violation)
+- Optional **Conditions** section (`show_conditions: true`) — lists each flag with current vs required state; useful when status is `conditional`
 - Optional action buttons (Reset Cooldowns, Test Enforce, Suppress 1h)
 
 **Normal state — rule armed, all entities compliant**
