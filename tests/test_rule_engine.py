@@ -1066,7 +1066,10 @@ def test_is_triggered_attribute_mode_missing_config_returns_false():
         mode=MODE_ATTRIBUTE, attribute=None, operator=None, threshold=None
     )
     engine = _make_engine(None, config)
-    assert engine._is_triggered("light.bedroom", _state("on", {"brightness": 100})) is False
+    assert (
+        engine._is_triggered("light.bedroom", _state("on", {"brightness": 100}))
+        is False
+    )
 
 
 def test_is_triggered_attribute_no_attributes_attr():
@@ -1173,7 +1176,9 @@ async def test_delayed_enforcement_skips_when_state_gone(hass: HomeAssistant):
     mock_enforce.assert_not_awaited()
 
 
-async def test_delayed_enforcement_skips_when_flags_no_longer_match(hass: HomeAssistant):
+async def test_delayed_enforcement_skips_when_flags_no_longer_match(
+    hass: HomeAssistant,
+):
     """_fire inner coroutine: flags not matching after schedule → no enforce."""
     config = _make_config(
         flags=[Flag(entity="input_boolean.night", match_state="on")],
@@ -1207,7 +1212,9 @@ async def test_async_setup_logs_restored_state(hass: HomeAssistant):
     engine = RuleEngine(hass, config, store, lambda: True)
 
     with (
-        patch("custom_components.entity_guard.rule_engine.async_track_state_change_event"),
+        patch(
+            "custom_components.entity_guard.rule_engine.async_track_state_change_event"
+        ),
         patch("custom_components.entity_guard.rule_engine.async_track_time_change"),
         patch("custom_components.entity_guard.rule_engine.async_call_later"),
     ):
