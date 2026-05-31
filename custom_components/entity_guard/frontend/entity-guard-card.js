@@ -522,8 +522,8 @@ class EntityGuardCard extends LitElement {
         ${this._renderToggle(refs, enabled)}
         ${this._renderStats(refs)}
         ${this._renderInfo(refs)}
-        ${this._config.show_conditions ? this._renderConditions(refs) : nothing}
         ${this._config.show_entities !== false ? this._renderBound(refs) : nothing}
+        ${this._config.show_conditions ? this._renderConditions(refs) : nothing}
         ${this._config.show_actions ? this._renderActions(refs) : nothing}
       </ha-card>
     `;
@@ -691,11 +691,12 @@ class EntityGuardCardEditor extends LitElement {
   constructor() {
     super();
     this._entries = null;
+    this._loading = false;
   }
 
   async _loadEntries() {
-    if (!this.hass || this._entries !== null) return;
-    this._entries = [];
+    if (!this.hass || this._entries !== null || this._loading) return;
+    this._loading = true;
     try {
       const all = await this.hass.callWS({ type: "config_entries/get", domain: "entity_guard" });
       this._entries = (all || [])
@@ -704,6 +705,9 @@ class EntityGuardCardEditor extends LitElement {
         .sort((a, b) => a.name.localeCompare(b.name));
     } catch (_) {
       this._entries = [];
+    } finally {
+      this._loading = false;
+      this.requestUpdate();
     }
   }
 
@@ -746,7 +750,7 @@ class EntityGuardCardEditor extends LitElement {
   render() {
     if (!this._config) return html``;
     const rules = this._entries || [];
-    const loading = this._entries === null;
+    const loading = this._entries === null || this._loading;
     const current = this._config.rule_id || "";
     const currentMissing = current && !rules.some((r) => r.id === current);
     return html`
@@ -754,14 +758,13 @@ class EntityGuardCardEditor extends LitElement {
         <div class="editor-row">
           <label>Rule</label>
           ${loading
-            ? html`<input type="text" disabled placeholder="Loading rules…" />`
+            ? html`<select disabled>
+                <option>Loading rules…</option>
+              </select>`
             : rules.length === 0
-              ? html`<input
-                  type="text"
-                  .value=${current}
-                  @input=${(e) => this._update("rule_id", e.target.value)}
-                  placeholder="e.g. 0a1b2c3d4e5f..."
-                />`
+              ? html`<select disabled>
+                  <option>No Entity Guard rules configured</option>
+                </select>`
               : html`<select
                   .value=${current}
                   @change=${(e) => this._update("rule_id", e.target.value)}
