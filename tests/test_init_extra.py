@@ -11,6 +11,7 @@ from custom_components.entity_guard import (
     _async_ensure_hub,
     _async_install_card,
     _async_register_lovelace_resource,
+    _async_update_listener,
     _get_version,
     _master_enabled_getter,
     async_remove_entry,
@@ -115,6 +116,57 @@ async def test_setup_rule_entry_engine_failure(hass: HomeAssistant, rule_entry):
     ):
         result = await async_setup_entry(hass, rule_entry)
     assert result is False
+
+
+async def test_update_listener_reloads_entry(hass: HomeAssistant, rule_entry):
+    rule_entry.add_to_hass(hass)
+    with patch.object(
+        hass.config_entries, "async_reload", new_callable=AsyncMock
+    ) as mock_reload:
+        await _async_update_listener(hass, rule_entry)
+    mock_reload.assert_awaited_once_with(rule_entry.entry_id)
+
+
+# ---------------------------------------------------------------------------
+# device-name sync on setup
+# ---------------------------------------------------------------------------
+
+
+async def test_setup_rule_entry_syncs_device_name(hass: HomeAssistant, rule_entry):
+    """Setup updates stale device-registry name to entry.title."""
+    from homeassistant.helpers import device_registry as dr
+
+    rule_entry.add_to_hass(hass)
+    device_reg = dr.async_get(hass)
+    # Pre-create device with stale name
+    device_reg.async_get_or_create(
+        config_entry_id=rule_entry.entry_id,
+        identifiers={(DOMAIN, rule_entry.entry_id)},
+        name="Old Name",
+    )
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_forward_entry_setups",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.entity_guard._async_install_card",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.entity_guard.RuleEngine.async_setup",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.entity_guard._async_ensure_hub",
+            new_callable=AsyncMock,
+        ),
+    ):
+        result = await async_setup_entry(hass, rule_entry)
+    assert result is True
+    device = device_reg.async_get_device(identifiers={(DOMAIN, rule_entry.entry_id)})
+    assert device.name == rule_entry.title
 
 
 # ---------------------------------------------------------------------------

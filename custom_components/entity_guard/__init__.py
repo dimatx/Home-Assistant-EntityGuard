@@ -12,6 +12,7 @@ from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_ENTRY_TYPE,
@@ -133,6 +134,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             config.mode,
         )
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS_RULE)
+        # Sync device-registry name to entry.title (handles renames).
+        device_reg = dr.async_get(hass)
+        device = device_reg.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+        if device is not None and device.name != entry.title:
+            device_reg.async_update_device(device.id, name=entry.title)
+        # Reload entry on options-save so engine picks up edits + entities rename.
+        entry.async_on_unload(entry.add_update_listener(_async_update_listener))
         # Recreate hub if missing — covers user deleting hub while rules still exist.
         await _async_ensure_hub(hass)
 
@@ -140,6 +148,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("async_setup_entry complete: entry_id=%s", entry.entry_id)
 
     return True
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload rule entry when its data changes (rename, mode edits, etc.)."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
