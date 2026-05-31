@@ -138,7 +138,7 @@ Review the assembled rule before saving. Confirm to create the config entry. The
 | `binary_sensor.<rule>_armed` | Rule is watching (flag matched, master/enabled on) |
 | `binary_sensor.<rule>_active` | Service call currently in flight |
 | `binary_sensor.<rule>_in_cooldown` | Cooldown active for at least one bound entity |
-| `sensor.<rule>_status` | Enum: `disabled` > `suppressed` > `enforcing` > `cooldown` > `armed` > `idle` |
+| `sensor.<rule>_status` | Enum: `error` > `disabled` > `suppressed` > `enforcing` > `cooldown` > `armed` > `conditional` > `starting` > `pending` |
 | `sensor.<rule>_last_enforced` | Timestamp of the last successful enforcement |
 | `sensor.<rule>_enforcement_count_today` | Resets at local midnight |
 | `button.<rule>_reset` | Clear all cooldowns for this rule |
@@ -166,14 +166,17 @@ Review the assembled rule before saving. Confirm to create the config entry. The
 
 ## Status state machine
 
-`sensor.<rule>_status` reports one of six values, by priority (highest wins):
+`sensor.<rule>_status` reports one of nine values, by priority (highest wins):
 
-1. `disabled` -- `enabled=OFF` or master switch off
-2. `suppressed` -- suppress service active
-3. `enforcing` -- service call currently in flight (transient)
-4. `cooldown` -- post-enforcement cooldown active
-5. `armed` -- flag matches, watching
-6. `idle` -- flag mismatches, dormant
+1. `error` -- 3+ consecutive enforcement failures (e.g. target unavailable). Auto-clears on next success or via `clear_history`.
+2. `disabled` -- `enabled=OFF` or master switch off
+3. `suppressed` -- suppress service active
+4. `enforcing` -- service call currently in flight (transient)
+5. `cooldown` -- post-enforcement cooldown active
+6. `pending` -- delayed enforcement armed, waiting on `delay_seconds`
+7. `armed` -- flags match, watching
+8. `conditional` -- one or more flag entities do not match required state
+9. `starting` -- inside the startup grace window
 
 ---
 
@@ -265,15 +268,15 @@ show_actions: false    # default: false
 ```
 
 The card shows:
-- Rule name and color-coded status badge (idle / active / suppressed / cooldown)
+- Rule name and color-coded status badge (armed / enforcing / suppressed / cooldown / conditional / error)
 - Enforcement counters (today / total)
 - Last enforced timestamp and cooldown indicator
 - Bound entities with compliance state (✓ compliant / ⚠ violation)
 - Optional action buttons (Reset Cooldowns, Test Enforce, Suppress 1h)
 
-**Normal state — rule idle, all entities compliant**
+**Normal state — rule armed, all entities compliant**
 
-![Card: idle state](custom_components/entity_guard/docs/10_card_idle.png)
+![Card: armed state](custom_components/entity_guard/docs/10_card_idle.png)
 
 **Active enforcement — entity non-compliant**
 
@@ -365,9 +368,9 @@ python -m pytest tests/ -v
 
 ## Sibling integrations
 
-- [Entity Availability](https://github.com/italo-lombardi/Home-Assistant-EntityAvailability)
-- [Entity Distance](https://github.com/italo-lombardi/Home-Assistant-EntityDistance)
-- [Fuel Compare](https://github.com/italo-lombardi/Home-Assistant-FuelCompare)
+- [Entity Availability](https://github.com/italo-lombardi/Home-Assistant-EntityAvailability) — track offline entities, availability history, and degraded states with a custom dashboard card.
+- [Entity Distance](https://github.com/italo-lombardi/Home-Assistant-EntityDistance) — distance between two or more entities (people, devices, zones) with direction, closing speed, ETA, and proximity sensors.
+- [Fuel Compare](https://github.com/italo-lombardi/Home-Assistant-FuelCompare) — live fuel prices and station data for Irish petrol stations from fuelcompare.ie.
 
 ---
 
