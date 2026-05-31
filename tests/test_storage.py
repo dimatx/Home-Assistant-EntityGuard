@@ -242,3 +242,61 @@ def test_clear_rule_history(hass: HomeAssistant):
         store.clear_rule_history("r1")
         after = store.get_rule_state("r1")
         assert after["enforcement_count_total"] == 0
+
+
+# ---------------------------------------------------------------------------
+# _validate_blob bad types
+# ---------------------------------------------------------------------------
+
+
+def test_validate_blob_cooldowns_not_dict(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    import pytest
+
+    with pytest.raises(ValueError, match="cooldowns"):
+        store._validate_blob({"cooldowns": "bad", "rate_limit_window": []})
+
+
+def test_validate_blob_rate_limit_not_list(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    import pytest
+
+    with pytest.raises(ValueError, match="rate_limit_window"):
+        store._validate_blob({"cooldowns": {}, "rate_limit_window": "bad"})
+
+
+def test_validate_blob_not_dict(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    import pytest
+
+    with pytest.raises(ValueError, match="not a dict"):
+        store._validate_blob("not-a-dict")
+
+
+# ---------------------------------------------------------------------------
+# async_save / async_save_now / _data_provider
+# ---------------------------------------------------------------------------
+
+
+async def test_async_save_now(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    with patch.object(store._store, "async_save", new_callable=AsyncMock) as mock_save:
+        await store.async_save_now()
+    mock_save.assert_called_once()
+
+
+async def test_async_save_delays(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    with patch.object(store._store, "async_delay_save") as mock_delay:
+        await store.async_save()
+    mock_delay.assert_called_once()
+
+
+def test_data_provider_returns_deep_copy(hass: HomeAssistant):
+    store = EntityGuardStore(hass)
+    store._data["rules"]["r1"] = {"enforcement_count_today": 5}
+    copy1 = store._data_provider()
+    copy2 = store._data_provider()
+    assert copy1 == copy2
+    copy1["rules"]["r1"]["enforcement_count_today"] = 99
+    assert store._data["rules"]["r1"]["enforcement_count_today"] == 5

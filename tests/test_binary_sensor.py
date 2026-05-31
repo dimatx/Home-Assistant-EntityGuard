@@ -123,3 +123,24 @@ async def test_setup_entry_adds_binary_sensors(hass: HomeAssistant):
     assert "EntityGuardArmedSensor" in types
     assert "EntityGuardActiveSensor" in types
     assert "EntityGuardInCooldownSensor" in types
+
+
+# ---------------------------------------------------------------------------
+# async_added_to_hass — dispatcher subscription
+# ---------------------------------------------------------------------------
+
+
+async def test_binary_sensor_async_added_subscribes(hass: HomeAssistant):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    entry = _make_rule_entry()
+    engine = _make_engine(armed=False)
+    sensor = EntityGuardArmedSensor(entry, engine)
+    sensor.hass = hass
+    sensor.async_write_ha_state = MagicMock()
+
+    await sensor.async_added_to_hass()
+
+    async_dispatcher_send(hass, f"entity_guard_rule_update_{engine.config.unique_id}")
+    await hass.async_block_till_done()
+    sensor.async_write_ha_state.assert_called()

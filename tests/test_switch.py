@@ -231,3 +231,40 @@ async def test_setup_entry_unknown_type(hass: HomeAssistant):
     added = []
     await async_setup_entry(hass, entry, added.extend)
     assert added == []
+
+
+# ---------------------------------------------------------------------------
+# async_added_to_hass — dispatcher subscription
+# ---------------------------------------------------------------------------
+
+
+async def test_rule_switch_async_added_subscribes(hass: HomeAssistant):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    entry = _make_rule_entry()
+    engine = _make_engine()
+    sw = EntityGuardEnabledSwitch(entry, engine)
+    sw.hass = hass
+    sw.async_write_ha_state = MagicMock()
+
+    await sw.async_added_to_hass()
+
+    async_dispatcher_send(hass, f"entity_guard_rule_update_{engine.config.unique_id}")
+    await hass.async_block_till_done()
+    sw.async_write_ha_state.assert_called()
+
+
+async def test_master_switch_async_added_subscribes(hass: HomeAssistant):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    entry = _make_hub_entry()
+    entry.add_to_hass(hass)
+    sw = EntityGuardMasterEnabledSwitch(hass, entry)
+    sw.hass = hass
+    sw.async_write_ha_state = MagicMock()
+
+    await sw.async_added_to_hass()
+
+    async_dispatcher_send(hass, "entity_guard_master_update")
+    await hass.async_block_till_done()
+    sw.async_write_ha_state.assert_called()

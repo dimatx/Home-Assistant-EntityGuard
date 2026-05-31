@@ -158,3 +158,26 @@ async def test_setup_entry_adds_numbers(hass: HomeAssistant):
     assert "EntityGuardDelaySecondsNumber" in types
     assert "EntityGuardDebounceSecondsNumber" in types
     assert "EntityGuardMaxEnforcementsNumber" in types
+
+
+# ---------------------------------------------------------------------------
+# async_added_to_hass — dispatcher subscription and availability
+# ---------------------------------------------------------------------------
+
+
+async def test_number_async_added_subscribes(hass: HomeAssistant):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    entry = _make_rule_entry()
+    engine = _make_engine(delay=5)
+    num = EntityGuardDelaySecondsNumber(entry, engine)
+    num.hass = hass
+    num.async_write_ha_state = MagicMock()
+
+    assert num._attr_available is False
+    await num.async_added_to_hass()
+    assert num._attr_available is True
+
+    async_dispatcher_send(hass, f"entity_guard_rule_update_{engine.config.unique_id}")
+    await hass.async_block_till_done()
+    num.async_write_ha_state.assert_called()

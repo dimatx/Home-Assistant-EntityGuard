@@ -706,3 +706,200 @@ def test_cancel_pending_existing(hass: HomeAssistant):
 def test_cancel_pending_missing(hass: HomeAssistant):
     engine = _make_engine(hass)
     engine._cancel_pending("light.nonexistent")  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# _handle_state_event
+# ---------------------------------------------------------------------------
+
+
+def test_handle_state_event_creates_task(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    event = MagicMock()
+    event.data = {"entity_id": "light.bedroom", "new_state": _state("on")}
+    tasks_created = []
+    with patch.object(hass, "async_create_task", side_effect=tasks_created.append):
+        engine._handle_state_event(event)
+    assert len(tasks_created) == 1
+
+
+def test_handle_state_event_none_entity_id(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    event = MagicMock()
+    event.data = {"entity_id": None, "new_state": None}
+    tasks_created = []
+    with patch.object(hass, "async_create_task", side_effect=tasks_created.append):
+        engine._handle_state_event(event)
+    assert tasks_created == []
+
+
+# ---------------------------------------------------------------------------
+# _handle_midnight
+# ---------------------------------------------------------------------------
+
+
+def test_handle_midnight_resets_today_counter(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.enforcement_count_today = 7
+    engine._handle_midnight(MagicMock())
+    assert engine.state.enforcement_count_today == 0
+
+
+# ---------------------------------------------------------------------------
+# _handle_startup_grace_done
+# ---------------------------------------------------------------------------
+
+
+def test_handle_startup_grace_done_sweeps_targets(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = False
+    hass.states.async_set("light.bedroom", "on")
+    tasks_created = []
+    with patch.object(hass, "async_create_task", side_effect=tasks_created.append):
+        engine._handle_startup_grace_done(MagicMock())
+    assert engine._startup_complete is True
+    assert len(tasks_created) == 1  # one per target entity
+
+
+# ---------------------------------------------------------------------------
+# async_unload: exception paths
+# ---------------------------------------------------------------------------
+
+
+async def test_async_unload_handles_failing_unsub(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._unsub_callbacks.append(MagicMock(side_effect=RuntimeError("boom")))
+    engine._store.async_save_now = AsyncMock()
+    await engine.async_unload()  # should not raise
+    assert engine._unsub_callbacks == []
+
+
+async def test_async_unload_handles_failing_cancel(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._pending_enforcements["light.x"] = MagicMock(
+        side_effect=RuntimeError("boom")
+    )
+    engine._store.async_save_now = AsyncMock()
+    await engine.async_unload()  # should not raise
+    assert engine._pending_enforcements == {}
+
+
+# ---------------------------------------------------------------------------
+# in_cooldown debounce path during evaluate
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_in_cooldown_during_debounce(hass: HomeAssistant):
+    config = _make_config(debounce_enabled=True, debounce_seconds=60)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    from homeassistant.util import dt as dt_util
+    from datetime import timedelta
+
+    engine.state.cooldowns["light.bedroom"] = dt_util.now() + timedelta(seconds=30)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_COOLDOWN
+
+
+# ---------------------------------------------------------------------------
+# _resolve_service: homeassistant fallback for unknown domain
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_service_homeassistant_fallback_on(hass: HomeAssistant):
+    config = _make_config(target_state="on", target_entities=["vacuum.robo"])
+    engine = _make_engine(hass, config)
+    result = engine._resolve_service("vacuum.robo")
+    assert result is not None
+    domain, service, data = result
+    assert domain == "homeassistant"
+    assert service == "turn_on"
+
+
+def test_resolve_service_no_mapping_returns_none(hass: HomeAssistant):
+    config = _make_config(target_state="cleaning", target_entities=["vacuum.robo"])
+    engine = _make_engine(hass, config)
+    result = engine._resolve_service("vacuum.robo")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _enforce: service call failure
+# ---------------------------------------------------------------------------
+
+
+async def test_enforce_service_call_failure_skips(hass: HomeAssistant):
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    async def _fail(call):
+        raise RuntimeError("device unavailable")
+
+    hass.services.async_register("light", "turn_off", _fail)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    # Should not have counted the enforcement
+    assert engine.state.enforcement_count_total == 0
+
+
+# ---------------------------------------------------------------------------
+# _enforce: no service mapping
+# ---------------------------------------------------------------------------
+
+
+async def test_enforce_no_service_mapping_fires_skipped(hass: HomeAssistant):
+    config = _make_config(
+        target_state="cooking",  # unmapped state on unmapped domain
+        target_entities=["vacuum.robo"],
+        trigger_states=["on"],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("vacuum.robo", "on")
+    st = hass.states.get("vacuum.robo")
+    events_fired = []
+    hass.bus.async_listen("entity_guard_skipped", lambda e: events_fired.append(e))
+    await engine.async_evaluate("vacuum.robo", st)
+    assert engine.state.enforcement_count_total == 0
+
+
+# ---------------------------------------------------------------------------
+# set_enabled: suppression expiry on re-enable
+# ---------------------------------------------------------------------------
+
+
+def test_set_enabled_clears_expired_suppression(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+
+    engine.state.suppressed_until = dt_util.now() - timedelta(seconds=1)
+    engine.state.suppression_reason = "manual"
+    engine.state.enabled = False
+    engine.set_enabled(True)
+    assert engine.state.suppressed_until is None
+    assert engine.state.suppression_reason is None
+
+
+# ---------------------------------------------------------------------------
+# flag entity change during armed state
+# ---------------------------------------------------------------------------
+
+
+async def test_flag_entity_change_rearms(hass: HomeAssistant):
+    config = _make_config(
+        flags=[Flag(entity="input_boolean.night", match_state="on")],
+        target_entities=["light.bedroom"],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("input_boolean.night", "on")
+    hass.states.async_set("light.bedroom", "off")
+    # Evaluate a flag entity change (not a target entity)
+    st = hass.states.get("input_boolean.night")
+    await engine.async_evaluate("input_boolean.night", st)
+    assert engine.current_status() in (STATUS_ARMED, STATUS_COOLDOWN, STATUS_PENDING)

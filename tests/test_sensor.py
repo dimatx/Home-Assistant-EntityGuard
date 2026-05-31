@@ -233,3 +233,25 @@ async def test_setup_entry_adds_safety_sensor_for_lock(hass: HomeAssistant):
     await async_setup_entry(hass, entry, added.extend)
     types = [type(s).__name__ for s in added]
     assert "EntityGuardSafetyStatusSensor" in types
+
+
+# ---------------------------------------------------------------------------
+# async_added_to_hass — dispatcher subscription
+# ---------------------------------------------------------------------------
+
+
+async def test_sensor_async_added_subscribes(hass: HomeAssistant):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    entry = _make_rule_entry()
+    engine = _make_engine()
+    sensor = EntityGuardStatusSensor(entry, engine)
+    sensor.hass = hass
+    sensor.async_write_ha_state = MagicMock()
+
+    await sensor.async_added_to_hass()
+
+    # Firing the rule signal should call async_write_ha_state
+    async_dispatcher_send(hass, f"entity_guard_rule_update_{engine.config.unique_id}")
+    await hass.async_block_till_done()
+    sensor.async_write_ha_state.assert_called()
