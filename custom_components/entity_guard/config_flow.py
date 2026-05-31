@@ -78,6 +78,16 @@ def _has_safety_target(entities: list[str]) -> bool:
     return any(entity_id.split(".", 1)[0] in SAFETY_DOMAINS for entity_id in entities)
 
 
+def _current_state_hint(hass: Any, entity_id: str | None) -> str:
+    """Return 'entity_id is currently: <state>' or empty when no entity given."""
+    if not entity_id or hass is None:
+        return ""
+    state = hass.states.get(entity_id)
+    if state is None:
+        return f"{entity_id} is currently: (unknown — entity not found)"
+    return f"{entity_id} is currently: {state.state}"
+
+
 def _rule_name_taken(
     hass_entries: list[ConfigEntry], name: str, ignore_entry_id: str | None = None
 ) -> bool:
@@ -521,11 +531,13 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Optional repeating step to collect flag conditions (AND'd)."""
         errors: dict[str, str] = {}
+        last_entity: str | None = None
 
         if user_input is not None:
             entity = user_input.get(CONF_FLAG_ENTITY)
             match_state = user_input.get(CONF_FLAG_MATCH_STATE, "")
             add_another = user_input.get("add_another", False)
+            last_entity = entity
 
             # Both fields must be set together; an empty pair just skips ahead.
             if entity and str(match_state).strip():
@@ -557,6 +569,7 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 f"{f[CONF_FLAG_ENTITY]}={f[CONF_FLAG_MATCH_STATE]}" for f in self._flags
             )
             or "(none)",
+            "current_state": _current_state_hint(self.hass, last_entity),
         }
         return self.async_show_form(
             step_id="flags",
@@ -1004,6 +1017,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Edit flag list — pass JSON-friendly compact representation."""
         errors: dict[str, str] = {}
+        last_entity: str | None = None
 
         if user_input is not None:
             action = user_input.get("action", "save")
@@ -1014,6 +1028,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
             entity = user_input.get(CONF_FLAG_ENTITY)
             match_state = str(user_input.get(CONF_FLAG_MATCH_STATE, "")).strip()
             existing = list(self._working.get(CONF_FLAGS, []))
+            last_entity = entity
 
             if action == "add":
                 if not entity or not match_state:
@@ -1058,7 +1073,10 @@ class EntityGuardOptionsFlow(OptionsFlow):
             step_id="edit_flags",
             data_schema=schema,
             errors=errors,
-            description_placeholders={"summary": summary},
+            description_placeholders={
+                "summary": summary,
+                "current_state": _current_state_hint(self.hass, last_entity),
+            },
         )
 
     # ------------------------------------------------------------------ Advanced

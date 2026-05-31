@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Condiciones (opcional)",
-        "description": "Condiciones extra que deben cumplirse todas para que la regla actúe.\n\nEjemplos:\n  • person.alice = not_home — solo cuando Alice esté fuera\n  • input_boolean.guest_mode = off — solo cuando no haya invitados\n  • sun.sun = below_horizon — solo después del atardecer\n  • binary_sensor.work_hours = on — solo durante el horario laboral\n\nPara añadir una condición: elija una entidad, escriba el estado en el que debe estar y haga clic en Enviar.\n\nSi no quiere ninguna condición ahora, deje ambos campos vacíos y haga clic en Enviar para omitir.\n\nCondiciones añadidas hasta ahora ({count}): {summary}\n\nMarque 'Añadir otra' para encadenar más — todas deben coincidir para que la regla se dispare.",
+        "description": "Condiciones extra que deben cumplirse todas para que la regla actúe.\n\nEjemplos:\n  • person.alice = not_home — solo cuando Alice esté fuera\n  • input_boolean.guest_mode = off — solo cuando no haya invitados\n  • sun.sun = below_horizon — solo después del atardecer\n  • binary_sensor.work_hours = on — solo durante el horario laboral\n\nPara añadir una condición: elija una entidad, escriba el estado en el que debe estar y haga clic en Enviar.\n\nSi no quiere ninguna condición ahora, deje ambos campos vacíos y haga clic en Enviar para omitir.\n\nCondiciones añadidas hasta ahora ({count}): {summary}\n\n{current_state}\n\nMarque 'Añadir otra' para encadenar más — todas deben coincidir para que la regla se dispare.",
         "data": {
           "entity": "Entidad de condición",
           "match_state": "Estado requerido",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Editar condiciones de marca",
-        "description": "Marcas actuales: {summary}. Elija 'añadir' para agregar, 'borrar' para eliminar todas, o 'guardar' para dejar sin cambios.",
+        "description": "Marcas actuales: {summary}\n\n{current_state}. Elija 'añadir' para agregar, 'borrar' para eliminar todas, o 'guardar' para dejar sin cambios.",
         "data": {
           "entity": "Entidad de marca",
           "match_state": "Estado requerido",

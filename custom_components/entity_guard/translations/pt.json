@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Condições (opcional)",
-        "description": "Condições extra que têm todas de ser verdadeiras para a regra atuar.\n\nExemplos:\n  • person.alice = not_home — apenas quando a Alice está fora\n  • input_boolean.guest_mode = off — apenas quando não há convidados\n  • sun.sun = below_horizon — apenas após o pôr-do-sol\n  • binary_sensor.work_hours = on — apenas durante o horário de trabalho\n\nPara adicionar uma condição: escolha uma entidade, escreva o estado em que tem de estar e clique em Submeter.\n\nSe não quiser nenhuma condição neste momento, deixe ambos os campos vazios e clique em Submeter para ignorar.\n\nCondições adicionadas até agora ({count}): {summary}\n\nSelecione 'Adicionar outra' para encadear mais — todas têm de corresponder para a regra disparar.",
+        "description": "Condições extra que têm todas de ser verdadeiras para a regra atuar.\n\nExemplos:\n  • person.alice = not_home — apenas quando a Alice está fora\n  • input_boolean.guest_mode = off — apenas quando não há convidados\n  • sun.sun = below_horizon — apenas após o pôr-do-sol\n  • binary_sensor.work_hours = on — apenas durante o horário de trabalho\n\nPara adicionar uma condição: escolha uma entidade, escreva o estado em que tem de estar e clique em Submeter.\n\nSe não quiser nenhuma condição neste momento, deixe ambos os campos vazios e clique em Submeter para ignorar.\n\nCondições adicionadas até agora ({count}): {summary}\n\n{current_state}\n\nSelecione 'Adicionar outra' para encadear mais — todas têm de corresponder para a regra disparar.",
         "data": {
           "entity": "Entidade da condição",
           "match_state": "Estado requerido",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Editar condições",
-        "description": "Condições atuais: {summary}. Escolha 'adicionar' para acrescentar, 'limpar' para remover todas, ou 'guardar' para deixar inalteradas.",
+        "description": "Condições atuais: {summary}\n\n{current_state}. Escolha 'adicionar' para acrescentar, 'limpar' para remover todas, ou 'guardar' para deixar inalteradas.",
         "data": {
           "entity": "Entidade da condição",
           "match_state": "Estado requerido",

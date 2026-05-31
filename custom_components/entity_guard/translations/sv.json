@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Villkor (valfritt)",
-        "description": "Extra villkor som alla måste vara sanna för att regeln ska agera.\n\nExempel:\n  • person.alice = not_home — endast när Alice är borta\n  • input_boolean.guest_mode = off — endast när inga gäster\n  • sun.sun = below_horizon — endast efter solnedgång\n  • binary_sensor.work_hours = on — endast under arbetstid\n\nFör att lägga till ett villkor: välj en entitet, ange tillståndet den måste vara i, klicka sedan på Skicka.\n\nOm du inte vill ha något villkor just nu, lämna båda fälten tomma och klicka på Skicka för att hoppa över.\n\nTillagda villkor hittills ({count}): {summary}\n\nBocka i 'Lägg till ytterligare' för att kedja fler — alla måste matcha för att regeln ska utlösas.",
+        "description": "Extra villkor som alla måste vara sanna för att regeln ska agera.\n\nExempel:\n  • person.alice = not_home — endast när Alice är borta\n  • input_boolean.guest_mode = off — endast när inga gäster\n  • sun.sun = below_horizon — endast efter solnedgång\n  • binary_sensor.work_hours = on — endast under arbetstid\n\nFör att lägga till ett villkor: välj en entitet, ange tillståndet den måste vara i, klicka sedan på Skicka.\n\nOm du inte vill ha något villkor just nu, lämna båda fälten tomma och klicka på Skicka för att hoppa över.\n\nTillagda villkor hittills ({count}): {summary}\n\n{current_state}\n\nBocka i 'Lägg till ytterligare' för att kedja fler — alla måste matcha för att regeln ska utlösas.",
         "data": {
           "entity": "Villkorsentitet",
           "match_state": "Krävt tillstånd",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Redigera flaggvillkor",
-        "description": "Aktuella flaggor: {summary}. Välj 'lägg till' för att lägga till, 'rensa' för att ta bort alla, eller 'spara' för att lämna oförändrat.",
+        "description": "Aktuella flaggor: {summary}\n\n{current_state}. Välj 'lägg till' för att lägga till, 'rensa' för att ta bort alla, eller 'spara' för att lämna oförändrat.",
         "data": {
           "entity": "Flaggentitet",
           "match_state": "Krävt tillstånd",

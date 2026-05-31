@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Bedingungen (optional)",
-        "description": "Zusätzliche Bedingungen, die alle erfüllt sein müssen, damit die Regel reagiert.\n\nBeispiele:\n  • person.alice = not_home — nur wenn Alice nicht zu Hause ist\n  • input_boolean.guest_mode = off — nur wenn keine Gäste da sind\n  • sun.sun = below_horizon — nur nach Sonnenuntergang\n  • binary_sensor.work_hours = on — nur während der Arbeitszeit\n\nUm eine Bedingung hinzuzufügen: Wähle eine Entität, gib den erforderlichen Status ein und klicke auf Senden.\n\nWenn du derzeit keine Bedingung möchtest, lasse beide Felder leer und klicke auf Senden, um zu überspringen.\n\nBisher hinzugefügte Bedingungen ({count}): {summary}\n\nAktiviere „Weitere hinzufügen“, um weitere zu verketten — alle müssen zutreffen, damit die Regel auslöst.",
+        "description": "Zusätzliche Bedingungen, die alle erfüllt sein müssen, damit die Regel reagiert.\n\nBeispiele:\n  • person.alice = not_home — nur wenn Alice nicht zu Hause ist\n  • input_boolean.guest_mode = off — nur wenn keine Gäste da sind\n  • sun.sun = below_horizon — nur nach Sonnenuntergang\n  • binary_sensor.work_hours = on — nur während der Arbeitszeit\n\nUm eine Bedingung hinzuzufügen: Wähle eine Entität, gib den erforderlichen Status ein und klicke auf Senden.\n\nWenn du derzeit keine Bedingung möchtest, lasse beide Felder leer und klicke auf Senden, um zu überspringen.\n\nBisher hinzugefügte Bedingungen ({count}): {summary}\n\n{current_state}\n\nAktiviere „Weitere hinzufügen“, um weitere zu verketten — alle müssen zutreffen, damit die Regel auslöst.",
         "data": {
           "entity": "Bedingungs-Entität",
           "match_state": "Erforderlicher Status",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Flag-Bedingungen bearbeiten",
-        "description": "Aktuelle Flags: {summary}. Wähle „add“ zum Anhängen, „clear“ zum Entfernen aller oder „save“, um unverändert zu lassen.",
+        "description": "Aktuelle Flags: {summary}\n\n{current_state}. Wähle „add“ zum Anhängen, „clear“ zum Entfernen aller oder „save“, um unverändert zu lassen.",
         "data": {
           "entity": "Flag-Entität",
           "match_state": "Erforderlicher Status",

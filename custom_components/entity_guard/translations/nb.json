@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Betingelser (valgfritt)",
-        "description": "Ekstra betingelser som alle må være sanne for at regelen skal utføres.\n\nEksempler:\n  • person.alice = not_home — kun når Alice er borte\n  • input_boolean.guest_mode = off — kun når det ikke er gjester\n  • sun.sun = below_horizon — kun etter solnedgang\n  • binary_sensor.work_hours = on — kun i arbeidstid\n\nFor å legge til en betingelse: velg en enhet, skriv tilstanden den må være i, og klikk Send inn.\n\nHvis du ikke ønsker noen betingelse akkurat nå, la begge feltene være tomme og klikk Send inn for å hoppe over.\n\nBetingelser lagt til så langt ({count}): {summary}\n\nKryss av for «Legg til en til» for å lenke flere — alle må samsvare for at regelen skal utløses.",
+        "description": "Ekstra betingelser som alle må være sanne for at regelen skal utføres.\n\nEksempler:\n  • person.alice = not_home — kun når Alice er borte\n  • input_boolean.guest_mode = off — kun når det ikke er gjester\n  • sun.sun = below_horizon — kun etter solnedgang\n  • binary_sensor.work_hours = on — kun i arbeidstid\n\nFor å legge til en betingelse: velg en enhet, skriv tilstanden den må være i, og klikk Send inn.\n\nHvis du ikke ønsker noen betingelse akkurat nå, la begge feltene være tomme og klikk Send inn for å hoppe over.\n\nBetingelser lagt til så langt ({count}): {summary}\n\n{current_state}\n\nKryss av for «Legg til en til» for å lenke flere — alle må samsvare for at regelen skal utløses.",
         "data": {
           "entity": "Betingelsesenhet",
           "match_state": "Påkrevd tilstand",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Rediger flaggbetingelser",
-        "description": "Gjeldende flagg: {summary}. Velg «add» for å legge til, «clear» for å fjerne alle, eller «save» for å la være uendret.",
+        "description": "Gjeldende flagg: {summary}\n\n{current_state}. Velg «add» for å legge til, «clear» for å fjerne alle, eller «save» for å la være uendret.",
         "data": {
           "entity": "Flaggenhet",
           "match_state": "Påkrevd tilstand",

@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Warunki (opcjonalne)",
-        "description": "Dodatkowe warunki, które wszystkie muszą być spełnione, aby reguła zadziałała.\n\nPrzykłady:\n  • person.alice = not_home — tylko gdy Alicja jest poza domem\n  • input_boolean.guest_mode = off — tylko gdy nie ma gości\n  • sun.sun = below_horizon — tylko po zachodzie słońca\n  • binary_sensor.work_hours = on — tylko w godzinach pracy\n\nAby dodać warunek: wybierz encję, wpisz stan, w którym musi się znajdować, a następnie kliknij Wyślij.\n\nJeśli nie chcesz teraz dodawać żadnego warunku, pozostaw oba pola puste i kliknij Wyślij, aby pominąć.\n\nDodane dotychczas warunki ({count}): {summary}\n\nZaznacz „Dodaj kolejny”, aby połączyć ich więcej — wszystkie muszą być spełnione, aby reguła zadziałała.",
+        "description": "Dodatkowe warunki, które wszystkie muszą być spełnione, aby reguła zadziałała.\n\nPrzykłady:\n  • person.alice = not_home — tylko gdy Alicja jest poza domem\n  • input_boolean.guest_mode = off — tylko gdy nie ma gości\n  • sun.sun = below_horizon — tylko po zachodzie słońca\n  • binary_sensor.work_hours = on — tylko w godzinach pracy\n\nAby dodać warunek: wybierz encję, wpisz stan, w którym musi się znajdować, a następnie kliknij Wyślij.\n\nJeśli nie chcesz teraz dodawać żadnego warunku, pozostaw oba pola puste i kliknij Wyślij, aby pominąć.\n\nDodane dotychczas warunki ({count}): {summary}\n\n{current_state}\n\nZaznacz „Dodaj kolejny”, aby połączyć ich więcej — wszystkie muszą być spełnione, aby reguła zadziałała.",
         "data": {
           "entity": "Encja warunku",
           "match_state": "Wymagany stan",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Edytuj warunki flag",
-        "description": "Bieżące flagi: {summary}. Wybierz „add”, aby dodać, „clear”, aby usunąć wszystkie, lub „save”, aby pozostawić bez zmian.",
+        "description": "Bieżące flagi: {summary}\n\n{current_state}. Wybierz „add”, aby dodać, „clear”, aby usunąć wszystkie, lub „save”, aby pozostawić bez zmian.",
         "data": {
           "entity": "Encja flagi",
           "match_state": "Wymagany stan",

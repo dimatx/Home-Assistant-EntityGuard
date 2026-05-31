@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Voorwaarden (optioneel)",
-        "description": "Extra voorwaarden waaraan allemaal moet worden voldaan voordat de regel handelt.\n\nVoorbeelden:\n  • person.alice = not_home — alleen wanneer Alice weg is\n  • input_boolean.guest_mode = off — alleen wanneer er geen gasten zijn\n  • sun.sun = below_horizon — alleen na zonsondergang\n  • binary_sensor.work_hours = on — alleen tijdens werkuren\n\nOm een voorwaarde toe te voegen: kies een entiteit, typ de status waarin deze moet zijn en klik op Verzenden.\n\nAls je nu geen voorwaarde wilt, laat dan beide velden leeg en klik op Verzenden om over te slaan.\n\nTot nu toe toegevoegde voorwaarden ({count}): {summary}\n\nVink 'Nog een toevoegen' aan om er meer aan elkaar te koppelen — alle moeten overeenkomen om de regel te activeren.",
+        "description": "Extra voorwaarden waaraan allemaal moet worden voldaan voordat de regel handelt.\n\nVoorbeelden:\n  • person.alice = not_home — alleen wanneer Alice weg is\n  • input_boolean.guest_mode = off — alleen wanneer er geen gasten zijn\n  • sun.sun = below_horizon — alleen na zonsondergang\n  • binary_sensor.work_hours = on — alleen tijdens werkuren\n\nOm een voorwaarde toe te voegen: kies een entiteit, typ de status waarin deze moet zijn en klik op Verzenden.\n\nAls je nu geen voorwaarde wilt, laat dan beide velden leeg en klik op Verzenden om over te slaan.\n\nTot nu toe toegevoegde voorwaarden ({count}): {summary}\n\n{current_state}\n\nVink 'Nog een toevoegen' aan om er meer aan elkaar te koppelen — alle moeten overeenkomen om de regel te activeren.",
         "data": {
           "entity": "Voorwaarde-entiteit",
           "match_state": "Vereiste status",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Voorwaarden bewerken",
-        "description": "Huidige voorwaarden: {summary}. Kies 'add' om toe te voegen, 'clear' om alles te verwijderen, of 'save' om ongewijzigd te laten.",
+        "description": "Huidige voorwaarden: {summary}\n\n{current_state}. Kies 'add' om toe te voegen, 'clear' om alles te verwijderen, of 'save' om ongewijzigd te laten.",
         "data": {
           "entity": "Voorwaarde-entiteit",
           "match_state": "Vereiste status",

@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Conditions (facultatif)",
-        "description": "Conditions supplémentaires qui doivent toutes être vraies pour que la règle s'applique.\n\nExemples :\n  • person.alice = not_home — uniquement quand Alice est absente\n  • input_boolean.guest_mode = off — uniquement en l'absence d'invités\n  • sun.sun = below_horizon — uniquement après le coucher du soleil\n  • binary_sensor.work_hours = on — uniquement pendant les heures de travail\n\nPour ajouter une condition : choisissez une entité, saisissez l'état requis, puis cliquez sur Soumettre.\n\nSi vous ne souhaitez aucune condition pour l'instant, laissez les deux champs vides et cliquez sur Soumettre pour passer.\n\nConditions ajoutées jusqu'à présent ({count}) : {summary}\n\nCochez « Ajouter une autre » pour en chaîner d'autres — toutes doivent correspondre pour que la règle se déclenche.",
+        "description": "Conditions supplémentaires qui doivent toutes être vraies pour que la règle s'applique.\n\nExemples :\n  • person.alice = not_home — uniquement quand Alice est absente\n  • input_boolean.guest_mode = off — uniquement en l'absence d'invités\n  • sun.sun = below_horizon — uniquement après le coucher du soleil\n  • binary_sensor.work_hours = on — uniquement pendant les heures de travail\n\nPour ajouter une condition : choisissez une entité, saisissez l'état requis, puis cliquez sur Soumettre.\n\nSi vous ne souhaitez aucune condition pour l'instant, laissez les deux champs vides et cliquez sur Soumettre pour passer.\n\nConditions ajoutées jusqu'à présent ({count}) : {summary}\n\n{current_state}\n\nCochez « Ajouter une autre » pour en chaîner d'autres — toutes doivent correspondre pour que la règle se déclenche.",
         "data": {
           "entity": "Entité de la condition",
           "match_state": "État requis",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Modifier les conditions",
-        "description": "Conditions actuelles : {summary}. Choisissez « add » pour ajouter, « clear » pour tout supprimer, ou « save » pour ne rien modifier.",
+        "description": "Conditions actuelles : {summary}\n\n{current_state}. Choisissez « add » pour ajouter, « clear » pour tout supprimer, ou « save » pour ne rien modifier.",
         "data": {
           "entity": "Entité de la condition",
           "match_state": "État requis",

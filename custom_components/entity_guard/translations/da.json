@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Betingelser (valgfrit)",
-        "description": "Ekstra betingelser, der alle skal være sande, for at reglen handler.\n\nEksempler:\n  • person.alice = not_home — kun når Alice er væk\n  • input_boolean.guest_mode = off — kun når der ikke er gæster\n  • sun.sun = below_horizon — kun efter solnedgang\n  • binary_sensor.work_hours = on — kun i arbejdstiden\n\nSådan tilføjer du en betingelse: vælg en entitet, skriv den tilstand den skal være i, og klik på Send.\n\nHvis du ikke ønsker nogen betingelse lige nu, så lad begge felter være tomme og klik på Send for at springe over.\n\nBetingelser tilføjet indtil videre ({count}): {summary}\n\nMarker 'Tilføj endnu en' for at kæde flere sammen — alle skal matche, for at reglen udløses.",
+        "description": "Ekstra betingelser, der alle skal være sande, for at reglen handler.\n\nEksempler:\n  • person.alice = not_home — kun når Alice er væk\n  • input_boolean.guest_mode = off — kun når der ikke er gæster\n  • sun.sun = below_horizon — kun efter solnedgang\n  • binary_sensor.work_hours = on — kun i arbejdstiden\n\nSådan tilføjer du en betingelse: vælg en entitet, skriv den tilstand den skal være i, og klik på Send.\n\nHvis du ikke ønsker nogen betingelse lige nu, så lad begge felter være tomme og klik på Send for at springe over.\n\nBetingelser tilføjet indtil videre ({count}): {summary}\n\n{current_state}\n\nMarker 'Tilføj endnu en' for at kæde flere sammen — alle skal matche, for at reglen udløses.",
         "data": {
           "entity": "Betingelsesentitet",
           "match_state": "Krævet tilstand",
@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Rediger flag-betingelser",
-        "description": "Aktuelle flag: {summary}. Vælg 'tilføj' for at tilføje, 'ryd' for at fjerne alle eller 'gem' for at lade være uændret.",
+        "description": "Aktuelle flag: {summary}\n\n{current_state}. Vælg 'tilføj' for at tilføje, 'ryd' for at fjerne alle eller 'gem' for at lade være uændret.",
         "data": {
           "entity": "Flag-entitet",
           "match_state": "Krævet tilstand",

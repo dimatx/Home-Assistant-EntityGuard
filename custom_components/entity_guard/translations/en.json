@@ -64,7 +64,7 @@
       },
       "flags": {
         "title": "Conditions (optional)",
-        "description": "Extra conditions that must all be true for the rule to act.\n\nExamples:\n  • person.alice = not_home — only when Alice is away\n  • input_boolean.guest_mode = off — only when no guests\n  • sun.sun = below_horizon — only after sunset\n  • binary_sensor.work_hours = on — only during work hours\n\nTo add a condition: pick an entity, type the state it must be in, then click Submit.\n\nIf you don't want any condition right now, leave both fields empty and click Submit to skip.\n\nConditions added so far ({count}): {summary}\n\nTick 'Add another' to chain more — all must match for the rule to fire.",
+        "description": "Extra conditions that must all be true for the rule to act.\n\nExamples:\n  • person.alice = not_home — only when Alice is away\n  • input_boolean.guest_mode = off — only when no guests\n  • sun.sun = below_horizon — only after sunset\n  • binary_sensor.work_hours = on — only during work hours\n\nTo add a condition: pick an entity, type the state it must be in, then click Submit.\n\nIf you don't want any condition right now, leave both fields empty and click Submit to skip.\n\nConditions added so far ({count}): {summary}\n\n{current_state}\n\nTick 'Add another' to chain more — all must match for the rule to fire.",
         "data": {
           "entity": "Condition entity",
           "match_state": "Required state",
@@ -170,7 +170,7 @@
       },
       "edit_flags": {
         "title": "Edit flag conditions",
-        "description": "Current flags: {summary}. Choose 'add' to append, 'clear' to remove all, or 'save' to leave unchanged.",
+        "description": "Current flags: {summary}.\n\n{current_state}\n\nChoose 'add' to append, 'clear' to remove all, or 'save' to leave unchanged.",
         "data": {
           "entity": "Flag entity",
           "match_state": "Required state",

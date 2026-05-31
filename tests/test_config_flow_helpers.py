@@ -11,6 +11,7 @@ from custom_components.entity_guard.config_flow import (
     _attributes_for_entities,
     _build_summary,
     _coerce_delay,
+    _current_state_hint,
     _debounce_selector,
     _delay_selector,
     _has_safety_target,
@@ -369,3 +370,29 @@ def test_build_summary_hass_no_state_keeps_id(hass: HomeAssistant):
     }
     summary = _build_summary(data, hass)
     assert "light.missing" in summary
+
+
+# ---------------------------------------------------------------------------
+# _current_state_hint
+# ---------------------------------------------------------------------------
+
+
+def test_current_state_hint_empty_entity():
+    assert _current_state_hint(None, None) == ""
+
+
+def test_current_state_hint_no_hass():
+    assert _current_state_hint(None, "light.bedroom") == ""
+
+
+def test_current_state_hint_resolves(hass: HomeAssistant):
+    hass.states.async_set("input_boolean.guest", "off")
+    out = _current_state_hint(hass, "input_boolean.guest")
+    assert "input_boolean.guest" in out
+    assert "off" in out
+
+
+def test_current_state_hint_missing_entity(hass: HomeAssistant):
+    out = _current_state_hint(hass, "input_boolean.ghost")
+    assert "input_boolean.ghost" in out
+    assert "not found" in out
