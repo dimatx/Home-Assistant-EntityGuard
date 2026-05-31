@@ -1,0 +1,708 @@
+"""Tests for RuleEngine core logic."""
+
+from __future__ import annotations
+
+from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
+
+from custom_components.entity_guard.const import (
+    MODE_ATTRIBUTE,
+    MODE_STATE,
+    OPERATOR_GE,
+    OPERATOR_GT,
+    OPERATOR_LE,
+    OPERATOR_LT,
+    STATUS_ARMED,
+    STATUS_COOLDOWN,
+    STATUS_DISABLED,
+    STATUS_ENFORCING,
+    STATUS_IDLE,
+    STATUS_PENDING,
+    STATUS_STARTING,
+    STATUS_SUPPRESSED,
+)
+from custom_components.entity_guard.models import Flag, RuleConfig, RuleRuntimeState
+from custom_components.entity_guard.rule_engine import (
+    RuleEngine,
+    _compare,
+    signal_for_rule,
+)
+from custom_components.entity_guard.storage import EntityGuardStore
+
+
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_config(**overrides) -> RuleConfig:
+    defaults = dict(
+        name="Test Rule",
+        unique_id="test-uid",
+        target_entities=["light.bedroom"],
+        mode=MODE_STATE,
+        trigger_states=["on"],
+        target_state="off",
+        delay_seconds=0,
+        attribute=None,
+        operator=None,
+        threshold=None,
+        target_value=None,
+        flags=[],
+        debounce_enabled=False,
+        debounce_seconds=60,
+        max_enforcements_per_minute=10,
+        safety_acknowledged=False,
+    )
+    defaults.update(overrides)
+    return RuleConfig(**defaults)
+
+
+def _make_engine(hass, config=None, master=True) -> RuleEngine:
+    config = config or _make_config()
+    store = MagicMock(spec=EntityGuardStore)
+    store.get_rule_state.return_value = {}
+    store.set_rule_state.return_value = None
+    store.runtime_to_blob = EntityGuardStore.runtime_to_blob
+    store.blob_to_runtime = EntityGuardStore.blob_to_runtime
+    return RuleEngine(hass, config, store, lambda: master)
+
+
+def _state(state_str, attributes=None):
+    s = MagicMock()
+    s.state = state_str
+    s.attributes = attributes or {}
+    return s
+
+
+# ---------------------------------------------------------------------------
+# signal helpers
+# ---------------------------------------------------------------------------
+
+
+def test_signal_for_rule():
+    assert signal_for_rule("my-id") == "entity_guard_rule_update_my-id"
+
+
+# ---------------------------------------------------------------------------
+# _compare
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value,op,threshold,expected",
+    [
+        (1.0, OPERATOR_LT, 2.0, True),
+        (2.0, OPERATOR_LT, 2.0, False),
+        (2.0, OPERATOR_LE, 2.0, True),
+        (3.0, OPERATOR_LE, 2.0, False),
+        (3.0, OPERATOR_GT, 2.0, True),
+        (2.0, OPERATOR_GT, 2.0, False),
+        (2.0, OPERATOR_GE, 2.0, True),
+        (1.0, OPERATOR_GE, 2.0, False),
+        (1.0, "unknown", 2.0, False),
+    ],
+)
+def test_compare(value, op, threshold, expected):
+    assert _compare(value, op, threshold) is expected
+
+
+# ---------------------------------------------------------------------------
+# RuleEngine properties
+# ---------------------------------------------------------------------------
+
+
+async def test_engine_properties(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine.config.name == "Test Rule"
+    assert isinstance(engine.state, RuleRuntimeState)
+
+
+async def test_current_status_starts_at_starting(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine.current_status() == STATUS_STARTING
+
+
+# ---------------------------------------------------------------------------
+# async_setup / async_unload
+# ---------------------------------------------------------------------------
+
+
+async def test_async_setup_subscribes(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    with (
+        patch(
+            "custom_components.entity_guard.rule_engine.async_track_state_change_event"
+        ) as mock_track,
+        patch("custom_components.entity_guard.rule_engine.async_track_time_change"),
+        patch("custom_components.entity_guard.rule_engine.async_call_later"),
+    ):
+        await engine.async_setup()
+    mock_track.assert_called_once()
+
+
+async def test_async_unload_cleans_up(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    cancel_mock = MagicMock()
+    engine._unsub_callbacks.append(cancel_mock)
+    engine._store.async_save_now = AsyncMock()
+    await engine.async_unload()
+    cancel_mock.assert_called_once()
+    assert engine._unsub_callbacks == []
+
+
+# ---------------------------------------------------------------------------
+# set_enabled
+# ---------------------------------------------------------------------------
+
+
+async def test_set_enabled_false_disables(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+    engine.set_enabled(False)
+    assert engine.current_status() == STATUS_DISABLED
+    assert engine.state.enabled is False
+
+
+async def test_set_enabled_true_arms(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+    engine.state.enabled = False
+    engine.set_enabled(True)
+    assert engine.state.enabled is True
+
+
+# ---------------------------------------------------------------------------
+# _flags_match
+# ---------------------------------------------------------------------------
+
+
+async def test_flags_match_no_flags(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine._flags_match() is True
+
+
+async def test_flags_match_all_match(hass: HomeAssistant):
+    config = _make_config(flags=[Flag(entity="input_boolean.night", match_state="on")])
+    engine = _make_engine(hass, config)
+    hass.states.async_set("input_boolean.night", "on")
+    assert engine._flags_match() is True
+
+
+async def test_flags_match_no_match(hass: HomeAssistant):
+    config = _make_config(flags=[Flag(entity="input_boolean.night", match_state="on")])
+    engine = _make_engine(hass, config)
+    hass.states.async_set("input_boolean.night", "off")
+    assert engine._flags_match() is False
+
+
+async def test_flags_match_missing_entity(hass: HomeAssistant):
+    config = _make_config(
+        flags=[Flag(entity="input_boolean.missing", match_state="on")]
+    )
+    engine = _make_engine(hass, config)
+    assert engine._flags_match() is False
+
+
+async def test_flags_match_unavailable(hass: HomeAssistant):
+    config = _make_config(flags=[Flag(entity="input_boolean.x", match_state="on")])
+    engine = _make_engine(hass, config)
+    hass.states.async_set("input_boolean.x", "unavailable")
+    assert engine._flags_match() is False
+
+
+# ---------------------------------------------------------------------------
+# _is_triggered
+# ---------------------------------------------------------------------------
+
+
+async def test_is_triggered_state_mode_match(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    st = _state("on")
+    assert engine._is_triggered("light.bedroom", st) is True
+
+
+async def test_is_triggered_state_mode_no_match(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    st = _state("off")
+    assert engine._is_triggered("light.bedroom", st) is False
+
+
+async def test_is_triggered_none_state(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine._is_triggered("light.bedroom", None) is False
+
+
+async def test_is_triggered_attribute_mode(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_GT,
+        threshold=50.0,
+        target_value=0.0,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {"brightness": 80})
+    assert engine._is_triggered("light.x", st) is True
+
+
+async def test_is_triggered_attribute_below_threshold(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_GT,
+        threshold=50.0,
+        target_value=0.0,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {"brightness": 30})
+    assert engine._is_triggered("light.x", st) is False
+
+
+async def test_is_triggered_attribute_non_numeric(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_GT,
+        threshold=50.0,
+        target_value=0.0,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {"brightness": "not-a-number"})
+    assert engine._is_triggered("light.x", st) is False
+
+
+async def test_is_triggered_unknown_mode(hass: HomeAssistant):
+    config = _make_config(mode="bad_mode")
+    engine = _make_engine(hass, config)
+    st = _state("on")
+    assert engine._is_triggered("light.x", st) is False
+
+
+# ---------------------------------------------------------------------------
+# _in_cooldown
+# ---------------------------------------------------------------------------
+
+
+def test_in_cooldown_true(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    future = dt_util.now() + timedelta(seconds=60)
+    engine.state.cooldowns["light.bedroom"] = future
+    assert engine._in_cooldown("light.bedroom", dt_util.now()) is True
+
+
+def test_in_cooldown_false(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    past = dt_util.now() - timedelta(seconds=60)
+    engine.state.cooldowns["light.bedroom"] = past
+    assert engine._in_cooldown("light.bedroom", dt_util.now()) is False
+
+
+# ---------------------------------------------------------------------------
+# _derive_armed_or_cooldown
+# ---------------------------------------------------------------------------
+
+
+def test_derive_armed(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine._derive_armed_or_cooldown(dt_util.now()) == STATUS_ARMED
+
+
+def test_derive_cooldown(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.cooldowns["light.x"] = dt_util.now() + timedelta(seconds=30)
+    assert engine._derive_armed_or_cooldown(dt_util.now()) == STATUS_COOLDOWN
+
+
+def test_derive_pending(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._pending_enforcements["light.x"] = MagicMock()
+    assert engine._derive_armed_or_cooldown(dt_util.now()) == STATUS_PENDING
+
+
+# ---------------------------------------------------------------------------
+# _resolve_service
+# ---------------------------------------------------------------------------
+
+
+async def test_resolve_service_state_on_off(hass: HomeAssistant):
+    engine = _make_engine(hass, _make_config(target_state="off"))
+    result = engine._resolve_service("light.bedroom")
+    assert result is not None
+    domain, service, data = result
+    # light domain has explicit map: off → light.turn_off
+    assert domain == "light"
+    assert service == "turn_off"
+    assert data["entity_id"] == "light.bedroom"
+
+
+async def test_resolve_service_domain_map(hass: HomeAssistant):
+    config = _make_config(target_state="locked")
+    engine = _make_engine(hass, config)
+    result = engine._resolve_service("lock.front_door")
+    assert result is not None
+    domain, service, _ = result
+    assert domain == "lock"
+    assert service == "lock"
+
+
+async def test_resolve_service_attribute_mode(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_LE,
+        threshold=50.0,
+        target_value=30.0,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    result = engine._resolve_service("light.x")
+    assert result is not None
+    _, service, data = result
+    assert "brightness" in data
+
+
+async def test_resolve_service_unknown_target(hass: HomeAssistant):
+    config = _make_config(target_state="unknown_state_xyz")
+    engine = _make_engine(hass, config)
+    result = engine._resolve_service("light.x")
+    assert result is None
+
+
+async def test_resolve_service_attribute_none(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=None,
+        target_value=None,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    assert engine._resolve_service("light.x") is None
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: disabled
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_disabled_returns_early(hass: HomeAssistant):
+    engine = _make_engine(hass, master=False)
+    engine._startup_complete = True
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_DISABLED
+
+
+async def test_evaluate_rule_disabled(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+    engine.state.enabled = False
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_DISABLED
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: suppressed
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_suppressed(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+    engine.state.suppressed_until = dt_util.now() + timedelta(hours=1)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_SUPPRESSED
+
+
+async def test_evaluate_suppression_expired(hass: HomeAssistant):
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine.state.suppressed_until = dt_util.now() - timedelta(seconds=1)
+    hass.states.async_set("light.bedroom", "off")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.state.suppressed_until is None
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: not triggered
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_not_triggered_sets_armed(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+    hass.states.async_set("light.bedroom", "off")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_ARMED
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: grace period
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_ignores_target_during_grace(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._startup_complete = False
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    # Still at STARTING — no status change during grace
+    assert engine.current_status() == STATUS_STARTING
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: flags fail
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_flags_not_matched(hass: HomeAssistant):
+    config = _make_config(flags=[Flag(entity="input_boolean.night", match_state="on")])
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("input_boolean.night", "off")
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() == STATUS_IDLE
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: enforcement (mocked service call)
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_triggers_enforcement(hass: HomeAssistant):
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    called = []
+
+    async def _mock_turn_off(call):
+        called.append(call)
+
+    hass.services.async_register("light", "turn_off", _mock_turn_off)
+    await engine.async_evaluate("light.bedroom", st)
+
+    assert len(called) == 1
+    assert engine.state.enforcement_count_total == 1
+    assert engine.state.enforcement_count_today == 1
+
+
+# ---------------------------------------------------------------------------
+# async_evaluate: delay (pending path)
+# ---------------------------------------------------------------------------
+
+
+async def test_evaluate_delayed_sets_pending(hass: HomeAssistant):
+    config = _make_config(delay_seconds=30)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_call_later"
+    ) as mock_later:
+        mock_later.return_value = MagicMock()
+        await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.current_status() == STATUS_PENDING
+    assert "light.bedroom" in engine._pending_enforcements
+
+
+# ---------------------------------------------------------------------------
+# async_suppress / async_unsuppress
+# ---------------------------------------------------------------------------
+
+
+async def test_async_suppress(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    await engine.async_suppress(30)
+    assert engine.state.suppressed_until is not None
+    assert engine.state.suppression_reason == "manual"
+    assert engine.current_status() == STATUS_SUPPRESSED
+
+
+async def test_async_unsuppress(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.suppressed_until = dt_util.now() + timedelta(hours=1)
+    engine.state.suppression_reason = "manual"
+    await engine.async_unsuppress()
+    assert engine.state.suppressed_until is None
+    assert engine.state.suppression_reason is None
+
+
+# ---------------------------------------------------------------------------
+# async_reset_cooldowns
+# ---------------------------------------------------------------------------
+
+
+async def test_async_reset_cooldowns(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.cooldowns["light.x"] = dt_util.now() + timedelta(seconds=60)
+    await engine.async_reset_cooldowns()
+    assert engine.state.cooldowns == {}
+
+
+# ---------------------------------------------------------------------------
+# async_clear_history
+# ---------------------------------------------------------------------------
+
+
+async def test_async_clear_history(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.enforcement_count_today = 5
+    engine.state.enforcement_count_total = 100
+    await engine.async_clear_history()
+    assert engine.state.enforcement_count_today == 0
+    assert engine.state.enforcement_count_total == 0
+
+
+# ---------------------------------------------------------------------------
+# async_test_enforce
+# ---------------------------------------------------------------------------
+
+
+async def test_async_test_enforce(hass: HomeAssistant):
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    hass.states.async_set("light.bedroom", "on")
+
+    called = []
+
+    async def _mock_turn_off(call):
+        called.append(call)
+
+    hass.services.async_register("light", "turn_off", _mock_turn_off)
+    await engine.async_test_enforce()
+
+    assert len(called) == 1
+
+
+# ---------------------------------------------------------------------------
+# loop protection
+# ---------------------------------------------------------------------------
+
+
+async def test_loop_protection_triggers(hass: HomeAssistant):
+    config = _make_config(target_state="off", max_enforcements_per_minute=2)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    now = dt_util.now()
+    engine.state.rate_limit_window = [now, now]  # already at limit
+
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.current_status() == STATUS_SUPPRESSED
+    assert engine.state.suppression_reason == "loop_protection"
+
+
+# ---------------------------------------------------------------------------
+# cooldown_remaining_seconds
+# ---------------------------------------------------------------------------
+
+
+def test_cooldown_remaining_seconds(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine.state.cooldowns["light.x"] = dt_util.now() + timedelta(seconds=30)
+    remaining = engine.cooldown_remaining_seconds()
+    assert 28 < remaining <= 30
+
+
+def test_cooldown_remaining_seconds_empty(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    assert engine.cooldown_remaining_seconds() == 0.0
+
+
+# ---------------------------------------------------------------------------
+# is_armed / is_active / is_in_cooldown
+# ---------------------------------------------------------------------------
+
+
+def test_is_armed(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._current_status = STATUS_ARMED
+    assert engine.is_armed() is True
+    engine._current_status = STATUS_IDLE
+    assert engine.is_armed() is False
+
+
+def test_is_active(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._current_status = STATUS_ENFORCING
+    assert engine.is_active() is True
+
+
+def test_is_in_cooldown(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._current_status = STATUS_COOLDOWN
+    assert engine.is_in_cooldown() is True
+
+
+# ---------------------------------------------------------------------------
+# debounce cooldown after enforcement
+# ---------------------------------------------------------------------------
+
+
+async def test_enforcement_with_debounce_sets_cooldown(hass: HomeAssistant):
+    config = _make_config(
+        target_state="off", debounce_enabled=True, debounce_seconds=60
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    async def _mock_turn_off(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _mock_turn_off)
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_call_later"
+    ) as mock_later:
+        mock_later.return_value = MagicMock()
+        await engine.async_evaluate("light.bedroom", st)
+
+    assert "light.bedroom" in engine.state.cooldowns
+    assert engine.current_status() == STATUS_COOLDOWN
+
+
+# ---------------------------------------------------------------------------
+# _cancel_pending
+# ---------------------------------------------------------------------------
+
+
+def test_cancel_pending_existing(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    cancel = MagicMock()
+    engine._pending_enforcements["light.x"] = cancel
+    engine._cancel_pending("light.x")
+    cancel.assert_called_once()
+    assert "light.x" not in engine._pending_enforcements
+
+
+def test_cancel_pending_missing(hass: HomeAssistant):
+    engine = _make_engine(hass)
+    engine._cancel_pending("light.nonexistent")  # should not raise

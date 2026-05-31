@@ -207,7 +207,7 @@
   },
   "exceptions": {
     "rule_not_found": {
-      "message": "No Entity Guard rule found matching '{rule_id}'."
+      "message": "No Entity Guard rule found matching {rule_id}."
     }
   },
   "services": {
