@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1] — 2026-06-01
+
+### Lovelace card
+
+- Card now renders a shimmer skeleton during the first 4 seconds when registry data is still being populated, instead of flashing the "No Entity Guard rule entities found" error. The previous loader only triggered when `hass.entities` / `hass.devices` were entirely empty, so a partially-populated registry could fall through to the error message before the rule's device entry resolved.
+- Skeleton replaces the prior `!hass` error placeholder as well, giving a uniform load experience.
+
 ## [0.1.0] — 2026-05-31
 
 First stable release of Entity Guard.
