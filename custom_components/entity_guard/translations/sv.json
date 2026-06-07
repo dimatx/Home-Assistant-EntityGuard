@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Redigera flaggvillkor",
-        "description": "Aktuella flaggor: {summary}\n\n{current_state}. Välj 'lägg till' för att lägga till, 'rensa' för att ta bort alla, eller 'spara' för att lämna oförändrat.",
+        "description": "Aktuella flaggor: {summary}\n\n{current_state}. Valj 'lagg till' for att lagga till, 'ersatt' for att ersatta alla, 'rensa' for att ta bort alla eller 'spara' for att lamna oforandrat.",
         "data": {
           "entity": "Flaggentitet",
           "match_state": "Krävt tillstånd",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Spara utan ändringar",
+        "save": "Avsluta utan ändringar",
         "add": "Lägg till flagga",
+        "replace": "Ersätt alla flaggor",
         "clear": "Rensa alla flaggor"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Rensa historik (räknare)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Flagg-enhet saknas i regeln \"{rule_name}\"",
+      "description": "Följande flagg-enheter existerar inte längre men refereras i regeln: {missing_entities}. Regeln kommer inte att tillämpas när dessa flaggor inte kan utvärderas. Uppdatera eller ta bort regeln för att lösa det här problemet."
     }
   }
 }

@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Editar condições",
-        "description": "Condições atuais: {summary}\n\n{current_state}. Escolha 'adicionar' para acrescentar, 'limpar' para remover todas, ou 'guardar' para deixar inalteradas.",
+        "description": "Condicoes atuais: {summary}\n\n{current_state}. Escolha 'adicionar' para adicionar, 'substituir' para substituir todas, 'limpar' para remover todas ou 'guardar' para deixar inalterado.",
         "data": {
           "entity": "Entidade da condição",
           "match_state": "Estado requerido",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Guardar sem alterações",
+        "save": "Sair sem alterações",
         "add": "Adicionar condição",
+        "replace": "Substituir todas as condições",
         "clear": "Limpar todas as condições"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Limpar histórico (contadores)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Entidade de sinalizador ausente na regra \"{rule_name}\"",
+      "description": "As seguintes entidades de sinalizador não existem mais, mas são referenciadas na regra: {missing_entities}. A regra não será aplicada quando esses sinalizadores não puderem ser avaliados. Atualize ou remova a regra para resolver este problema."
     }
   }
 }

@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Edytuj warunki flag",
-        "description": "Bieżące flagi: {summary}\n\n{current_state}. Wybierz „add”, aby dodać, „clear”, aby usunąć wszystkie, lub „save”, aby pozostawić bez zmian.",
+        "description": "Obecne flagi: {summary}\n\n{current_state}. Wybierz 'dodaj' aby dodac, 'zastap' aby zastapic wszystkie, 'wyczysc' aby usunac wszystkie lub 'zapisz' aby pozostawic bez zmian.",
         "data": {
           "entity": "Encja flagi",
           "match_state": "Wymagany stan",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Zapisz bez zmian",
+        "save": "Wyjdź bez zmian",
         "add": "Dodaj flagę",
+        "replace": "Zastąp wszystkie flagi",
         "clear": "Wyczyść wszystkie flagi"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Wyczyść historię (liczniki)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Brakuje jednostki flagi w regule \"{rule_name}\"",
+      "description": "Następujące jednostki flag już nie istnieją, ale są odwołania w regule: {missing_entities}. Reguła nie będzie egzekwowana, gdy te flagi nie mogą być oceniane. Zaktualizuj lub usuń regułę, aby rozwiązać ten problem."
     }
   }
 }

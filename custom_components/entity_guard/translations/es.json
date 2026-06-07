@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Editar condiciones de marca",
-        "description": "Marcas actuales: {summary}\n\n{current_state}. Elija 'añadir' para agregar, 'borrar' para eliminar todas, o 'guardar' para dejar sin cambios.",
+        "description": "Banderas actuales: {summary}\n\n{current_state}. Elige 'anadir' para anadir, 'reemplazar' para reemplazar todas, 'borrar' para quitar todas o 'guardar' para dejar sin cambios.",
         "data": {
           "entity": "Entidad de marca",
           "match_state": "Estado requerido",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Guardar sin cambios",
+        "save": "Salir sin cambios",
         "add": "Añadir marca",
+        "replace": "Reemplazar todas las marcas",
         "clear": "Borrar todas las marcas"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Borrar historial (contadores)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Entidad de indicador faltante en la regla \"{rule_name}\"",
+      "description": "Las siguientes entidades de indicador ya no existen pero se hace referencia a ellas en la regla: {missing_entities}. La regla no se aplicará cuando estos indicadores no se puedan evaluar. Actualiza o elimina la regla para resolver este problema."
     }
   }
 }

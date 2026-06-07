@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Rediger flaggbetingelser",
-        "description": "Gjeldende flagg: {summary}\n\n{current_state}. Velg «add» for å legge til, «clear» for å fjerne alle, eller «save» for å la være uendret.",
+        "description": "Gjeldende flagg: {summary}\n\n{current_state}. Velg 'legg til' for å legge til, 'erstatt' for å erstatte alle, 'fjern' for å slette alle eller 'lagre' for å la være uendret.",
         "data": {
           "entity": "Flaggenhet",
           "match_state": "Påkrevd tilstand",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Lagre uten endringer",
+        "save": "Avslutt uten endringer",
         "add": "Legg til flagg",
+        "replace": "Erstatt alle flagg",
         "clear": "Fjern alle flagg"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Tøm historikk (tellere)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Flagg-entitet mangler i regel \"{rule_name}\"",
+      "description": "Følgende flagg-enheter eksisterer ikke lenger, men blir referert til i regelen: {missing_entities}. Regelen vil ikke håndheves når disse flaggene ikke kan evalueres. Oppdater eller fjern regelen for å løse dette problemet."
     }
   }
 }

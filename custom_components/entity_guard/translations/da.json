@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Rediger flag-betingelser",
-        "description": "Aktuelle flag: {summary}\n\n{current_state}. Vælg 'tilføj' for at tilføje, 'ryd' for at fjerne alle eller 'gem' for at lade være uændret.",
+        "description": "Aktuelle flag: {summary}\n\n{current_state}. Vælg 'tilføj' for at tilføje, 'erstat' for at erstattet alle, 'ryd' for at fjerne alle eller 'gem' for at lade være uændret.",
         "data": {
           "entity": "Flag-entitet",
           "match_state": "Krævet tilstand",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Gem uden ændringer",
+        "save": "Afslut uden ændringer",
         "add": "Tilføj flag",
+        "replace": "Erstat alle flag",
         "clear": "Ryd alle flag"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Ryd historik (tællere)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Flag-entitet mangler i regel \"{rule_name}\"",
+      "description": "Følgende flag-entitet/enheder eksisterer ikke længere, men refereres i reglen: {missing_entities}. Reglen vil ikke gennemtvinges, når disse flag ikke kan evalueres. Opdater eller fjern reglen for at løse dette problem."
     }
   }
 }

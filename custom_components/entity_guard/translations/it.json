@@ -174,7 +174,7 @@
       },
       "edit_flags": {
         "title": "Modifica condizioni",
-        "description": "Condizioni attuali: {summary}\n\n{current_state}. Scegli 'aggiungi' per aggiungerne, 'cancella' per rimuoverle tutte, oppure 'salva' per lasciarle invariate.",
+        "description": "Condizioni attuali: {summary}\n\n{current_state}. Scegli 'aggiungi' per aggiungere, 'sostituisci' per sostituire tutte, 'cancella' per rimuovere tutte o 'salva' per lasciare invariato.",
         "data": {
           "entity": "Entità della condizione",
           "match_state": "Stato richiesto",
@@ -297,8 +297,9 @@
     },
     "flag_action": {
       "options": {
-        "save": "Salva senza modifiche",
+        "save": "Esci senza modifiche",
         "add": "Aggiungi condizione",
+        "replace": "Sostituisci tutte le condizioni",
         "clear": "Cancella tutte le condizioni"
       }
     }
@@ -373,6 +374,12 @@
       "clear_history": {
         "name": "Cancella storico (contatori)"
       }
+    }
+  },
+  "issues": {
+    "flag_entity_missing": {
+      "title": "Entità flag mancante nella regola \"{rule_name}\"",
+      "description": "Le seguenti entità flag non esistono più ma sono referenziate nella regola: {missing_entities}. La regola non verrà applicata quando questi flag non possono essere valutati. Aggiorna o rimuovi la regola per risolvere questo problema."
     }
   }
 }
