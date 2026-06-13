@@ -11,7 +11,7 @@ from homeassistant.components.lovelace.resources import ResourceStorageCollectio
 from homeassistant.components.recorder import get_instance as recorder_get_instance
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -23,7 +23,7 @@ from .const import (
     ENTRY_TYPE_RULE,
 )
 from .models import parse_rule_config
-from .repairs import async_check_missing_flag_entities
+from .issue_helpers import async_check_missing_flag_entities
 from .rule_engine import RuleEngine, signal_for_rule, signal_master_update
 from .services import async_register_services, async_unload_services
 from .storage import EntityGuardStore
@@ -150,7 +150,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             unsub = hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED, _deferred_flag_check
             )
-            entry.async_on_unload(unsub)
+
+            @callback
+            def _cancel_flag_check_listener() -> None:
+                try:
+                    unsub()
+                except Exception:  # noqa: BLE001
+                    pass
+
+            entry.async_on_unload(_cancel_flag_check_listener)
+
+        # flag_entity_ids is computed once at setup. Options edits that reload the
+        # entry re-invoke async_setup_entry, so the frozenset is rebuilt on reload.
+        flag_entity_ids = frozenset(f.entity for f in config.flags)
+
+        @callback
+        def _on_entity_registry_updated(event) -> None:
+            entity_id = event.data.get("entity_id")
+            _LOGGER.debug(
+                "entity_registry_updated: action=%s entity_id=%s flag_ids=%s",
+                event.data.get("action"),
+                entity_id,
+                flag_entity_ids,
+            )
+            if entity_id not in flag_entity_ids:
+                return
+            hass.async_create_task(
+                async_check_missing_flag_entities(hass, entry.entry_id)
+            )
+
+        if flag_entity_ids:
+            unsub_reg = hass.bus.async_listen(
+                er.EVENT_ENTITY_REGISTRY_UPDATED, _on_entity_registry_updated
+            )
+            entry.async_on_unload(unsub_reg)
 
         # Sync device-registry name to entry.title (handles renames).
         device_reg = dr.async_get(hass)
