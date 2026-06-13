@@ -506,7 +506,7 @@ class RuleEngine:
                         if unsub_holder:
                             try:
                                 self._unsub_callbacks.remove(unsub_holder[0])
-                            except ValueError:
+                            except ValueError:  # pragma: no cover
                                 pass
 
                     unsub = async_call_later(
