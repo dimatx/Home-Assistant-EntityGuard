@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.issue_registry import async_delete_issue
 
 from .const import (
     CONF_ENTRY_TYPE,
@@ -23,7 +24,7 @@ from .const import (
     ENTRY_TYPE_RULE,
 )
 from .models import parse_rule_config
-from .issue_helpers import async_check_missing_flag_entities
+from .issue_helpers import async_check_missing_flag_entities, missing_flags_issue_id
 from .rule_engine import RuleEngine, signal_for_rule, signal_master_update
 from .services import async_register_services, async_unload_services
 from .storage import EntityGuardStore
@@ -129,6 +130,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry.entry_id,
             )
             return False
+        # Restore persisted per-rule enabled state (written by panic_stop).
+        if not entry.options.get("enabled", True):
+            engine.set_enabled(False)
         hass.data[DOMAIN]["engines"][entry.entry_id] = engine
         _LOGGER.debug(
             "Rule engine ready: rule_id=%s targets=%s mode=%s",
@@ -147,16 +151,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if hass.is_running:
             await _deferred_flag_check()
         else:
+            _flag_check_done = False
+
+            async def _deferred_flag_check_once(_event=None) -> None:
+                nonlocal _flag_check_done
+                _flag_check_done = True
+                await async_check_missing_flag_entities(hass, entry.entry_id)
+
             unsub = hass.bus.async_listen_once(
-                EVENT_HOMEASSISTANT_STARTED, _deferred_flag_check
+                EVENT_HOMEASSISTANT_STARTED, _deferred_flag_check_once
             )
 
             @callback
             def _cancel_flag_check_listener() -> None:  # pragma: no cover
-                try:
-                    unsub()
-                except Exception:  # noqa: BLE001
-                    pass
+                if not _flag_check_done:
+                    try:
+                        unsub()
+                    except Exception:  # noqa: BLE001
+                        pass
 
             entry.async_on_unload(_cancel_flag_check_listener)
 
@@ -195,6 +207,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Recreate hub if missing — covers user deleting hub while rules still exist.
         await _async_ensure_hub(hass)
 
+    await async_register_services(hass)
     await _async_install_card(hass)
     _LOGGER.debug("async_setup_entry complete: entry_id=%s", entry.entry_id)
 
@@ -221,13 +234,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await engine.async_unload()
             _LOGGER.debug("Engine unloaded for %s", entry.entry_id)
 
-    if not hass.data.get(DOMAIN, {}).get("engines"):
-        hub_remains = any(
-            e.entry_id != entry.entry_id
-            and e.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_HUB
+    remaining_engines = hass.data.get(DOMAIN, {}).get("engines", {})
+    if not remaining_engines:
+        remaining_entries = [
+            e
             for e in hass.config_entries.async_entries(DOMAIN)
-        )
-        if not hub_remains:
+            if e.entry_id != entry.entry_id
+        ]
+        if not remaining_entries:
             async_unload_services(hass)
 
     _LOGGER.info("Entry %s unloaded (ok=%s)", entry.entry_id, unload_ok)
@@ -239,6 +253,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Block hub removal while rules still exist; recreate hub immediately if forced."""
     if entry.data.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_HUB:
         _LOGGER.debug("Removed rule entry %s; clearing statistics", entry.entry_id)
+        async_delete_issue(hass, DOMAIN, missing_flags_issue_id(entry.entry_id))
         ent_reg = er.async_get(hass)
         statistic_ids = [
             entity.entity_id

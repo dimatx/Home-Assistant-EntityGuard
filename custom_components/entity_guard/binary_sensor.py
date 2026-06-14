@@ -52,6 +52,7 @@ async def async_setup_entry(
             EntityGuardArmedSensor(entry, engine),
             EntityGuardActiveSensor(entry, engine),
             EntityGuardInCooldownSensor(entry, engine),
+            EntityGuardPendingSensor(entry, engine),
         ]
     )
 
@@ -133,3 +134,16 @@ class EntityGuardInCooldownSensor(EntityGuardBinarySensor):
     def is_on(self) -> bool:
         """Return True if any bound entity is in cooldown."""
         return bool(self._engine.is_in_cooldown())
+
+
+class EntityGuardPendingSensor(EntityGuardBinarySensor):
+    """Binary sensor indicating a delayed enforcement is pending."""
+
+    def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
+        """Initialize the pending sensor."""
+        super().__init__(entry, engine, "pending", "pending")
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if a delayed enforcement is queued."""
+        return bool(self._engine.is_pending())

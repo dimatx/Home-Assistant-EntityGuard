@@ -293,7 +293,7 @@ async def test_async_save_now(hass: HomeAssistant):
 async def test_async_save_delays(hass: HomeAssistant):
     store = EntityGuardStore(hass)
     with patch.object(store._store, "async_delay_save") as mock_delay:
-        await store.async_save()
+        store.async_save()
     mock_delay.assert_called_once()
 
 
@@ -305,3 +305,41 @@ def test_data_provider_returns_deep_copy(hass: HomeAssistant):
     assert copy1 == copy2
     copy1["rules"]["r1"]["enforcement_count_today"] = 99
     assert store._data["rules"]["r1"]["enforcement_count_today"] == 5
+
+
+async def test_async_migrate_logs_and_returns_raw(hass: HomeAssistant):
+    """_async_migrate returns raw when from_version >= STORE_VERSION (no-op path)."""
+    from custom_components.entity_guard.storage import EntityGuardStore, STORE_VERSION
+
+    raw = {"version": STORE_VERSION, "rules": {}}
+    store = EntityGuardStore(hass)
+    result = await store._async_migrate(raw, STORE_VERSION)
+    assert result == raw
+
+
+async def test_async_migrate_raises_for_unimplemented_path(hass: HomeAssistant):
+    """_async_migrate raises NotImplementedError for versions with no migration path."""
+    import pytest
+    from custom_components.entity_guard.storage import EntityGuardStore
+
+    store = EntityGuardStore(hass)
+    with pytest.raises(NotImplementedError, match="No migration path"):
+        await store._async_migrate({"version": 0, "rules": {}}, 0)
+
+
+async def test_async_load_triggers_migration(hass: HomeAssistant):
+    """async_load calls _async_migrate when stored version is stale."""
+    from unittest.mock import AsyncMock, patch
+    from custom_components.entity_guard.storage import EntityGuardStore, STORE_VERSION
+
+    store = EntityGuardStore(hass)
+    stale_version = STORE_VERSION - 1 if STORE_VERSION > 1 else 0
+    raw = {"version": stale_version, "rules": {}}
+
+    with patch.object(store._store, "async_load", AsyncMock(return_value=raw)):
+        with patch.object(
+            store, "_async_migrate", AsyncMock(return_value=raw)
+        ) as mock_migrate:
+            await store.async_load()
+            if stale_version < STORE_VERSION:
+                mock_migrate.assert_awaited_once_with(raw, stale_version)

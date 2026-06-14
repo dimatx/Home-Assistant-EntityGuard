@@ -88,10 +88,12 @@ class RuleEngine:
         self._pending_enforcements: dict[str, Callable[[], None]] = {}
         self._pending_eval_tasks: dict[str, asyncio.Task] = {}
         self._startup_complete = False
+        self._is_unloaded: bool = False
         self._current_status: str = STATUS_STARTING
         self._flag_entity_ids: frozenset[str] = frozenset(
             f.entity for f in config.flags
         )
+        self._cooldown_broadcast_unsubs: dict[str, Callable[[], None]] = {}
 
     @property
     def config(self) -> RuleConfig:
@@ -159,6 +161,7 @@ class RuleEngine:
 
     async def async_unload(self) -> None:
         """Cancel listeners and pending enforcement timers."""
+        self._is_unloaded = True
         _LOGGER.debug("Engine unload: rule=%s", self._config.name)
         for unsub in self._unsub_callbacks:
             try:
@@ -177,6 +180,13 @@ class RuleEngine:
         for task in list(self._pending_eval_tasks.values()):
             task.cancel()
         self._pending_eval_tasks.clear()
+
+        for cancel in list(self._cooldown_broadcast_unsubs.values()):
+            try:
+                cancel()
+            except Exception:  # noqa: BLE001
+                pass
+        self._cooldown_broadcast_unsubs.clear()
 
         self._persist()
         await self._store.async_save_now()
@@ -237,16 +247,19 @@ class RuleEngine:
 
     async def async_evaluate(self, entity_id: str, new_state: Any) -> None:
         """Evaluate a state change against the rule and enforce if appropriate."""
+        now = dt_util.now()
+        self._prune_expired_cooldowns(now)
         if not self._startup_complete and entity_id in self._config.target_entities:
             # During grace, ignore target state events; flag changes still re-evaluate.
             if entity_id not in self._flag_entity_ids:
                 return
 
+        if self._current_status == STATUS_ERROR:
+            return
+
         if not self._state.enabled or not self._master_enabled_getter():
             self._apply_idle_status()
             return
-
-        now = dt_util.now()
 
         if self._state.suppressed_until and self._state.suppressed_until > now:
             self._set_status(STATUS_SUPPRESSED)
@@ -351,11 +364,19 @@ class RuleEngine:
             return STATUS_COOLDOWN
         return STATUS_ARMED
 
+    def _prune_expired_cooldowns(self, now: datetime) -> None:
+        """Remove expired per-entity cooldown entries."""
+        expired = [eid for eid, end in self._state.cooldowns.items() if end <= now]
+        for eid in expired:
+            del self._state.cooldowns[eid]
+
     def _schedule_delayed_enforcement(self, entity_id: str) -> None:
         """Arm a delayed enforcement; cancels any prior pending one for this entity."""
         self._cancel_pending(entity_id)
 
         async def _fire(_now: datetime) -> None:
+            if self._is_unloaded:
+                return
             self._pending_enforcements.pop(entity_id, None)
             current = self._hass.states.get(entity_id)
             if current is None or not self._is_triggered(entity_id, current):
@@ -386,7 +407,13 @@ class RuleEngine:
         for eid in entity_ids:
             self._cancel_pending(eid)
 
-    async def _enforce(self, entity_id: str, *, user_id: str | None = None) -> None:
+    async def _enforce(
+        self,
+        entity_id: str,
+        *,
+        user_id: str | None = None,
+        bypass_rate_limit: bool = False,
+    ) -> None:
         """Rate-limit, lock, and execute the enforcement service call."""
         now = dt_util.now()
 
@@ -397,7 +424,8 @@ class RuleEngine:
                 del self._state.rate_limit_window[:idx]
             # Limit <= 0 means user disabled the rate limit entirely; skip loop protection.
             if (
-                self._config.max_enforcements_per_minute > 0
+                not bypass_rate_limit
+                and self._config.max_enforcements_per_minute > 0
                 and len(self._state.rate_limit_window)
                 >= self._config.max_enforcements_per_minute
             ):
@@ -498,22 +526,26 @@ class RuleEngine:
             if cooldown_end is not None:
                 remaining = (cooldown_end - dt_util.now()).total_seconds()
                 if remaining > 0:
-                    unsub_holder: list[Callable[[], None]] = []
+                    old_unsub = self._cooldown_broadcast_unsubs.pop(entity_id, None)
+                    if old_unsub is not None:
+                        try:
+                            old_unsub()
+                        except Exception:  # noqa: BLE001
+                            pass
+
+                    _eid = entity_id
 
                     @callback
                     def _broadcast_after_cooldown(_now: datetime) -> None:
-                        self._broadcast_status()
-                        if unsub_holder:
-                            try:
-                                self._unsub_callbacks.remove(unsub_holder[0])
-                            except ValueError:  # pragma: no cover
-                                pass
+                        self._cooldown_broadcast_unsubs.pop(_eid, None)
+                        if self._is_unloaded:
+                            return
+                        self._apply_idle_status()
 
                     unsub = async_call_later(
                         self._hass, remaining, _broadcast_after_cooldown
                     )
-                    unsub_holder.append(unsub)
-                    self._unsub_callbacks.append(unsub)
+                    self._cooldown_broadcast_unsubs[entity_id] = unsub
         else:
             self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
 
@@ -599,7 +631,7 @@ class RuleEngine:
             user_id,
         )
         for entity_id in self._config.target_entities:
-            await self._enforce(entity_id, user_id=user_id)
+            await self._enforce(entity_id, user_id=user_id, bypass_rate_limit=True)
 
     async def async_reset_cooldowns(self) -> None:
         """Clear all per-entity cooldowns immediately."""
@@ -633,7 +665,8 @@ class RuleEngine:
                 "user_id": user_id,
             },
         )
-        self._set_status(STATUS_SUPPRESSED)
+        if self._current_status != STATUS_ERROR:
+            self._set_status(STATUS_SUPPRESSED)
 
     async def async_unsuppress(self) -> None:
         """Clear any active suppression."""
@@ -655,6 +688,7 @@ class RuleEngine:
         self._state.last_error = None
         self._store.clear_rule_history(self._config.unique_id)
         if self._current_status == STATUS_ERROR:
+            self._current_status = STATUS_STARTING  # break sticky before re-derive
             self._apply_idle_status()
         else:
             self._broadcast_status()
@@ -697,6 +731,10 @@ class RuleEngine:
         """Return True if any tracked entity is still in cooldown."""
         return self._current_status == STATUS_COOLDOWN
 
+    def is_pending(self) -> bool:
+        """Return True if a delayed enforcement is queued."""
+        return self._current_status == STATUS_PENDING
+
     def cooldown_remaining_seconds(self) -> float:
         """Return the largest remaining cooldown across tracked entities."""
         now = dt_util.now()
@@ -724,12 +762,15 @@ class RuleEngine:
         """Single source of truth for status when idle.
 
         Priority (highest first):
-          1. Master switch off -> MASTER_DISABLED.
-          2. Per-rule disabled -> DISABLED.
-          3. Active suppression -> SUPPRESSED.
-          4. Conditional flags unmet -> CONDITIONAL.
-          5. Otherwise -> derive ARMED / COOLDOWN.
+          1. STATUS_ERROR sticky -> ERROR.
+          2. Master switch off -> MASTER_DISABLED.
+          3. Per-rule disabled -> DISABLED.
+          4. Active suppression -> SUPPRESSED.
+          5. Conditional flags unmet -> CONDITIONAL.
+          6. Otherwise -> derive ARMED / COOLDOWN.
         """
+        if self._current_status == STATUS_ERROR:
+            return STATUS_ERROR
         if not self._master_enabled_getter():
             return STATUS_MASTER_DISABLED
         if not self._state.enabled:

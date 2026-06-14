@@ -19,8 +19,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
+    CONF_DURATION_MINUTES,
+    CONF_ENTRY_TYPE,
     CONF_RULE_ID,
     DOMAIN,
+    ENTRY_TYPE_HUB,
     SERVICE_CLEAR_HISTORY,
     SERVICE_LIST_RULES,
     SERVICE_PANIC_STOP,
@@ -30,8 +33,6 @@ from .const import (
 from .rule_engine import signal_master_update
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_DURATION_MINUTES = "duration_minutes"
 
 PANIC_STOP_DURATION_MINUTES = 60
 
@@ -155,9 +156,22 @@ async def async_register_services(hass: HomeAssistant) -> None:
                     getattr(engine.config, "name", "?"),
                     err,
                 )
+        # Persist per-rule disabled state to config entry options.
+        for entry_id, eng in list(hass.data.get(DOMAIN, {}).get("engines", {}).items()):
+            rule_entry = hass.config_entries.async_get_entry(entry_id)
+            if rule_entry is not None:
+                hass.config_entries.async_update_entry(
+                    rule_entry, options={**rule_entry.options, "enabled": False}
+                )
 
         hass.data.setdefault(DOMAIN, {})["hub_master_enabled"] = False
-        async_dispatcher_send(hass, signal_master_update(), False)
+        for _hub_entry in hass.config_entries.async_entries(DOMAIN):
+            if _hub_entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_HUB:
+                hass.config_entries.async_update_entry(
+                    _hub_entry, options={**_hub_entry.options, "master_enabled": False}
+                )
+                break
+        async_dispatcher_send(hass, signal_master_update())
         _LOGGER.warning(
             "Entity Guard panic stop: disabled %d rule(s) and suppressed for %d min",
             len(engines),

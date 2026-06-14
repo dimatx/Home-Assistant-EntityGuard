@@ -199,3 +199,40 @@ async def test_panic_stop_disables_all(hass: HomeAssistant):
     eng1.async_suppress.assert_awaited_once()
     eng2.async_suppress.assert_awaited_once()
     assert hass.data[DOMAIN]["hub_master_enabled"] is False
+
+
+async def test_panic_stop_persists_hub_master_disabled(hass: HomeAssistant):
+    """panic_stop must persist master_enabled=False to hub entry options."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import CONF_ENTRY_TYPE, ENTRY_TYPE_HUB
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_ENTRY_TYPE: ENTRY_TYPE_HUB},
+        options={"master_enabled": True},
+        title="Hub",
+    )
+    hub_entry.add_to_hass(hass)
+    _inject_engines(hass)
+    await async_register_services(hass)
+    await hass.services.async_call(DOMAIN, "panic_stop", {}, blocking=True)
+    assert hub_entry.options.get("master_enabled") is False
+
+
+async def test_panic_stop_persists_per_rule_disabled(hass: HomeAssistant):
+    """panic_stop must write enabled=False to each rule's config entry options."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import CONF_ENTRY_TYPE, ENTRY_TYPE_RULE
+
+    rule_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE},
+        options={},
+        title="Rule",
+    )
+    rule_entry.add_to_hass(hass)
+    eng = _make_engine(unique_id="r1")
+    hass.data.setdefault(DOMAIN, {})["engines"] = {rule_entry.entry_id: eng}
+    await async_register_services(hass)
+    await hass.services.async_call(DOMAIN, "panic_stop", {}, blocking=True)
+    assert rule_entry.options.get("enabled") is False
