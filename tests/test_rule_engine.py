@@ -1936,3 +1936,55 @@ async def test_reset_cooldowns_swallows_cancel_exception(hass: HomeAssistant):
     await engine.async_reset_cooldowns()
 
     assert engine._cooldown_broadcast_unsubs == {}
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 (residual race): _fire uses identity check on my_cancel so a newer
+# timer's cancel handle is never popped by an older _fire completing.
+# ---------------------------------------------------------------------------
+
+
+async def test_fire_identity_check_preserves_newer_timer(hass: HomeAssistant):
+    """_fire must not pop a cancel handle that belongs to a newer timer.
+
+    Scenario: timer T1 fires, _fire awaits _enforce. While awaiting, a state flap
+    causes _schedule_delayed_enforcement to arm timer T2 (storing T2's cancel in
+    _pending_enforcements). T1's _fire completes and must NOT pop T2's cancel handle
+    — doing so would orphan T2, causing its eventual pop to be a no-op and leaving
+    T2's eventual enforcement unguarded by _cancel_pending.
+    """
+    config = _make_config(delay_seconds=1)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    enforce_started = []
+    second_cancel_intact = []
+
+    async def _slow_service(call):
+        enforce_started.append(True)
+        # While enforcement is running, simulate a new timer being armed.
+        # _schedule_delayed_enforcement replaces _pending_enforcements["light.bedroom"]
+        # with a NEW cancel object (a different MagicMock).
+        new_cancel = MagicMock()
+        engine._pending_enforcements["light.bedroom"] = new_cancel
+        # Record whether the new cancel is still present after _fire returns.
+        second_cancel_intact.append(new_cancel)
+
+    hass.services.async_register("light", "turn_off", _slow_service)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    await engine.async_evaluate("light.bedroom", st)
+
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+
+    assert enforce_started, "enforcement did not run"
+    # The second cancel placed by _slow_service must still be in _pending_enforcements.
+    assert len(second_cancel_intact) == 1
+    new_cancel = second_cancel_intact[0]
+    assert engine._pending_enforcements.get("light.bedroom") is new_cancel, (
+        "_fire popped the newer timer's cancel handle (identity check not working)"
+    )

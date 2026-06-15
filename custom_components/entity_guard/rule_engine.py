@@ -379,13 +379,17 @@ class RuleEngine:
                 return
             current = self._hass.states.get(entity_id)
             if current is None or not self._is_triggered(entity_id, current):
-                self._pending_enforcements.pop(entity_id, None)
+                # Only remove our own cancel handle — a newer timer may have replaced it.
+                if self._pending_enforcements.get(entity_id) is my_cancel:
+                    self._pending_enforcements.pop(entity_id, None)
                 return
             if not self._flags_match():
-                self._pending_enforcements.pop(entity_id, None)
+                if self._pending_enforcements.get(entity_id) is my_cancel:
+                    self._pending_enforcements.pop(entity_id, None)
                 return
             await self._enforce(entity_id)
-            self._pending_enforcements.pop(entity_id, None)
+            if self._pending_enforcements.get(entity_id) is my_cancel:
+                self._pending_enforcements.pop(entity_id, None)
 
         @callback
         def _fire_cb(now: datetime) -> None:
@@ -393,6 +397,7 @@ class RuleEngine:
             self._hass.async_create_task(_fire(now))
 
         cancel = async_call_later(self._hass, self._config.delay_seconds, _fire_cb)
+        my_cancel = cancel
         self._pending_enforcements[entity_id] = cancel
 
     def _cancel_pending(self, entity_id: str) -> None:
