@@ -227,7 +227,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
 
-    if unload_ok and entry_type == ENTRY_TYPE_RULE:
+    if entry_type == ENTRY_TYPE_RULE:
         engines = hass.data.get(DOMAIN, {}).get("engines", {})
         engine = engines.pop(entry.entry_id, None)
         if engine is not None:

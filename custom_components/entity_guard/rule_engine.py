@@ -377,13 +377,15 @@ class RuleEngine:
         async def _fire(_now: datetime) -> None:
             if self._is_unloaded:
                 return
-            self._pending_enforcements.pop(entity_id, None)
             current = self._hass.states.get(entity_id)
             if current is None or not self._is_triggered(entity_id, current):
+                self._pending_enforcements.pop(entity_id, None)
                 return
             if not self._flags_match():
+                self._pending_enforcements.pop(entity_id, None)
                 return
             await self._enforce(entity_id)
+            self._pending_enforcements.pop(entity_id, None)
 
         @callback
         def _fire_cb(now: datetime) -> None:
@@ -524,7 +526,7 @@ class RuleEngine:
             self._set_status(STATUS_COOLDOWN)
             cooldown_end = self._state.cooldowns.get(entity_id)
             if cooldown_end is not None:
-                remaining = (cooldown_end - dt_util.now()).total_seconds()
+                remaining = (cooldown_end - now).total_seconds()
                 if remaining > 0:
                     old_unsub = self._cooldown_broadcast_unsubs.pop(entity_id, None)
                     if old_unsub is not None:
@@ -666,7 +668,7 @@ class RuleEngine:
             },
         )
         if self._current_status != STATUS_ERROR:
-            self._set_status(STATUS_SUPPRESSED)
+            self._apply_idle_status()
 
     async def async_unsuppress(self) -> None:
         """Clear any active suppression."""

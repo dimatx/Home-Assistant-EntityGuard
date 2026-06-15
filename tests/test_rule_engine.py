@@ -1689,3 +1689,186 @@ async def test_cooldown_broadcast_is_unloaded_guard(hass: HomeAssistant):
 
     # Status must not change (engine is unloaded)
     assert engine.current_status() == original_status
+
+
+# ---------------------------------------------------------------------------
+# Fix 1: _fire pops _pending_enforcements AFTER _enforce so concurrent
+#         _cancel_pending during the service call can still abort the work.
+# ---------------------------------------------------------------------------
+
+async def test_fire_pops_pending_after_enforce_not_before(hass: HomeAssistant):
+    """_pending_enforcements entry must exist while _enforce runs so a concurrent
+    _cancel_pending call during the service-call window can still cancel it."""
+    config = _make_config(delay_seconds=1)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    async def _slow_service(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _slow_service)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine._current_status == STATUS_PENDING
+
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+
+    # After _fire completes, entry must be gone.
+    assert "light.bedroom" not in engine._pending_enforcements
+    # And enforcement happened.
+    assert engine.state.enforcement_count_total == 1
+
+
+async def test_concurrent_cancel_during_fire_aborts_second_timer(hass: HomeAssistant):
+    """If entity un-triggers while _fire is awaiting _enforce, no second timer is armed."""
+    config = _make_config(delay_seconds=1)
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    enforce_called = []
+
+    async def _service(call):
+        enforce_called.append(True)
+        # Simulate entity turning back off while enforcement runs.
+        hass.states.async_set("light.bedroom", "off")
+
+    hass.services.async_register("light", "turn_off", _service)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    await engine.async_evaluate("light.bedroom", st)
+
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+
+    # Enforcement fired once; no second timer armed.
+    assert len(enforce_called) == 1
+    assert "light.bedroom" not in engine._pending_enforcements
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: cooldown remaining uses `now` captured before the service call,
+#         not a fresh dt_util.now() after it — avoids negative remaining.
+# ---------------------------------------------------------------------------
+
+async def test_cooldown_remaining_uses_pre_service_now(hass: HomeAssistant):
+    """When service call takes longer than debounce_seconds the cooldown broadcast
+    timer must still be scheduled (remaining must be positive using pre-call `now`)."""
+    config = _make_config(
+        target_state="off", debounce_enabled=True, debounce_seconds=1
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    captured_delays: list[float] = []
+
+    async def _slow_service(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _slow_service)
+    hass.states.async_set("light.bedroom", "on")
+
+    def _capture_call_later(hass_arg, delay, cb):
+        captured_delays.append(delay)
+        return MagicMock()
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_call_later",
+        side_effect=_capture_call_later,
+    ):
+        import datetime as _dt
+        base_now = dt_util.now()
+        call_count = 0
+
+        def _fake_now():
+            nonlocal call_count
+            call_count += 1
+            # First call (inside _enforce, to capture `now`): base time.
+            # After the lock releases, dt_util.now() returns base + 2s,
+            # simulating a slow service call that exceeds debounce_seconds=1.
+            if call_count <= 1:
+                return base_now
+            return base_now + _dt.timedelta(seconds=2)
+
+        with patch("custom_components.entity_guard.rule_engine.dt_util.now", side_effect=_fake_now):
+            await engine._enforce("light.bedroom")
+
+    # A cooldown broadcast timer must have been scheduled (delay > 0).
+    # If remaining used post-call now it would be negative and no timer would be scheduled.
+    assert len(captured_delays) == 1, "cooldown broadcast timer was not scheduled"
+    assert captured_delays[0] > 0, f"expected positive delay, got {captured_delays[0]}"
+
+
+# ---------------------------------------------------------------------------
+# Fix 3: engine is always unloaded on async_unload_entry regardless of
+#         platform unload result — no listener leak on partial failure.
+# ---------------------------------------------------------------------------
+
+async def test_engine_unloaded_even_when_platform_unload_fails(hass: HomeAssistant):
+    """async_unload_entry must unload the engine even when async_unload_platforms
+    returns False — prevents orphaned listeners on partial platform teardown."""
+    from unittest.mock import AsyncMock, patch, MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard import async_unload_entry
+    from custom_components.entity_guard.const import DOMAIN, CONF_ENTRY_TYPE, ENTRY_TYPE_RULE
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE},
+        title="Test Rule",
+    )
+    entry.add_to_hass(hass)
+
+    engine_mock = MagicMock()
+    engine_mock.async_unload = AsyncMock()
+    hass.data.setdefault(DOMAIN, {})["engines"] = {entry.entry_id: engine_mock}
+
+    with patch.object(
+        hass.config_entries,
+        "async_unload_platforms",
+        new_callable=AsyncMock,
+        return_value=False,  # platform unload fails
+    ):
+        result = await async_unload_entry(hass, entry)
+
+    # Engine must still be unloaded and removed.
+    engine_mock.async_unload.assert_awaited_once()
+    assert entry.entry_id not in hass.data[DOMAIN]["engines"]
+    assert result is False  # outer result reflects platform failure
+
+
+# ---------------------------------------------------------------------------
+# Fix 4: async_suppress uses _apply_idle_status so the priority ladder is
+#         respected — a disabled rule does not flip to SUPPRESSED.
+# ---------------------------------------------------------------------------
+
+async def test_suppress_on_disabled_rule_stays_disabled(hass: HomeAssistant):
+    """A disabled rule that is suppressed must remain DISABLED, not flip to SUPPRESSED.
+    async_unsuppress already uses _apply_idle_status correctly; async_suppress must too."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine.set_enabled(False)
+    assert engine.current_status() == STATUS_DISABLED
+
+    await engine.async_suppress(duration_minutes=5)
+
+    # Priority ladder: DISABLED outranks SUPPRESSED.
+    assert engine.current_status() == STATUS_DISABLED
+
+
+async def test_suppress_on_armed_rule_goes_suppressed(hass: HomeAssistant):
+    """An armed rule that is suppressed must go to SUPPRESSED status."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    engine._set_status(STATUS_ARMED)
+
+    await engine.async_suppress(duration_minutes=5)
+
+    assert engine.current_status() == STATUS_SUPPRESSED
