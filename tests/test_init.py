@@ -13,7 +13,7 @@ from custom_components.entity_guard import (
     async_unload_entry,
     async_remove_entry,
 )
-from custom_components.entity_guard.const import DOMAIN
+from custom_components.entity_guard.const import DOMAIN, CONF_ENTRY_TYPE, ENTRY_TYPE_HUB
 
 
 async def test_setup_hub_entry(hass: HomeAssistant, hub_entry) -> None:
@@ -143,3 +143,70 @@ async def test_remove_hub_entry_skips_statistics(
         await async_remove_entry(hass, hub_entry)
 
     mock_get_instance.assert_not_called()
+
+
+async def test_unload_last_rule_with_hub_present_still_unloads_services(
+    hass: HomeAssistant, rule_entry, hub_entry
+) -> None:
+    """When last rule is unloaded but hub entry still exists, services are unloaded.
+
+    Regression: old code checked 'no remaining entries of ANY type'; hub entry kept
+    remaining_entries non-empty, so async_unload_services was never reached.
+    Correct: only rule entries block service teardown, hub entry does not.
+    """
+    from custom_components.entity_guard.services import async_unload_services
+
+    hub_entry.add_to_hass(hass)
+    rule_entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})["engines"] = {}
+
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_unload_platforms",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "custom_components.entity_guard.async_unload_services"
+        ) as mock_unload_services,
+    ):
+        result = await async_unload_entry(hass, rule_entry)
+
+    assert result is True
+    mock_unload_services.assert_called_once_with(hass)
+
+
+async def test_unload_rule_with_sibling_rule_does_not_unload_services(
+    hass: HomeAssistant, rule_entry, hub_entry
+) -> None:
+    """When a rule is unloaded but another rule entry still exists, services are kept."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import ENTRY_TYPE_RULE
+
+    hub_entry.add_to_hass(hass)
+    rule_entry.add_to_hass(hass)
+
+    sibling = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE},
+        title="Sibling Rule",
+    )
+    sibling.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})["engines"] = {}
+
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_unload_platforms",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "custom_components.entity_guard.async_unload_services"
+        ) as mock_unload_services,
+    ):
+        result = await async_unload_entry(hass, rule_entry)
+
+    assert result is True
+    mock_unload_services.assert_not_called()

@@ -79,7 +79,23 @@ class EntityGuardStore:
 
         raw_version = raw.get("version", 1) if isinstance(raw, dict) else 1
         if raw_version < STORE_VERSION:
-            raw = await self._async_migrate(raw, raw_version)
+            try:
+                raw = await self._async_migrate(raw, raw_version)
+            except NotImplementedError as err:
+                _LOGGER.error(
+                    "Entity Guard storage migration from v%d failed: %s — resetting all state",
+                    raw_version,
+                    err,
+                )
+                self._data = {"version": STORE_VERSION, "rules": {}}
+                persistent_notification.async_create(
+                    self._hass,
+                    f"Entity Guard could not migrate saved state from v{raw_version}. "
+                    "All rule counters and cooldowns have been reset.",
+                    title="Entity Guard storage migration error",
+                    notification_id=f"{DOMAIN}_storage_migration",
+                )
+                return
         rules_in = raw.get("rules", {}) or {}
         rules_out: dict[str, dict[str, Any]] = {}
 

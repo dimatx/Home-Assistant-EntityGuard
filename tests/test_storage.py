@@ -343,3 +343,28 @@ async def test_async_load_triggers_migration(hass: HomeAssistant):
             await store.async_load()
             if stale_version < STORE_VERSION:
                 mock_migrate.assert_awaited_once_with(raw, stale_version)
+
+
+async def test_async_load_migration_not_implemented_resets_and_notifies(
+    hass: HomeAssistant,
+):
+    """async_load resets to defaults and notifies when _async_migrate raises NotImplementedError.
+
+    Regression: previously the NotImplementedError propagated uncaught from async_load,
+    crashing the entire integration load when storage version < STORE_VERSION.
+    """
+    from unittest.mock import AsyncMock, patch
+    from custom_components.entity_guard.storage import EntityGuardStore, STORE_VERSION
+
+    store = EntityGuardStore(hass)
+    raw = {"version": 0, "rules": {"r1": {"enforcement_count_today": 5}}}
+
+    with patch.object(store._store, "async_load", AsyncMock(return_value=raw)):
+        # _async_migrate raises NotImplementedError for version 0 → current
+        await store.async_load()
+
+    # Storage should be reset to empty defaults
+    assert store._data == {"version": STORE_VERSION, "rules": {}}
+    # get_rule_state returns a default blob (no crash, no old data)
+    blob = store.get_rule_state("r1")
+    assert blob["enforcement_count_today"] == 0
