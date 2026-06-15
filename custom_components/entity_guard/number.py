@@ -132,7 +132,13 @@ class EntityGuardNumberBase(NumberEntity):
         return float(value)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Persist a new value to engine config and config entry."""
+        """Apply a new value to the running engine without persisting to config entry.
+
+        Writes are applied live via setattr so they take effect immediately. The
+        canonical value lives in entry.data (set via the options flow); writing to
+        data/options here would trigger _async_update_listener → full entry reload,
+        tearing down and rebuilding all five platforms for a trivial slider change.
+        """
         coerced = int(value)
 
         config = getattr(self._engine, "config", None)
@@ -141,10 +147,6 @@ class EntityGuardNumberBase(NumberEntity):
                 setattr(config, self._config_key, coerced)
             except Exception:  # pragma: no cover - defensive
                 _LOGGER.debug("Failed to update engine config %s", self._config_key)
-
-        new_data = dict(self._entry.data)
-        new_data[self._config_key] = coerced
-        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
         async_dispatcher_send(
             self.hass, signal_rule_update(self._engine.config.unique_id)

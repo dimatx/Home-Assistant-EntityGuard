@@ -377,13 +377,19 @@ class RuleEngine:
         async def _fire(_now: datetime) -> None:
             if self._is_unloaded:
                 return
-            self._pending_enforcements.pop(entity_id, None)
             current = self._hass.states.get(entity_id)
             if current is None or not self._is_triggered(entity_id, current):
+                # Only remove our own cancel handle — a newer timer may have replaced it.
+                if self._pending_enforcements.get(entity_id) is my_cancel:
+                    self._pending_enforcements.pop(entity_id, None)
                 return
             if not self._flags_match():
+                if self._pending_enforcements.get(entity_id) is my_cancel:
+                    self._pending_enforcements.pop(entity_id, None)
                 return
             await self._enforce(entity_id)
+            if self._pending_enforcements.get(entity_id) is my_cancel:
+                self._pending_enforcements.pop(entity_id, None)
 
         @callback
         def _fire_cb(now: datetime) -> None:
@@ -391,6 +397,7 @@ class RuleEngine:
             self._hass.async_create_task(_fire(now))
 
         cancel = async_call_later(self._hass, self._config.delay_seconds, _fire_cb)
+        my_cancel = cancel
         self._pending_enforcements[entity_id] = cancel
 
     def _cancel_pending(self, entity_id: str) -> None:
@@ -524,7 +531,7 @@ class RuleEngine:
             self._set_status(STATUS_COOLDOWN)
             cooldown_end = self._state.cooldowns.get(entity_id)
             if cooldown_end is not None:
-                remaining = (cooldown_end - dt_util.now()).total_seconds()
+                remaining = (cooldown_end - now).total_seconds()
                 if remaining > 0:
                     old_unsub = self._cooldown_broadcast_unsubs.pop(entity_id, None)
                     if old_unsub is not None:
@@ -637,6 +644,12 @@ class RuleEngine:
         """Clear all per-entity cooldowns immediately."""
         _LOGGER.info("Resetting cooldowns for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
+        for cancel in list(self._cooldown_broadcast_unsubs.values()):
+            try:
+                cancel()
+            except Exception:  # noqa: BLE001
+                pass
+        self._cooldown_broadcast_unsubs.clear()
         self._persist()
         self._apply_idle_status()
 
@@ -666,7 +679,7 @@ class RuleEngine:
             },
         )
         if self._current_status != STATUS_ERROR:
-            self._set_status(STATUS_SUPPRESSED)
+            self._apply_idle_status()
 
     async def async_unsuppress(self) -> None:
         """Clear any active suppression."""
@@ -680,6 +693,12 @@ class RuleEngine:
         """Reset persisted counters and cooldowns."""
         _LOGGER.info("Clearing history for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
+        for cancel in list(self._cooldown_broadcast_unsubs.values()):
+            try:
+                cancel()
+            except Exception:  # noqa: BLE001
+                pass
+        self._cooldown_broadcast_unsubs.clear()
         self._state.enforcement_count_today = 0
         self._state.enforcement_count_total = 0
         self._state.last_enforced = None

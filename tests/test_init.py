@@ -13,7 +13,7 @@ from custom_components.entity_guard import (
     async_unload_entry,
     async_remove_entry,
 )
-from custom_components.entity_guard.const import DOMAIN, CONF_ENTRY_TYPE, ENTRY_TYPE_HUB
+from custom_components.entity_guard.const import DOMAIN, CONF_ENTRY_TYPE
 
 
 async def test_setup_hub_entry(hass: HomeAssistant, hub_entry) -> None:
@@ -154,8 +154,6 @@ async def test_unload_last_rule_with_hub_present_still_unloads_services(
     remaining_entries non-empty, so async_unload_services was never reached.
     Correct: only rule entries block service teardown, hub entry does not.
     """
-    from custom_components.entity_guard.services import async_unload_services
-
     hub_entry.add_to_hass(hass)
     rule_entry.add_to_hass(hass)
     hass.data.setdefault(DOMAIN, {})["engines"] = {}

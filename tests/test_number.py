@@ -76,7 +76,7 @@ async def test_delay_set_native_value(hass: HomeAssistant):
     num.async_write_ha_state = MagicMock()
     await num.async_set_native_value(20.0)
     assert engine.config.delay_seconds == 20
-    assert entry.data[CONF_DELAY_SECONDS] == 20
+    # Value applied live to engine; not written to entry.data to avoid triggering reload.
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ async def test_debounce_set_native_value(hass: HomeAssistant):
     num.async_write_ha_state = MagicMock()
     await num.async_set_native_value(120.0)
     assert engine.config.debounce_seconds == 120
-    assert entry.data[CONF_DEBOUNCE_SECONDS] == 120
+    # Value applied live to engine; not written to entry.data to avoid triggering reload.
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ async def test_max_enforcements_set_native_value(hass: HomeAssistant):
     num.async_write_ha_state = MagicMock()
     await num.async_set_native_value(3.0)
     assert engine.config.max_enforcements_per_minute == 3
-    assert entry.data[CONF_MAX_ENFORCEMENTS_PER_MINUTE] == 3
+    # Value applied live to engine; not written to entry.data to avoid triggering reload.
 
 
 # ---------------------------------------------------------------------------

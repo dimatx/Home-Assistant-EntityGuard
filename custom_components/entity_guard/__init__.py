@@ -197,11 +197,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             entry.async_on_unload(unsub_reg)
 
-        # Sync device-registry name to entry.title (handles renames).
+        # Sync device-registry name only when entry.title changed since last setup
+        # (options-flow rename). Tracking via _device_title option prevents clobbering
+        # user-set device names on every restart.
         device_reg = dr.async_get(hass)
         device = device_reg.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
-        if device is not None and device.name != entry.title:
-            device_reg.async_update_device(device.id, name=entry.title)
+        if device is not None:
+            stored_title = entry.options.get("_device_title")
+            if stored_title != entry.title:
+                # Title changed (or first setup): sync device name and record it.
+                device_reg.async_update_device(device.id, name=entry.title)
+                hass.config_entries.async_update_entry(
+                    entry, options={**entry.options, "_device_title": entry.title}
+                )
         # Reload entry on options-save so engine picks up edits + entities rename.
         entry.async_on_unload(entry.add_update_listener(_async_update_listener))
         # Recreate hub if missing — covers user deleting hub while rules still exist.
@@ -227,7 +235,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
 
-    if unload_ok and entry_type == ENTRY_TYPE_RULE:
+    if entry_type == ENTRY_TYPE_RULE:
         engines = hass.data.get(DOMAIN, {}).get("engines", {})
         engine = engines.pop(entry.entry_id, None)
         if engine is not None:
