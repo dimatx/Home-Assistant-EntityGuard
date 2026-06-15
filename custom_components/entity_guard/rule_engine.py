@@ -639,6 +639,12 @@ class RuleEngine:
         """Clear all per-entity cooldowns immediately."""
         _LOGGER.info("Resetting cooldowns for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
+        for cancel in list(self._cooldown_broadcast_unsubs.values()):
+            try:
+                cancel()
+            except Exception:  # noqa: BLE001
+                pass
+        self._cooldown_broadcast_unsubs.clear()
         self._persist()
         self._apply_idle_status()
 
@@ -682,6 +688,12 @@ class RuleEngine:
         """Reset persisted counters and cooldowns."""
         _LOGGER.info("Clearing history for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
+        for cancel in list(self._cooldown_broadcast_unsubs.values()):
+            try:
+                cancel()
+            except Exception:  # noqa: BLE001
+                pass
+        self._cooldown_broadcast_unsubs.clear()
         self._state.enforcement_count_today = 0
         self._state.enforcement_count_total = 0
         self._state.last_enforced = None

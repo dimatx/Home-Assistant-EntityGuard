@@ -1884,3 +1884,55 @@ async def test_suppress_on_armed_rule_goes_suppressed(hass: HomeAssistant):
     await engine.async_suppress(duration_minutes=5)
 
     assert engine.current_status() == STATUS_SUPPRESSED
+
+
+# ---------------------------------------------------------------------------
+# Fix: async_reset_cooldowns / async_clear_history cancel broadcast unsubs
+# ---------------------------------------------------------------------------
+
+
+async def test_reset_cooldowns_cancels_broadcast_unsubs(hass: HomeAssistant):
+    """async_reset_cooldowns must cancel and clear _cooldown_broadcast_unsubs.
+
+    Without this fix, orphaned timers could pop a NEW cooldown's cancel handle,
+    causing the new cooldown's expiry broadcast to never fire.
+    """
+    engine = _make_engine(hass)
+    engine._store.async_save_now = AsyncMock()
+    engine._startup_complete = True
+
+    cancel_mock = MagicMock()
+    engine._cooldown_broadcast_unsubs["light.bedroom"] = cancel_mock
+
+    await engine.async_reset_cooldowns()
+
+    cancel_mock.assert_called_once()
+    assert engine._cooldown_broadcast_unsubs == {}
+    assert engine._state.cooldowns == {}
+
+
+async def test_clear_history_cancels_broadcast_unsubs(hass: HomeAssistant):
+    """async_clear_history must cancel and clear _cooldown_broadcast_unsubs."""
+    engine = _make_engine(hass)
+    engine._startup_complete = True
+
+    cancel_mock = MagicMock()
+    engine._cooldown_broadcast_unsubs["light.bedroom"] = cancel_mock
+
+    await engine.async_clear_history()
+
+    cancel_mock.assert_called_once()
+    assert engine._cooldown_broadcast_unsubs == {}
+
+
+async def test_reset_cooldowns_swallows_cancel_exception(hass: HomeAssistant):
+    """Exception from cancelling a broadcast unsub must be swallowed."""
+    engine = _make_engine(hass)
+    engine._store.async_save_now = AsyncMock()
+
+    broken = MagicMock(side_effect=RuntimeError("boom"))
+    engine._cooldown_broadcast_unsubs["light.bedroom"] = broken
+
+    await engine.async_reset_cooldowns()
+
+    assert engine._cooldown_broadcast_unsubs == {}
