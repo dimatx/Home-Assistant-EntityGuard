@@ -1696,6 +1696,7 @@ async def test_cooldown_broadcast_is_unloaded_guard(hass: HomeAssistant):
 #         _cancel_pending during the service call can still abort the work.
 # ---------------------------------------------------------------------------
 
+
 async def test_fire_pops_pending_after_enforce_not_before(hass: HomeAssistant):
     """_pending_enforcements entry must exist while _enforce runs so a concurrent
     _cancel_pending call during the service-call window can still cancel it."""
@@ -1714,6 +1715,7 @@ async def test_fire_pops_pending_after_enforce_not_before(hass: HomeAssistant):
     assert engine._current_status == STATUS_PENDING
 
     from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
     await hass.async_block_till_done()
 
@@ -1743,6 +1745,7 @@ async def test_concurrent_cancel_during_fire_aborts_second_timer(hass: HomeAssis
     await engine.async_evaluate("light.bedroom", st)
 
     from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
     await hass.async_block_till_done()
 
@@ -1756,12 +1759,11 @@ async def test_concurrent_cancel_during_fire_aborts_second_timer(hass: HomeAssis
 #         not a fresh dt_util.now() after it — avoids negative remaining.
 # ---------------------------------------------------------------------------
 
+
 async def test_cooldown_remaining_uses_pre_service_now(hass: HomeAssistant):
     """When service call takes longer than debounce_seconds the cooldown broadcast
     timer must still be scheduled (remaining must be positive using pre-call `now`)."""
-    config = _make_config(
-        target_state="off", debounce_enabled=True, debounce_seconds=1
-    )
+    config = _make_config(target_state="off", debounce_enabled=True, debounce_seconds=1)
     engine = _make_engine(hass, config)
     engine._startup_complete = True
 
@@ -1782,6 +1784,7 @@ async def test_cooldown_remaining_uses_pre_service_now(hass: HomeAssistant):
         side_effect=_capture_call_later,
     ):
         import datetime as _dt
+
         base_now = dt_util.now()
         call_count = 0
 
@@ -1795,7 +1798,10 @@ async def test_cooldown_remaining_uses_pre_service_now(hass: HomeAssistant):
                 return base_now
             return base_now + _dt.timedelta(seconds=2)
 
-        with patch("custom_components.entity_guard.rule_engine.dt_util.now", side_effect=_fake_now):
+        with patch(
+            "custom_components.entity_guard.rule_engine.dt_util.now",
+            side_effect=_fake_now,
+        ):
             await engine._enforce("light.bedroom")
 
     # A cooldown broadcast timer must have been scheduled (delay > 0).
@@ -1809,13 +1815,18 @@ async def test_cooldown_remaining_uses_pre_service_now(hass: HomeAssistant):
 #         platform unload result — no listener leak on partial failure.
 # ---------------------------------------------------------------------------
 
+
 async def test_engine_unloaded_even_when_platform_unload_fails(hass: HomeAssistant):
     """async_unload_entry must unload the engine even when async_unload_platforms
     returns False — prevents orphaned listeners on partial platform teardown."""
     from unittest.mock import AsyncMock, patch, MagicMock
     from pytest_homeassistant_custom_component.common import MockConfigEntry
     from custom_components.entity_guard import async_unload_entry
-    from custom_components.entity_guard.const import DOMAIN, CONF_ENTRY_TYPE, ENTRY_TYPE_RULE
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1846,6 +1857,7 @@ async def test_engine_unloaded_even_when_platform_unload_fails(hass: HomeAssista
 # Fix 4: async_suppress uses _apply_idle_status so the priority ladder is
 #         respected — a disabled rule does not flip to SUPPRESSED.
 # ---------------------------------------------------------------------------
+
 
 async def test_suppress_on_disabled_rule_stays_disabled(hass: HomeAssistant):
     """A disabled rule that is suppressed must remain DISABLED, not flip to SUPPRESSED.
