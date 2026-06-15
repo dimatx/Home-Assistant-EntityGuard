@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.2] — 2026-06-15
+
+### Fixed
+
+- **Storage migration crash**: `_async_migrate` raised uncaught `NotImplementedError` for any persisted store with `version < 1`. `async_load` now catches the error, resets storage to defaults, and creates a persistent notification — consistent with the existing blob-corruption recovery path.
+- **Service leak on hub-present unload**: `async_unload_services` never fired while the hub entry existed because `remaining_entries` included the hub. Services (`suppress`, `unsuppress`, `clear_history`, `list_rules`, `panic_stop`) leaked indefinitely when the last rule entry was removed. Fix: filter `remaining_entries` to rule entries only.
+- **Double enforcement race**: `_fire` popped `_pending_enforcements` before `_enforce` completed, allowing a second fire to re-enforce mid-flight. Cancel-handle identity check closes the residual race.
+- **Cooldown stuck permanently**: `STATUS_COOLDOWN` cooldown-remaining calculation used a stale `now` captured at timer creation instead of re-reading at query time.
+- **Engine listener leak on failed platform unload**: Listeners registered during platform setup were not released when `async_unload_platforms` returned `False` due to a partial unload failure.
+- **`async_suppress` bypasses priority ladder**: Calling suppress while a higher-priority condition was active could force a spurious `DISABLED → SUPPRESSED` transition. Suppress now respects the full priority order.
+- **Orphan cooldown broadcast timers**: `async_reset_cooldowns` / `async_clear_history` did not cancel in-flight cooldown broadcast timers, leaving stale callbacks that fired after reset.
+- **Device registry name overwritten on restart**: Hub entry wrote the device name unconditionally on every HA restart, clobbering user renames. Write is now skipped when the name is already set.
+- **Number slider triggers full entry reload**: Slider value changes wrote to `entry.data`, triggering a full reload. Values are now stored in `entry.options` (no reload side-effect).
+
+### Tests
+
+- 3 regression tests for storage migration crash and service-leak paths.
+- 10 tests for `rule_engine` fixes (double enforcement, cooldown timer, listener leak, suppress priority, orphan timers, device name, number slider).
+- Full suite: 432 passed, 1 skipped.
+
+---
+
 ## [0.2.1] — 2026-06-13
 
 ### Fixed
