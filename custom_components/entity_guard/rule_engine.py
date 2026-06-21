@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.event import (
     async_call_later,
+    async_track_point_in_time,
     async_track_state_change_event,
     async_track_time_change,
 )
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_LOOP_SUPPRESS_MINUTES,
     DOMAIN,
     DOMAIN_SERVICE_MAP,
+    ERROR_RECOVERY_SUCCESS_THRESHOLD,
     ERROR_THRESHOLD,
     EVENT_ENFORCED,
     EVENT_LOOP_DETECTED,
@@ -94,6 +96,9 @@ class RuleEngine:
             f.entity for f in config.flags
         )
         self._cooldown_broadcast_unsubs: dict[str, Callable[[], None]] = {}
+        # One-shot suppression-expiry timer (EG-4). Cancelled and replaced when
+        # suppression is set, cleared, or the rule's lifecycle changes.
+        self._suppression_timer_unsub: Callable[[], None] | None = None
 
     @property
     def config(self) -> RuleConfig:
@@ -127,6 +132,10 @@ class RuleEngine:
             )
 
         self._maybe_reset_today_counter()
+
+        # Restore suppression-expiry timer if a persisted suppression window is still
+        # in the future (EG-4). Older expiry is cleared lazily on the next evaluation.
+        self._schedule_suppression_timer()
 
         watched: set[str] = set(self._config.target_entities)
         watched.update(f.entity for f in self._config.flags)
@@ -187,6 +196,8 @@ class RuleEngine:
             except Exception:  # noqa: BLE001
                 pass
         self._cooldown_broadcast_unsubs.clear()
+
+        self._cancel_suppression_timer()
 
         self._persist()
         await self._store.async_save_now()
@@ -254,9 +265,6 @@ class RuleEngine:
             if entity_id not in self._flag_entity_ids:
                 return
 
-        if self._current_status == STATUS_ERROR:
-            return
-
         if not self._state.enabled or not self._master_enabled_getter():
             self._apply_idle_status()
             return
@@ -265,9 +273,7 @@ class RuleEngine:
             self._set_status(STATUS_SUPPRESSED)
             return
         if self._state.suppressed_until and self._state.suppressed_until <= now:
-            self._state.suppressed_until = None
-            self._state.suppression_reason = None
-            self._persist()
+            self._clear_suppression_state()
 
         if not self._flags_match():
             self._set_status(STATUS_CONDITIONAL)
@@ -439,6 +445,9 @@ class RuleEngine:
                 await self._trigger_loop_protection(entity_id)
                 return
 
+            # Capture before _set_status(STATUS_ENFORCING) so the success path can
+            # detect ERROR→OK recovery (EG-6).
+            was_in_error = self._current_status == STATUS_ERROR
             self._set_status(STATUS_ENFORCING)
 
             service_call = self._resolve_service(entity_id)
@@ -490,6 +499,8 @@ class RuleEngine:
                 )
                 self._state.consecutive_errors += 1
                 self._state.last_error = str(err)
+                # Reset recovery counter on any failure (EG-6).
+                self._state.consecutive_success_count = 0
                 self._persist()
                 if self._state.consecutive_errors >= ERROR_THRESHOLD:
                     self._set_status(STATUS_ERROR)
@@ -501,8 +512,29 @@ class RuleEngine:
             self._state.enforcement_count_total += 1
             self._state.last_enforced = now
             self._state.rate_limit_window.append(now)
-            self._state.consecutive_errors = 0
-            self._state.last_error = None
+            # Track consecutive successes for STATUS_ERROR auto-recovery (EG-6).
+            # While still in ERROR, do NOT zero consecutive_errors / last_error — they
+            # remain visible on the status sensor until the recovery threshold is met.
+            recovered_from_error = False
+            if was_in_error:
+                self._state.consecutive_success_count += 1
+                if (
+                    self._state.consecutive_success_count
+                    >= ERROR_RECOVERY_SUCCESS_THRESHOLD
+                ):
+                    _LOGGER.info(
+                        "Rule '%s' auto-recovered from STATUS_ERROR after %d successes",
+                        self._config.name,
+                        self._state.consecutive_success_count,
+                    )
+                    self._state.consecutive_success_count = 0
+                    self._state.consecutive_errors = 0
+                    self._state.last_error = None
+                    recovered_from_error = True
+            else:
+                self._state.consecutive_success_count = 0
+                self._state.consecutive_errors = 0
+                self._state.last_error = None
 
             if self._config.debounce_enabled and self._config.debounce_seconds > 0:
                 self._state.cooldowns[entity_id] = now + timedelta(
@@ -527,8 +559,19 @@ class RuleEngine:
 
             self._persist()
 
+        # Pick the post-enforce status once and emit a single _set_status so the
+        # dispatcher fires exactly one update — avoids ENFORCING→ARMED→ERROR
+        # flicker on each non-final recovery success (EG-6).
+        if was_in_error and not recovered_from_error:
+            post_status = STATUS_ERROR
+        elif self._config.debounce_enabled and self._config.debounce_seconds > 0:
+            post_status = STATUS_COOLDOWN
+        else:
+            post_status = self._derive_armed_or_cooldown(dt_util.now())
+        self._set_status(post_status)
+
+        # Arm the cooldown-expiry broadcast (independent of status flicker).
         if self._config.debounce_enabled and self._config.debounce_seconds > 0:
-            self._set_status(STATUS_COOLDOWN)
             cooldown_end = self._state.cooldowns.get(entity_id)
             if cooldown_end is not None:
                 remaining = (cooldown_end - now).total_seconds()
@@ -553,8 +596,6 @@ class RuleEngine:
                         self._hass, remaining, _broadcast_after_cooldown
                     )
                     self._cooldown_broadcast_unsubs[entity_id] = unsub
-        else:
-            self._set_status(self._derive_armed_or_cooldown(dt_util.now()))
 
     async def _trigger_loop_protection(self, entity_id: str) -> None:
         """Auto-suppress on rate-limit breach and notify the user."""
@@ -572,6 +613,7 @@ class RuleEngine:
         self._state.suppressed_until = suppress_until
         self._state.suppression_reason = "loop_protection"
         self._persist()
+        self._schedule_suppression_timer()
 
         self._hass.bus.async_fire(
             EVENT_LOOP_DETECTED,
@@ -631,7 +673,11 @@ class RuleEngine:
         return None
 
     async def async_test_enforce(self, user_id: str | None = None) -> None:
-        """Force an enforcement run against every target entity."""
+        """Force an enforcement run against every target entity.
+
+        Suppression-expiry timer is re-armed after the loop so any stale
+        callback queued before manual enforcement is replaced (EG-4).
+        """
         _LOGGER.info(
             "Test enforce invoked on rule '%s' (user_id=%s)",
             self._config.name,
@@ -639,9 +685,16 @@ class RuleEngine:
         )
         for entity_id in self._config.target_entities:
             await self._enforce(entity_id, user_id=user_id, bypass_rate_limit=True)
+        # _schedule_suppression_timer self-cancels any prior handle before arming.
+        self._schedule_suppression_timer()
 
     async def async_reset_cooldowns(self) -> None:
-        """Clear all per-entity cooldowns immediately."""
+        """Clear all per-entity cooldowns immediately.
+
+        Suppression state is preserved (use async_unsuppress to clear it). The
+        EG-4 expiry timer is re-armed so a pending suppression window still
+        fires its expiry callback after this reset.
+        """
         _LOGGER.info("Resetting cooldowns for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
         for cancel in list(self._cooldown_broadcast_unsubs.values()):
@@ -650,6 +703,10 @@ class RuleEngine:
             except Exception:  # noqa: BLE001
                 pass
         self._cooldown_broadcast_unsubs.clear()
+        # Re-arm suppression timer so EG-4 expiry callback survives this reset.
+        self._schedule_suppression_timer()
+        # Resetting also clears the recovery counter so a fresh window starts.
+        self._state.consecutive_success_count = 0
         self._persist()
         self._apply_idle_status()
 
@@ -668,6 +725,7 @@ class RuleEngine:
         self._state.suppressed_until = until
         self._state.suppression_reason = "manual"
         self._persist()
+        self._schedule_suppression_timer()
 
         self._hass.bus.async_fire(
             EVENT_SUPPRESSED,
@@ -684,13 +742,16 @@ class RuleEngine:
     async def async_unsuppress(self) -> None:
         """Clear any active suppression."""
         _LOGGER.info("Unsuppressing rule '%s'", self._config.name)
-        self._state.suppressed_until = None
-        self._state.suppression_reason = None
-        self._persist()
+        self._clear_suppression_state()
         self._apply_idle_status()
 
     async def async_clear_history(self) -> None:
-        """Reset persisted counters and cooldowns."""
+        """Reset persisted counters and cooldowns.
+
+        Suppression state is preserved (use async_unsuppress to clear it). The
+        EG-4 expiry timer is re-armed so a pending suppression window still
+        fires its expiry callback after history is cleared.
+        """
         _LOGGER.info("Clearing history for rule '%s'", self._config.name)
         self._state.cooldowns.clear()
         for cancel in list(self._cooldown_broadcast_unsubs.values()):
@@ -699,12 +760,15 @@ class RuleEngine:
             except Exception:  # noqa: BLE001
                 pass
         self._cooldown_broadcast_unsubs.clear()
+        # Re-arm suppression timer so EG-4 expiry callback survives this clear.
+        self._schedule_suppression_timer()
         self._state.enforcement_count_today = 0
         self._state.enforcement_count_total = 0
         self._state.last_enforced = None
         self._state.rate_limit_window.clear()
         self._state.consecutive_errors = 0
         self._state.last_error = None
+        self._state.consecutive_success_count = 0
         self._store.clear_rule_history(self._config.unique_id)
         if self._current_status == STATUS_ERROR:
             self._current_status = STATUS_STARTING  # break sticky before re-derive
@@ -724,8 +788,13 @@ class RuleEngine:
         if enabled and self._state.suppressed_until:
             now = dt_util.now()
             if self._state.suppressed_until <= now:
-                self._state.suppressed_until = None
-                self._state.suppression_reason = None
+                self._clear_suppression_state(persist=False)
+        if not enabled:
+            # Disabling cancels any pending suppression timer; suppression state
+            # itself is preserved so re-enabling restores the remaining window.
+            self._cancel_suppression_timer()
+        else:
+            self._schedule_suppression_timer()
         self._persist()
         self._apply_idle_status()
 
@@ -817,6 +886,56 @@ class RuleEngine:
         """Push runtime state to the store (debounced internally)."""
         blob = EntityGuardStore.runtime_to_blob(self._state)
         self._store.set_rule_state(self._config.unique_id, blob)
+
+    def _clear_suppression_state(self, *, persist: bool = True) -> None:
+        """Clear suppression fields and cancel the expiry timer (EG-4)."""
+        self._state.suppressed_until = None
+        self._state.suppression_reason = None
+        self._cancel_suppression_timer()
+        if persist:
+            self._persist()
+
+    def _cancel_suppression_timer(self) -> None:
+        """Cancel any pending suppression-expiry timer."""
+        if self._suppression_timer_unsub is None:
+            return
+        try:
+            self._suppression_timer_unsub()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Suppression timer cancel failed", exc_info=True)
+        self._suppression_timer_unsub = None
+
+    def _schedule_suppression_timer(self) -> None:
+        """Schedule an expiry callback to refresh UI when suppression ends (EG-4).
+
+        Cancels any prior timer. No-op when there is no active suppression or the
+        engine has been unloaded.
+        """
+        self._cancel_suppression_timer()
+        if self._is_unloaded:
+            return
+        until = self._state.suppressed_until
+        if until is None:
+            return
+        if until <= dt_util.now():
+            return
+        # async_track_point_in_time tracks wall-clock; survives HA time-skip / DST.
+        self._suppression_timer_unsub = async_track_point_in_time(
+            self._hass, self._handle_suppression_expired, until
+        )
+
+    @callback
+    def _handle_suppression_expired(self, _now: datetime) -> None:
+        """Suppression window elapsed — refresh status without waiting for an event."""
+        self._suppression_timer_unsub = None
+        if self._is_unloaded:
+            return
+        if (
+            self._state.suppressed_until is not None
+            and self._state.suppressed_until <= dt_util.now()
+        ):
+            self._clear_suppression_state()
+        self._apply_idle_status()
 
 
 def _compare(value: float, op: str, threshold: float) -> bool:

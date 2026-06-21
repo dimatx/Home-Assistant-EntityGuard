@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.3] — 2026-06-21
+
+### Fixed
+
+- **Error status now auto-recovers**: rules stuck in `error` after 3 failed enforcements now return to `armed` after 3 successful ones. Previously required HA restart or Clear History.
+- **Suppressed sensor updates on time**: when a suppression window ends, the status sensor flips to `armed` immediately instead of waiting for the next state event.
+
+### Changed
+
+- During error-recovery, enforcement events and counters tick normally — automations bound to `entity_guard_enforced` will see firings while the status sensor still reads `error`. Loop protection can also trigger from `error` if a misconfigured rule thrashes during recovery.
+- Clear History and Reset Cooldowns no longer cancel active suppression. Use Clear Suppression (or `entity_guard.unsuppress`) to end suppression early.
+
+### Tests
+
+- 11 new tests covering recovery, suppression timer, and reset/clear interactions.
+- Full suite: 443 passed, 1 skipped. Coverage 99%.
+
+---
+
 ## [0.2.2] — 2026-06-15
 
 ### Fixed

@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from custom_components.entity_guard.const import (
+    ERROR_RECOVERY_SUCCESS_THRESHOLD,
     ERROR_THRESHOLD,
     MODE_ATTRIBUTE,
     MODE_STATE,
@@ -543,6 +544,7 @@ async def test_async_suppress(hass: HomeAssistant):
     assert engine.state.suppressed_until is not None
     assert engine.state.suppression_reason == "manual"
     assert engine.current_status() == STATUS_SUPPRESSED
+    engine._cancel_suppression_timer()
 
 
 async def test_async_unsuppress(hass: HomeAssistant):
@@ -619,6 +621,7 @@ async def test_loop_protection_triggers(hass: HomeAssistant):
 
     assert engine.current_status() == STATUS_SUPPRESSED
     assert engine.state.suppression_reason == "loop_protection"
+    engine._cancel_suppression_timer()
 
 
 # ---------------------------------------------------------------------------
@@ -1236,6 +1239,7 @@ async def test_set_enabled_true_while_still_suppressed(hass: HomeAssistant):
     engine.set_enabled(True)
 
     assert engine.current_status() == STATUS_SUPPRESSED
+    engine._cancel_suppression_timer()
 
 
 # ---------------------------------------------------------------------------
@@ -1284,7 +1288,7 @@ async def test_threshold_failures_set_error(hass: HomeAssistant):
 
 
 async def test_successful_enforcement_clears_error(hass: HomeAssistant):
-    """STATUS_ERROR gates async_evaluate — use async_clear_history to exit error state."""
+    """async_clear_history must exit error state regardless of evaluate path."""
     config = _make_config(target_state="off")
     engine = _make_engine(hass, config)
     engine._startup_complete = True
@@ -1293,17 +1297,7 @@ async def test_successful_enforcement_clears_error(hass: HomeAssistant):
     engine._state.last_error = "previous error"
     engine._set_status(STATUS_ERROR)
 
-    # async_evaluate must return early without calling any service
-    hass.services.async_register("light", "turn_off", AsyncMock())
-    hass.states.async_set("light.bedroom", "on")
-    st = hass.states.get("light.bedroom")
-    await engine.async_evaluate("light.bedroom", st)
-
-    # error state unchanged — gated
-    assert engine.current_status() == STATUS_ERROR
-    assert engine.state.consecutive_errors == ERROR_THRESHOLD
-
-    # clear_history resets error state
+    # clear_history resets error state synchronously
     await engine.async_clear_history()
     assert engine.state.consecutive_errors == 0
     assert engine.state.last_error is None
@@ -1872,6 +1866,7 @@ async def test_suppress_on_disabled_rule_stays_disabled(hass: HomeAssistant):
 
     # Priority ladder: DISABLED outranks SUPPRESSED.
     assert engine.current_status() == STATUS_DISABLED
+    engine._cancel_suppression_timer()
 
 
 async def test_suppress_on_armed_rule_goes_suppressed(hass: HomeAssistant):
@@ -1884,6 +1879,7 @@ async def test_suppress_on_armed_rule_goes_suppressed(hass: HomeAssistant):
     await engine.async_suppress(duration_minutes=5)
 
     assert engine.current_status() == STATUS_SUPPRESSED
+    engine._cancel_suppression_timer()
 
 
 # ---------------------------------------------------------------------------
@@ -1988,3 +1984,325 @@ async def test_fire_identity_check_preserves_newer_timer(hass: HomeAssistant):
     assert engine._pending_enforcements.get("light.bedroom") is new_cancel, (
         "_fire popped the newer timer's cancel handle (identity check not working)"
     )
+
+
+# ---------------------------------------------------------------------------
+# EG-6: STATUS_ERROR auto-recovery after consecutive successes
+# ---------------------------------------------------------------------------
+
+
+async def test_error_auto_recovers_after_3_successes(hass: HomeAssistant):
+    """ERROR_RECOVERY_SUCCESS_THRESHOLD consecutive successful enforcements must
+    transition the rule back from STATUS_ERROR to ARMED (or COOLDOWN/SUPPRESSED)."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    # Plant the rule into ERROR with the underlying condition cleared.
+    engine._state.consecutive_errors = ERROR_THRESHOLD
+    engine._state.last_error = "device offline"
+    engine._set_status(STATUS_ERROR)
+
+    async def _ok(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _ok)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    # First N-1 successes hold the ERROR status (recovery still pending).
+    for i in range(ERROR_RECOVERY_SUCCESS_THRESHOLD - 1):
+        await engine.async_evaluate("light.bedroom", st)
+        assert engine.current_status() == STATUS_ERROR, (
+            f"recovered too early at iter {i}"
+        )
+        assert engine.state.consecutive_success_count == i + 1
+
+    # Threshold-th success triggers recovery.
+    await engine.async_evaluate("light.bedroom", st)
+    assert engine.current_status() != STATUS_ERROR
+    assert engine.state.consecutive_success_count == 0
+    assert engine.state.consecutive_errors == 0
+    assert engine.state.last_error is None
+
+
+async def test_error_resets_counter_on_failure(hass: HomeAssistant):
+    """A failure during the recovery window must reset consecutive_success_count
+    to 0 and keep the rule in STATUS_ERROR."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    engine._state.consecutive_errors = ERROR_THRESHOLD
+    engine._state.consecutive_success_count = 1  # one prior success in the window
+    engine._set_status(STATUS_ERROR)
+
+    async def _fail(call):
+        raise RuntimeError("still broken")
+
+    hass.services.async_register("light", "turn_off", _fail)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+    await engine.async_evaluate("light.bedroom", st)
+
+    assert engine.state.consecutive_success_count == 0
+    assert engine.current_status() == STATUS_ERROR
+
+
+# ---------------------------------------------------------------------------
+# EG-4: suppression-expiry timer
+# ---------------------------------------------------------------------------
+
+
+async def test_suppression_state_clears_on_timer_expiry(hass: HomeAssistant):
+    """When the suppression-expiry timer fires, the engine must clear suppression
+    state and broadcast a fresh status without waiting for an event."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    captured_callbacks: list = []
+
+    def _capture_point_in_time(hass_arg, cb, when):
+        captured_callbacks.append(cb)
+        return MagicMock()
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time",
+        side_effect=_capture_point_in_time,
+    ):
+        await engine.async_suppress(duration_minutes=1)
+        assert engine.current_status() == STATUS_SUPPRESSED
+        assert captured_callbacks, "suppression timer was not scheduled"
+
+        # Simulate the timer firing AFTER suppression window has elapsed.
+        engine._state.suppressed_until = dt_util.now() - timedelta(seconds=1)
+        captured_callbacks[-1](dt_util.now())
+
+    assert engine.state.suppressed_until is None
+    assert engine.state.suppression_reason is None
+    assert engine.current_status() != STATUS_SUPPRESSED
+
+
+async def test_suppression_timer_cancelled_on_early_state_change(hass: HomeAssistant):
+    """Calling async_unsuppress before the timer fires must cancel the pending
+    timer so its callback never executes."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    cancel_mock = MagicMock()
+    captured_callbacks: list = []
+
+    def _capture_point_in_time(hass_arg, cb, when):
+        captured_callbacks.append(cb)
+        return cancel_mock
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time",
+        side_effect=_capture_point_in_time,
+    ):
+        await engine.async_suppress(duration_minutes=1)
+        await engine.async_unsuppress()
+
+    cancel_mock.assert_called_once()
+    assert engine._suppression_timer_unsub is None
+
+
+async def test_force_evaluate_clears_pending_suppression_timer(hass: HomeAssistant):
+    """async_test_enforce (force-evaluate) must cancel any in-flight suppression
+    timer so a stale expiry callback can't fire after the user manually drove
+    the rule. Re-arm only when suppression remains active."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    first_cancel = MagicMock()
+    captured_calls: list = []
+
+    def _capture_point_in_time(hass_arg, cb, when):
+        captured_calls.append((cb, when))
+        # First call returns first_cancel; subsequent calls return distinct mocks.
+        return first_cancel if len(captured_calls) == 1 else MagicMock()
+
+    async def _ok(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _ok)
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time",
+        side_effect=_capture_point_in_time,
+    ):
+        await engine.async_suppress(duration_minutes=5)
+        assert len(captured_calls) == 1
+
+        # Force-evaluate while still suppressed — should cancel and re-arm.
+        await engine.async_test_enforce()
+
+    first_cancel.assert_called_once()
+    # A fresh timer must be re-armed since suppression remains in effect.
+    assert engine._suppression_timer_unsub is not None
+
+
+def test_cancel_suppression_timer_swallows_exception(hass: HomeAssistant):
+    """_cancel_suppression_timer must not raise when the unsub callback raises."""
+    engine = _make_engine(hass)
+    broken = MagicMock(side_effect=RuntimeError("boom"))
+    engine._suppression_timer_unsub = broken
+    engine._cancel_suppression_timer()  # must not raise
+    broken.assert_called_once()
+    assert engine._suppression_timer_unsub is None
+
+
+def test_schedule_suppression_timer_skips_when_unloaded(hass: HomeAssistant):
+    """Suppression timer must NOT be scheduled after the engine is unloaded."""
+    engine = _make_engine(hass)
+    engine._is_unloaded = True
+    engine._state.suppressed_until = dt_util.now() + timedelta(minutes=5)
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time"
+    ) as mock_track:
+        engine._schedule_suppression_timer()
+    mock_track.assert_not_called()
+    assert engine._suppression_timer_unsub is None
+
+
+def test_schedule_suppression_timer_skips_when_already_expired(hass: HomeAssistant):
+    """Suppression timer must NOT be scheduled when suppressed_until is in the past."""
+    engine = _make_engine(hass)
+    engine._state.suppressed_until = dt_util.now() - timedelta(seconds=1)
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time"
+    ) as mock_track:
+        engine._schedule_suppression_timer()
+    mock_track.assert_not_called()
+
+
+def test_handle_suppression_expired_short_circuits_when_unloaded(hass: HomeAssistant):
+    """_handle_suppression_expired returns early when the engine is unloaded."""
+    engine = _make_engine(hass)
+    engine._state.suppressed_until = dt_util.now() - timedelta(seconds=1)
+    engine._is_unloaded = True
+    # Must not raise / mutate anything beyond the unsub reset.
+    engine._suppression_timer_unsub = MagicMock()
+    engine._handle_suppression_expired(dt_util.now())
+    assert engine._suppression_timer_unsub is None
+
+
+# ---------------------------------------------------------------------------
+# EG-4 regression: reset/clear paths must preserve suppression + re-arm timer
+# ---------------------------------------------------------------------------
+
+
+async def test_reset_cooldowns_preserves_suppression_and_rearms_timer(
+    hass: HomeAssistant,
+):
+    """async_reset_cooldowns mid-suppression must NOT drop suppressed_until and must
+    re-arm the EG-4 expiry timer (regression: prior cancel-only path lost it)."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    arm_calls: list = []
+    cancel_mocks: list = []
+
+    def _capture(hass_arg, cb, when):
+        m = MagicMock()
+        cancel_mocks.append(m)
+        arm_calls.append((cb, when))
+        return m
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time",
+        side_effect=_capture,
+    ):
+        await engine.async_suppress(duration_minutes=5)
+        assert len(arm_calls) == 1
+        first = cancel_mocks[0]
+
+        await engine.async_reset_cooldowns()
+
+    # State preserved.
+    assert engine.state.suppressed_until is not None
+    assert engine.state.suppression_reason == "manual"
+    # Old timer cancelled, new timer armed.
+    first.assert_called_once()
+    assert len(arm_calls) == 2
+    assert engine._suppression_timer_unsub is not None
+    engine._cancel_suppression_timer()
+
+
+async def test_clear_history_preserves_suppression_and_rearms_timer(
+    hass: HomeAssistant,
+):
+    """async_clear_history mid-suppression must NOT drop suppressed_until and must
+    re-arm the EG-4 expiry timer."""
+    config = _make_config()
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    arm_calls: list = []
+    cancel_mocks: list = []
+
+    def _capture(hass_arg, cb, when):
+        m = MagicMock()
+        cancel_mocks.append(m)
+        arm_calls.append((cb, when))
+        return m
+
+    with patch(
+        "custom_components.entity_guard.rule_engine.async_track_point_in_time",
+        side_effect=_capture,
+    ):
+        await engine.async_suppress(duration_minutes=5)
+        assert len(arm_calls) == 1
+        first = cancel_mocks[0]
+
+        await engine.async_clear_history()
+
+    assert engine.state.suppressed_until is not None
+    assert engine.state.suppression_reason == "manual"
+    first.assert_called_once()
+    assert len(arm_calls) == 2
+    assert engine._suppression_timer_unsub is not None
+    engine._cancel_suppression_timer()
+
+
+async def test_error_recovery_no_double_broadcast(hass: HomeAssistant):
+    """During a non-final ERROR-recovery success, status must transition
+    ENFORCING → ERROR in a single dispatcher broadcast — not flicker through
+    ARMED/COOLDOWN first."""
+    config = _make_config(target_state="off")
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+
+    # Plant rule in ERROR with one prior success already in the window.
+    engine._state.consecutive_errors = ERROR_THRESHOLD
+    engine._state.consecutive_success_count = 1
+    engine._set_status(STATUS_ERROR)
+
+    async def _ok(call):
+        pass
+
+    hass.services.async_register("light", "turn_off", _ok)
+    hass.states.async_set("light.bedroom", "on")
+    st = hass.states.get("light.bedroom")
+
+    broadcasts: list[str] = []
+    original = engine._set_status
+
+    def _record(status: str) -> None:
+        broadcasts.append(status)
+        original(status)
+
+    engine._set_status = _record  # type: ignore[assignment]
+
+    await engine.async_evaluate("light.bedroom", st)
+
+    # Recovery threshold not met (2 < 3): expect ENFORCING then ERROR; ARMED
+    # must NOT appear in between.
+    assert "armed" not in broadcasts, f"flicker through armed: {broadcasts}"
+    assert "cooldown" not in broadcasts, f"flicker through cooldown: {broadcasts}"
+    assert engine.current_status() == STATUS_ERROR
+    assert engine.state.consecutive_success_count == 2
