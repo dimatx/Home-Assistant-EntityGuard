@@ -6,6 +6,8 @@
 <a href="https://www.home-assistant.io/"><img src="https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg" alt="Home Assistant"></a>
 <a href="https://github.com/italo-lombardi/Home-Assistant-EntityGuard/blob/main/LICENSE"><img src="https://img.shields.io/github/license/italo-lombardi/Home-Assistant-EntityGuard?logo=gnu&logoColor=white" alt="License"></a>
 <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Test Coverage">
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/italolombardi)
+[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=flat&logo=paypal&logoColor=white)](https://paypal.me/ItaloLombardi)
 
 [![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=italo-lombardi&repository=Home-Assistant-EntityGuard&category=integration)
 [![Add to Home Assistant](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=entity_guard)
@@ -147,6 +149,7 @@ Review the assembled rule before saving. Confirm to create the config entry. The
 | `binary_sensor.<rule>_armed` | Rule is watching (flag matched, master/enabled on) |
 | `binary_sensor.<rule>_active` | Service call currently in flight |
 | `binary_sensor.<rule>_in_cooldown` | Cooldown active for at least one bound entity |
+| `binary_sensor.<rule>_recently_enforced` | ON for 30 s after any enforcement; pulses off→on on repeated enforce. Attributes: `rule_name`, `target_entities`, `target_entity_names`, `target`, `delay_seconds` |
 | `sensor.<rule>_status` | Enum: `error` > `disabled` > `suppressed` > `enforcing` > `cooldown` > `armed` > `conditional` > `starting` > `pending` |
 | `sensor.<rule>_last_enforced` | Timestamp of the last successful enforcement |
 | `sensor.<rule>_enforcement_count_today` | Resets at local midnight |
@@ -157,6 +160,7 @@ Review the assembled rule before saving. Confirm to create the config entry. The
 
 | Entity | Description |
 |--------|-------------|
+| `sensor.<rule>_rule_id` | Stable config-entry ID — use in automations instead of rule name |
 | `sensor.<rule>_enforcement_count_total` | Lifetime enforcement count |
 | `sensor.<rule>_cooldown_remaining` | Seconds left on current cooldown |
 | `sensor.<rule>_safety_status` | Visible only for cover/lock/climate rules |
@@ -319,6 +323,54 @@ The card shows:
 
 ---
 
+## Automations
+
+See **[AUTOMATION_EXAMPLES.md](AUTOMATION_EXAMPLES.md)** for a full library of copy-paste automation examples covering notifications, rule control, enforcement reactions, and dashboard counters.
+
+Quick reference — two most common patterns:
+
+### Notify when a rule enforces (event-based, rename-safe)
+
+Filter by `rule_id` from `sensor.<rule>_rule_id` (enable it in the entity registry first).
+
+```yaml
+automation:
+  alias: Notify on enforcement
+  trigger:
+    - platform: event
+      event_type: entity_guard_enforced
+      event_data:
+        rule_id: "01KSXDM1GN9WGQCSTFAX0Y1HNS"
+  action:
+    - service: notify.mobile_app_my_phone
+      data:
+        message: >
+          {{ trigger.event.data.rule_name }} enforced
+          {{ trigger.event.data.entity_id }} → {{ trigger.event.data.target }}
+```
+
+### Trigger on recently_enforced sensor (state-based)
+
+`binary_sensor.<rule>_recently_enforced` turns ON for 30 seconds after any enforcement and pulses off→on on repeated fires.
+
+```yaml
+automation:
+  alias: React to enforcement
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.my_rule_recently_enforced
+      to: "on"
+  action:
+    - service: notify.mobile_app_my_phone
+      data:
+        message: >
+          {{ state_attr('binary_sensor.my_rule_recently_enforced', 'rule_name') }}
+          enforced {{ state_attr('binary_sensor.my_rule_recently_enforced', 'target_entities') | join(', ') }}
+          → {{ state_attr('binary_sensor.my_rule_recently_enforced', 'target') }}
+```
+
+---
+
 ## FAQ
 
 **Q: Does this integration require the Recorder component?**
@@ -334,7 +386,7 @@ A: They run independently. The per-rule rate limiter catches any thrash. A warni
 A: Watch for the `entity_guard_loop_detected` event in Logbook -- the rate limiter will auto-suppress the rule and fire it. Either raise `max_enforcements_per_minute`, add a debounce, or fix the conflicting automation.
 
 **Q: How do I get notified when a rule fires?**
-A: Listen to the `entity_guard_enforced` event in an automation and call your notify service of choice. The integration intentionally does not include built-in notifications -- you already have a notify service.
+A: Two options — see the [Automations](#automations) section for full YAML examples. Either listen to the `entity_guard_enforced` event (filter by `rule_id` for rename-safe targeting) or use the `binary_sensor.<rule>_recently_enforced` sensor as a state-change trigger. The integration intentionally does not include built-in notifications — you already have a notify service.
 
 **Q: Does the test_enforce button do a dry-run?**
 A: No -- it actually runs the configured enforcement. Use it on test entities or while the rule's `enabled` switch is off (which still allows test_enforce).

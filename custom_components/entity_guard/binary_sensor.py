@@ -11,11 +11,13 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_entity_registry_updated_event
 
 from .const import (
     CONF_ENTRY_TYPE,
     DOMAIN,
     ENTRY_TYPE_RULE,
+    MODE_STATE,
     signal_master,
     signal_rule_update,
 )
@@ -53,6 +55,7 @@ async def async_setup_entry(
             EntityGuardActiveSensor(entry, engine),
             EntityGuardInCooldownSensor(entry, engine),
             EntityGuardPendingSensor(entry, engine),
+            EntityGuardRecentlyEnforcedSensor(entry, engine),
         ]
     )
 
@@ -147,3 +150,49 @@ class EntityGuardPendingSensor(EntityGuardBinarySensor):
     def is_on(self) -> bool:
         """Return True if a delayed enforcement is queued."""
         return bool(self._engine.is_pending())
+
+
+class EntityGuardRecentlyEnforcedSensor(EntityGuardBinarySensor):
+    """Binary sensor that stays ON for 30 seconds after any enforcement."""
+
+    def __init__(self, entry: ConfigEntry, engine: RuleEngine) -> None:
+        """Initialize the recently enforced sensor."""
+        super().__init__(entry, engine, "recently_enforced", "recently_enforced")
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to rule updates and target entity state changes."""
+        await super().async_added_to_hass()
+        target_entities = list(self._engine.config.target_entities or [])
+        if target_entities:
+            self.async_on_remove(
+                async_track_entity_registry_updated_event(
+                    self.hass, target_entities, self._handle_update
+                )
+            )
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if enforcement fired within the last 30 seconds."""
+        return bool(self._engine.is_recently_enforced())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Expose rule context for use in automation templates."""
+        cfg = self._engine.config
+        entities = list(cfg.target_entities or [])
+        names = []
+        if self.hass:
+            for eid in entities:
+                state = self.hass.states.get(eid)
+                names.append(
+                    state.attributes.get("friendly_name", eid) if state else eid
+                )
+        else:
+            names = list(entities)
+        return {
+            "rule_name": self._entry.title,
+            "target_entities": entities,
+            "target_entity_names": names,
+            "target": cfg.target_state if cfg.mode == MODE_STATE else cfg.target_value,
+            "delay_seconds": cfg.delay_seconds,
+        }

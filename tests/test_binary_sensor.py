@@ -118,12 +118,13 @@ async def test_setup_entry_adds_binary_sensors(hass: HomeAssistant):
     hass.data.setdefault(DOMAIN, {})["engines"] = {entry.entry_id: engine}
     added = []
     await async_setup_entry(hass, entry, added.extend)
-    assert len(added) == 4
+    assert len(added) == 5
     types = [type(s).__name__ for s in added]
     assert "EntityGuardArmedSensor" in types
     assert "EntityGuardActiveSensor" in types
     assert "EntityGuardInCooldownSensor" in types
     assert "EntityGuardPendingSensor" in types
+    assert "EntityGuardRecentlyEnforcedSensor" in types
 
 
 # ---------------------------------------------------------------------------
@@ -185,3 +186,205 @@ def test_pending_sensor_is_off():
     engine.is_pending.return_value = False
     sensor = EntityGuardPendingSensor(entry, engine)
     assert sensor.is_on is False
+
+
+def test_recently_enforced_sensor_is_on():
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="R"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.name = "My Rule"
+    engine.is_recently_enforced.return_value = True
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    assert sensor.is_on is True
+
+
+def test_recently_enforced_sensor_is_off():
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="R"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.name = "My Rule"
+    engine.is_recently_enforced.return_value = False
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    assert sensor.is_on is False
+
+
+def test_recently_enforced_sensor_extra_state_attributes():
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+        MODE_STATE,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="Balcony Rule"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.mode = MODE_STATE
+    engine.config.target_entities = ["light.balcony"]
+    engine.config.target_state = "off"
+    engine.config.target_value = None
+    engine.config.delay_seconds = 10
+    engine.is_recently_enforced.return_value = True
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    # hass=None → target_entity_names falls back to entity IDs
+    sensor.hass = None
+    attrs = sensor.extra_state_attributes
+    assert attrs["rule_name"] == "Balcony Rule"
+    assert attrs["target_entities"] == ["light.balcony"]
+    assert attrs["target_entity_names"] == ["light.balcony"]
+    assert attrs["target"] == "off"
+    assert attrs["delay_seconds"] == 10
+
+
+async def test_recently_enforced_sensor_target_entity_names_with_hass(
+    hass: HomeAssistant,
+):
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+        MODE_STATE,
+    )
+
+    # Entity with friendly_name in state attributes
+    hass.states.async_set("light.balcony", "on", {"friendly_name": "Balcony Light"})
+    # Entity with no friendly_name — falls back to entity_id
+    hass.states.async_set("light.kitchen", "off", {})
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="R"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.mode = MODE_STATE
+    engine.config.target_entities = ["light.balcony", "light.kitchen", "light.missing"]
+    engine.config.target_state = "off"
+    engine.config.target_value = None
+    engine.config.delay_seconds = 0
+    engine.is_recently_enforced.return_value = True
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    sensor.hass = hass
+    attrs = sensor.extra_state_attributes
+    assert attrs["target_entity_names"][0] == "Balcony Light"
+    assert (
+        attrs["target_entity_names"][1] == "light.kitchen"
+    )  # no friendly_name → entity_id
+    # missing entity → entity_id
+    assert attrs["target_entity_names"][2] == "light.missing"
+
+
+async def test_recently_enforced_subscribes_to_target_entity_changes(
+    hass: HomeAssistant,
+):
+    """Re-writes state when a target entity registry entry changes (for friendly name refresh)."""
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+        MODE_STATE,
+    )
+    from homeassistant.helpers.entity_registry import async_get as async_get_er
+
+    er = async_get_er(hass)
+    er.async_get_or_create("light", "test", "balcony", suggested_object_id="balcony")
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="R"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.mode = MODE_STATE
+    engine.config.target_entities = ["light.balcony"]
+    engine.config.target_state = "off"
+    engine.config.target_value = None
+    engine.config.delay_seconds = 0
+    engine.is_recently_enforced.return_value = False
+
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    sensor.hass = hass
+    sensor.async_write_ha_state = MagicMock()
+
+    await sensor.async_added_to_hass()
+
+    # Simulate entity registry update (e.g. rename) — sensor should re-write
+    er.async_update_entity("light.balcony", name="Balcony Light")
+    await hass.async_block_till_done()
+    sensor.async_write_ha_state.assert_called()
+
+
+async def test_recently_enforced_no_target_entities_no_subscription(
+    hass: HomeAssistant,
+):
+    """No state change subscription when target_entities is empty."""
+    from custom_components.entity_guard.binary_sensor import (
+        EntityGuardRecentlyEnforcedSensor,
+    )
+    from unittest.mock import MagicMock
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.entity_guard.const import (
+        DOMAIN,
+        CONF_ENTRY_TYPE,
+        ENTRY_TYPE_RULE,
+        MODE_STATE,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_ENTRY_TYPE: ENTRY_TYPE_RULE}, title="R"
+    )
+    engine = MagicMock()
+    engine.config.unique_id = "uid"
+    engine.config.mode = MODE_STATE
+    engine.config.target_entities = []
+    engine.config.target_state = "off"
+    engine.config.target_value = None
+    engine.config.delay_seconds = 0
+    engine.is_recently_enforced.return_value = False
+
+    sensor = EntityGuardRecentlyEnforcedSensor(entry, engine)
+    sensor.hass = hass
+    sensor.async_write_ha_state = MagicMock()
+    await sensor.async_added_to_hass()  # must not raise
+    sensor.async_write_ha_state.assert_called()
