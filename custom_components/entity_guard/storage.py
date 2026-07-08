@@ -37,6 +37,7 @@ def _default_rule_blob() -> dict[str, Any]:
         "suppression_reason": None,
         "consecutive_errors": 0,
         "last_error": None,
+        "counter_total_since": None,
     }
 
 
@@ -175,6 +176,11 @@ class EntityGuardStore:
                 if isinstance(blob.get("last_error"), str)
                 else None
             ),
+            "counter_total_since": (
+                blob.get("counter_total_since")
+                if isinstance(blob.get("counter_total_since"), str)
+                else None
+            ),
         }
 
     def _schedule_save(self) -> None:
@@ -209,11 +215,6 @@ class EntityGuardStore:
             del self._data["rules"][rule_id]
             self._schedule_save()
 
-    def clear_rule_history(self, rule_id: str) -> None:
-        """Reset counters/cooldowns for a rule but keep the slot."""
-        self._data["rules"][rule_id] = _default_rule_blob()
-        self._schedule_save()
-
     @staticmethod
     def runtime_to_blob(state: RuleRuntimeState) -> dict[str, Any]:
         """Serialize a RuleRuntimeState to a JSON-friendly blob."""
@@ -235,6 +236,7 @@ class EntityGuardStore:
             "suppression_reason": state.suppression_reason,
             "consecutive_errors": state.consecutive_errors,
             "last_error": state.last_error,
+            "counter_total_since": _serialize_dt(state.counter_total_since),
         }
 
     @staticmethod
@@ -280,4 +282,5 @@ class EntityGuardStore:
                 if isinstance(blob.get("last_error"), str)
                 else None
             ),
+            counter_total_since=_parse_dt(blob.get("counter_total_since")),
         )
