@@ -290,8 +290,7 @@ def _attributes_for_entities(entities: list[str]) -> list[str]:
     """Union of supported attributes across the domains of the given entities.
 
     Falls back to numeric-only attributes when no chosen entity belongs to a
-    domain with a known service mapping. Color enforcement is intentionally
-    offered only when a light entity is part of the target set.
+    domain with a known service mapping.
     """
     seen: dict[str, None] = {}
     for entity_id in entities:

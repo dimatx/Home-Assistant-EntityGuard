@@ -437,6 +437,105 @@ async def test_attribute_invalid_delay_skipped(hass: HomeAssistant):
     pass
 
 
+def _schema_key_names(schema):
+    """Return the set of string key names from a vol.Schema."""
+    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
+
+
+async def test_create_attribute_first_render_numeric_default_has_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Create flow: first render of attribute step (brightness default) must have
+    CONF_OPERATOR and CONF_THRESHOLD in its schema."""
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "NumericDefault",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    assert res["step_id"] == "attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR in keys
+    assert CONF_THRESHOLD in keys
+    assert CONF_TARGET_VALUE in keys
+
+
+async def test_create_attribute_rerender_after_rgb_color_no_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Create flow: after selecting rgb_color (attribute-change re-render), the schema
+    must contain NO CONF_OPERATOR and NO CONF_THRESHOLD."""
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "RGBSchema",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    assert res["step_id"] == "attribute"
+    # Submit with rgb_color selected to trigger the attribute-change re-render
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    assert res["step_id"] == "attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+
+
+async def test_create_attribute_rerender_after_color_temp_kelvin_no_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Create flow: after selecting color_temp_kelvin (attribute-change re-render), the
+    schema must contain NO CONF_OPERATOR and NO CONF_THRESHOLD."""
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "KelvinSchema",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    assert res["step_id"] == "attribute"
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    assert res["step_id"] == "attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+
+
 # ---------------------------------------------------------------------------
 # Safety step
 # ---------------------------------------------------------------------------

@@ -780,3 +780,92 @@ async def test_options_ensure_hub_iterates_past_rule_entry(
     )
     res = await hass.config_entries.flow.async_configure(res["flow_id"], {})
     assert res["type"] == FlowResultType.CREATE_ENTRY
+
+
+# ---------------------------------------------------------------------------
+# First-render schema assertions for color attribute rules
+# ---------------------------------------------------------------------------
+
+
+def _color_attr_entry(hass, name, attribute, target_value, uid="uid-color"):
+    """Create a MockConfigEntry for an attribute-mode color rule."""
+    data = {
+        CONF_ENTRY_TYPE: ENTRY_TYPE_RULE,
+        "rule_id": uid,
+        CONF_RULE_NAME: name,
+        CONF_TARGET_ENTITIES: ["light.bedroom"],
+        CONF_MODE: MODE_ATTRIBUTE,
+        CONF_ATTRIBUTE: attribute,
+        CONF_OPERATOR: None,
+        CONF_THRESHOLD: None,
+        CONF_TARGET_VALUE: target_value,
+        CONF_DELAY_SECONDS: 0,
+        "flags": [],
+        CONF_DEBOUNCE_ENABLED: False,
+        CONF_DEBOUNCE_SECONDS: 60,
+        CONF_MAX_ENFORCEMENTS_PER_MINUTE: 10,
+        CONF_SAFETY_ACKNOWLEDGED: False,
+    }
+    e = MockConfigEntry(domain=DOMAIN, data=data, title=name, unique_id=uid)
+    e.add_to_hass(hass)
+    return e
+
+
+def _schema_key_names(schema):
+    """Return the set of string key names from a vol.Schema."""
+    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
+
+
+async def test_edit_attribute_first_render_rgb_color_no_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Edit flow: first render of edit_attribute for an rgb_color rule must have
+    no CONF_OPERATOR and no CONF_THRESHOLD in its schema."""
+    e = _color_attr_entry(hass, "EditRGB", ATTR_RGB_COLOR, [255, 0, 0])
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    assert res["step_id"] == "edit_attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+
+
+async def test_edit_attribute_first_render_color_temp_kelvin_no_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Edit flow: first render of edit_attribute for a color_temp_kelvin rule must have
+    no CONF_OPERATOR and no CONF_THRESHOLD in its schema."""
+    e = _color_attr_entry(
+        hass, "EditKelvin", ATTR_COLOR_TEMP_KELVIN, 2700, uid="uid-kelvin"
+    )
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    assert res["step_id"] == "edit_attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+
+
+async def test_edit_attribute_first_render_numeric_has_operator_threshold(
+    hass: HomeAssistant,
+):
+    """Edit flow: first render of edit_attribute for a numeric (brightness) rule must
+    include CONF_OPERATOR and CONF_THRESHOLD in its schema."""
+    e = _attr_entry(hass, "EditNumeric")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    assert res["step_id"] == "edit_attribute"
+    keys = _schema_key_names(res["data_schema"])
+    assert CONF_OPERATOR in keys
+    assert CONF_THRESHOLD in keys
+    assert CONF_TARGET_VALUE in keys

@@ -8,6 +8,7 @@ from homeassistant.helpers import selector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.entity_guard.config_flow import (
+    _attribute_schema,
     _attributes_for_entities,
     _build_summary,
     _coerce_color_temp_kelvin,
@@ -435,3 +436,55 @@ def test_current_state_hint_missing_entity(hass: HomeAssistant):
     out = _current_state_hint(hass, "input_boolean.ghost")
     assert "input_boolean.ghost" in out
     assert "not found" in out
+
+
+# ---------------------------------------------------------------------------
+# _attribute_schema — schema structure for color vs. numeric attributes
+# ---------------------------------------------------------------------------
+
+
+def _schema_key_names(schema):
+    """Return the set of string key names from a vol.Schema."""
+    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
+
+
+def test_attribute_schema_rgb_color_no_operator_threshold():
+    """rgb_color schema must contain NO operator and NO threshold keys."""
+    schema = _attribute_schema(
+        [ATTR_RGB_COLOR, "brightness"],
+        ATTR_RGB_COLOR,
+    )
+    keys = _schema_key_names(schema)
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+    assert CONF_DELAY_SECONDS in keys
+
+
+def test_attribute_schema_color_temp_kelvin_no_operator_threshold():
+    """color_temp_kelvin schema must contain NO operator and NO threshold keys."""
+    schema = _attribute_schema(
+        [ATTR_COLOR_TEMP_KELVIN, "brightness"],
+        ATTR_COLOR_TEMP_KELVIN,
+    )
+    keys = _schema_key_names(schema)
+    assert CONF_OPERATOR not in keys
+    assert CONF_THRESHOLD not in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+    assert CONF_DELAY_SECONDS in keys
+
+
+def test_attribute_schema_numeric_has_operator_threshold():
+    """Numeric attribute schema MUST contain operator and threshold keys."""
+    schema = _attribute_schema(
+        ["brightness", ATTR_RGB_COLOR],
+        "brightness",
+    )
+    keys = _schema_key_names(schema)
+    assert CONF_OPERATOR in keys
+    assert CONF_THRESHOLD in keys
+    assert CONF_TARGET_VALUE in keys
+    assert CONF_ATTRIBUTE in keys
+    assert CONF_DELAY_SECONDS in keys

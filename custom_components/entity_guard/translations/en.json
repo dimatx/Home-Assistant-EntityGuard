@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Display name shown in the UI. Must be unique.",
           "target_entities": "One or more entities this rule will enforce.",
-          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
+          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a color target."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attribute mode",
-        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
+        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For color attributes, enforce the target color whenever the current color differs.",
         "data": {
           "attribute": "Attribute",
           "operator": "Operator",
@@ -41,7 +41,7 @@
           "delay_seconds": "Delay (seconds)"
         },
         "data_description": {
-          "attribute": "Attribute to monitor. Color options are available only for light entities.",
+          "attribute": "Attribute to monitor.",
           "operator": "Comparison operator used for numeric clamp rules.",
           "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
           "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
