@@ -18,7 +18,6 @@ from custom_components.entity_guard.const import (
     ERROR_RECOVERY_SUCCESS_THRESHOLD,
     ERROR_THRESHOLD,
     EVENT_ENFORCED,
-    EVENT_SKIPPED,
     MODE_ATTRIBUTE,
     MODE_STATE,
     OPERATOR_GE,
@@ -360,14 +359,14 @@ async def test_color_trigger_decision_missing_target_returns_false(hass: HomeAss
     config = _make_config(mode=MODE_ATTRIBUTE, attribute=ATTR_RGB_COLOR, target_value=None)
     engine = _make_engine(hass, config)
     st = _state("on", {"rgb_color": [1, 2, 3]})
-    assert engine._color_trigger_decision(st) == (False, None)
+    assert engine._color_trigger_decision(st) is False
 
 
 async def test_color_trigger_decision_missing_attribute_returns_false(hass: HomeAssistant):
     config = _make_config(mode=MODE_ATTRIBUTE, attribute=None, target_value=[255, 0, 0])
     engine = _make_engine(hass, config)
     st = _state("on", {"rgb_color": [1, 2, 3]})
-    assert engine._color_trigger_decision(st) == (False, None)
+    assert engine._color_trigger_decision(st) is False
 
 
 async def test_color_trigger_decision_missing_current_value_enforces(hass: HomeAssistant):
@@ -378,7 +377,7 @@ async def test_color_trigger_decision_missing_current_value_enforces(hass: HomeA
     )
     engine = _make_engine(hass, config)
     st = _state("on", {})
-    assert engine._color_trigger_decision(st) == (True, None)
+    assert engine._color_trigger_decision(st) is True
 
 
 async def test_color_trigger_decision_missing_current_rgb_value_enforces(hass: HomeAssistant):
@@ -389,7 +388,7 @@ async def test_color_trigger_decision_missing_current_rgb_value_enforces(hass: H
     )
     engine = _make_engine(hass, config)
     st = _state("on", {})
-    assert engine._color_trigger_decision(st) == (True, None)
+    assert engine._color_trigger_decision(st) is True
 
 
 async def test_color_trigger_decision_missing_kelvin_target_returns_false(hass: HomeAssistant):
@@ -400,7 +399,7 @@ async def test_color_trigger_decision_missing_kelvin_target_returns_false(hass: 
     )
     engine = _make_engine(hass, config)
     st = _state("on", {"color_temp_kelvin": 2700})
-    assert engine._color_trigger_decision(st) == (False, None)
+    assert engine._color_trigger_decision(st) is False
 
 
 async def test_color_trigger_decision_unknown_color_attribute_returns_false(
@@ -413,7 +412,7 @@ async def test_color_trigger_decision_unknown_color_attribute_returns_false(
     )
     engine = _make_engine(hass, config)
     st = _state("on", {"color_effect": "blue"})
-    assert engine._color_trigger_decision(st) == (False, None)
+    assert engine._color_trigger_decision(st) is False
 
 
 async def test_is_triggered_rgb_color_within_tolerance(hass: HomeAssistant):
@@ -524,7 +523,7 @@ async def test_color_enforcement_calls_light_turn_on_with_kelvin(hass: HomeAssis
     assert service_calls[0].data["color_temp_kelvin"] == 2700
 
 
-async def test_color_enforcement_skips_when_light_off(hass: HomeAssistant):
+async def test_color_enforcement_on_off_light_calls_turn_on(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
         attribute=ATTR_RGB_COLOR,
@@ -533,19 +532,21 @@ async def test_color_enforcement_skips_when_light_off(hass: HomeAssistant):
     )
     engine = _make_engine(hass, config)
     engine._startup_complete = True
-    skipped_events = []
-    service = AsyncMock()
-    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
-    hass.services.async_register("light", "turn_on", service)
+    service_calls = []
+
+    async def _turn_on(call):
+        service_calls.append(call)
+
+    hass.services.async_register("light", "turn_on", _turn_on)
     hass.states.async_set("light.bedroom", "off", {"rgb_color": [0, 0, 255]})
 
     await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
 
-    service.assert_not_awaited()
-    assert skipped_events[-1].data["reason"] == "light_off"
+    assert service_calls
+    assert service_calls[0].data["rgb_color"] == [255, 0, 0]
 
 
-async def test_color_enforcement_skips_when_light_unavailable(hass: HomeAssistant):
+async def test_color_enforcement_does_not_enforce_when_unavailable(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
         attribute=ATTR_COLOR_TEMP_KELVIN,
@@ -554,16 +555,20 @@ async def test_color_enforcement_skips_when_light_unavailable(hass: HomeAssistan
     )
     engine = _make_engine(hass, config)
     engine._startup_complete = True
-    skipped_events = []
-    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    service_calls = []
+
+    async def _turn_on(call):
+        service_calls.append(call)
+
+    hass.services.async_register("light", "turn_on", _turn_on)
     hass.states.async_set("light.bedroom", "unavailable")
 
     await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
 
-    assert skipped_events[-1].data["reason"] == "light_unavailable"
+    assert not service_calls
 
 
-async def test_delayed_color_enforcement_skips_if_light_turns_off(hass: HomeAssistant):
+async def test_delayed_color_enforcement_fires_when_light_turns_off(hass: HomeAssistant):
     from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
     config = _make_config(
@@ -575,8 +580,12 @@ async def test_delayed_color_enforcement_skips_if_light_turns_off(hass: HomeAssi
     )
     engine = _make_engine(hass, config)
     engine._startup_complete = True
-    skipped_events = []
-    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    service_calls = []
+
+    async def _turn_on(call):
+        service_calls.append(call)
+
+    hass.services.async_register("light", "turn_on", _turn_on)
     hass.states.async_set("light.bedroom", "on", {"rgb_color": [0, 0, 255]})
     await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
 
@@ -584,10 +593,11 @@ async def test_delayed_color_enforcement_skips_if_light_turns_off(hass: HomeAssi
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
     await hass.async_block_till_done()
 
-    assert skipped_events[-1].data["reason"] == "light_off"
+    assert service_calls
+    assert service_calls[0].data["rgb_color"] == [255, 0, 0]
 
 
-async def test_manual_color_enforce_skips_when_light_off(hass: HomeAssistant):
+async def test_manual_color_enforce_on_off_light_calls_turn_on(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
         attribute=ATTR_RGB_COLOR,
@@ -596,16 +606,18 @@ async def test_manual_color_enforce_skips_when_light_off(hass: HomeAssistant):
     )
     engine = _make_engine(hass, config)
     engine._startup_complete = True
-    skipped_events = []
-    service = AsyncMock()
-    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
-    hass.services.async_register("light", "turn_on", service)
+    service_calls = []
+
+    async def _turn_on(call):
+        service_calls.append(call)
+
+    hass.services.async_register("light", "turn_on", _turn_on)
     hass.states.async_set("light.bedroom", "off", {"rgb_color": [0, 0, 255]})
 
     await engine.async_test_enforce()
 
-    service.assert_not_awaited()
-    assert skipped_events[-1].data["reason"] == "light_off"
+    assert service_calls
+    assert service_calls[0].data["rgb_color"] == [255, 0, 0]
 
 
 async def test_color_enforcement_respects_debounce_cooldown(hass: HomeAssistant):

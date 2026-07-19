@@ -349,15 +349,7 @@ class RuleEngine:
             if entity_id not in self._config.target_entities:
                 return
 
-        triggered, skip_reason = self._trigger_decision(entity_id, new_state)
-
-        if skip_reason is not None:
-            self._cancel_pending(entity_id)
-            self._fire_skipped(entity_id, skip_reason)
-            self._set_status(self._derive_armed_or_cooldown(now))
-            return
-
-        if not triggered:
+        if not self._trigger_decision(entity_id, new_state):
             # State no longer matches; cancel any pending delayed enforcement.
             self._cancel_pending(entity_id)
             self._set_status(self._derive_armed_or_cooldown(now))
@@ -390,18 +382,17 @@ class RuleEngine:
 
     def _is_triggered(self, entity_id: str, new_state: Any) -> bool:
         """Return True if the rule's trigger condition holds for entity_id's state."""
-        triggered, _skip_reason = self._trigger_decision(entity_id, new_state)
-        return triggered
+        return self._trigger_decision(entity_id, new_state)
 
-    def _trigger_decision(self, entity_id: str, new_state: Any) -> tuple[bool, str | None]:
-        """Return trigger result and optional skip reason."""
+    def _trigger_decision(self, entity_id: str, new_state: Any) -> bool:
+        """Return True if the rule's trigger condition holds for the given state."""
         if new_state is None:
-            return False, None
+            return False
 
         if self._config.mode == MODE_STATE:
             if new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-                return False, None
-            return new_state.state in self._config.trigger_states, None
+                return False
+            return new_state.state in self._config.trigger_states
 
         if self._config.mode == MODE_ATTRIBUTE:
             attr = self._config.attribute
@@ -410,7 +401,7 @@ class RuleEngine:
             op = self._config.operator
             threshold = self._config.threshold
             if attr is None or op is None or threshold is None:
-                return False, None
+                return False
             value = (
                 new_state.attributes.get(attr)
                 if hasattr(new_state, "attributes")
@@ -419,41 +410,39 @@ class RuleEngine:
             try:
                 value_f = float(value)
             except (TypeError, ValueError):
-                return False, None
-            return _compare(value_f, op, threshold), None
+                return False
+            return _compare(value_f, op, threshold)
 
-        return False, None
+        return False
 
-    def _color_trigger_decision(self, new_state: Any) -> tuple[bool, str | None]:
-        """Return trigger result and skip reason for color-match attributes."""
+    def _color_trigger_decision(self, new_state: Any) -> bool:
+        """Return True if the color attribute differs from the target beyond tolerance."""
         attr = self._config.attribute
         if attr is None:
-            return False, None
+            return False
         if new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            return False, "light_unavailable"
-        if new_state.state != "on":
-            return False, "light_off"
+            return False
 
         attributes = new_state.attributes if hasattr(new_state, "attributes") else {}
         if attr == ATTR_RGB_COLOR:
             target = _normalize_rgb_color(self._config.target_value)
             if target is None:
-                return False, None
+                return False
             current = _normalize_rgb_color(attributes.get(attr))
             if current is None:
-                return True, None
-            return not _rgb_matches(current, target), None
+                return True
+            return not _rgb_matches(current, target)
 
         if attr == ATTR_COLOR_TEMP_KELVIN:
             target = _normalize_kelvin(self._config.target_value)
             if target is None:
-                return False, None
+                return False
             current = _normalize_kelvin(attributes.get(attr))
             if current is None:
-                return True, None
-            return abs(current - target) > COLOR_TEMP_KELVIN_TOLERANCE, None
+                return True
+            return abs(current - target) > COLOR_TEMP_KELVIN_TOLERANCE
 
-        return False, None
+        return False
 
     def _in_cooldown(self, entity_id: str, now: datetime) -> bool:
         """Return True if the entity is still inside its debounce cooldown."""
@@ -485,13 +474,7 @@ class RuleEngine:
                 self._apply_idle_status()
                 return
             current = self._hass.states.get(entity_id)
-            triggered, skip_reason = self._trigger_decision(entity_id, current)
-            if skip_reason is not None:
-                if self._pending_enforcements.get(entity_id) is my_cancel:
-                    self._pending_enforcements.pop(entity_id, None)
-                self._fire_skipped(entity_id, skip_reason)
-                return
-            if current is None or not triggered:
+            if current is None or not self._trigger_decision(entity_id, current):
                 # Only remove our own cancel handle — a newer timer may have replaced it.
                 if self._pending_enforcements.get(entity_id) is my_cancel:
                     self._pending_enforcements.pop(entity_id, None)
@@ -556,14 +539,6 @@ class RuleEngine:
             # detect ERROR→OK recovery (EG-6).
             was_in_error = self._current_status == STATUS_ERROR
             self._set_status(STATUS_ENFORCING)
-
-            current_state = self._hass.states.get(entity_id)
-            if self._config.attribute in COLOR_ATTRIBUTES and current_state is not None:
-                _triggered, skip_reason = self._color_trigger_decision(current_state)
-                if skip_reason is not None:
-                    self._fire_skipped(entity_id, skip_reason)
-                    self._set_status(self._derive_armed_or_cooldown(now))
-                    return
 
             service_call = self._resolve_service(entity_id)
             if service_call is None:

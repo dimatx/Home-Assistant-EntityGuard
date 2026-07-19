@@ -92,7 +92,7 @@ Adding the integration takes you straight into rule creation. The **Entity Guard
 | Target value | Numeric clamp target, RGB color target, or Kelvin color-temperature target |
 | Delay (seconds) | Wait this long before enforcing (0-86400) |
 
-For `rgb_color` and `color_temp_kelvin`, Entity Guard uses a **match** model instead of a clamp: if the light is on and its current color differs from the configured target beyond a small tolerance, the rule calls `light.turn_on` with the target color. Lights that are off or unavailable are skipped — Entity Guard will not turn them on just to enforce color.
+For `rgb_color` and `color_temp_kelvin`, Entity Guard uses a **match** model instead of a clamp: when the current color differs from the configured target beyond a small tolerance, the rule calls `light.turn_on` with the target color (which also turns the light on if it is currently off). Unavailable or unknown lights are skipped. To gate color enforcement on the light being already on, add a flag condition `light.x == on`.
 
 ![Step 2b: Attribute Mode](assets/03b_attribute_mode.png)
 
