@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Weergavenaam die wordt getoond in de UI. Moet uniek zijn.",
           "target_entities": "Eén of meer entiteiten die deze regel zal afdwingen.",
-          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
+          "mode": "Statusmodus dwingt een specifieke status af. Attribuutmodus begrenst een numeriek attribuut."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attribuutmodus",
-        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
+        "description": "Wanneer het attribuut van een doelentiteit de drempelwaarde overschrijdt, wordt het na de optionele vertraging teruggezet naar de doelwaarde.",
         "data": {
           "attribute": "Attribuut",
           "operator": "Operator",
@@ -41,10 +41,10 @@
           "delay_seconds": "Vertraging (seconden)"
         },
         "data_description": {
-          "attribute": "Attribute to monitor. Color options are available only for light entities.",
-          "operator": "Comparison operator used for numeric clamp rules.",
-          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
-          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
+          "attribute": "Attribuut om te bewaken.",
+          "operator": "Vergelijkingsoperator. Gelijkheid wordt opzettelijk niet ondersteund (precisie van floats).",
+          "threshold": "Numerieke waarde die wordt vergeleken met het live attribuut.",
+          "target_value": "Waarde waarop het attribuut wordt ingesteld wanneer de regel wordt geactiveerd.",
           "delay_seconds": "Wacht zo lang na een trigger voordat de regel afdwingt. 0 = direct. Max 86400 (24u)."
         }
       },

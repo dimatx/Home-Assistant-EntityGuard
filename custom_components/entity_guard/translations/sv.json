@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Visningsnamn som visas i gränssnittet. Måste vara unikt.",
           "target_entities": "En eller flera entiteter som denna regel ska tillämpas på.",
-          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
+          "mode": "Tillståndsläge framtvingar ett specifikt tillstånd. Attributläge begränsar ett numeriskt attribut."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attributläge",
-        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
+        "description": "När attributet på någon målentitet passerar tröskelvärdet, begränsa det tillbaka till målvärdet efter den valfria fördröjningen.",
         "data": {
           "attribute": "Attribut",
           "operator": "Operator",
@@ -41,10 +41,10 @@
           "delay_seconds": "Fördröjning (sekunder)"
         },
         "data_description": {
-          "attribute": "Attribute to monitor. Color options are available only for light entities.",
-          "operator": "Comparison operator used for numeric clamp rules.",
-          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
-          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
+          "attribute": "Attribut att övervaka.",
+          "operator": "Jämförelseoperator. Likhet stöds avsiktligen inte (flyttalsprecision).",
+          "threshold": "Numeriskt värde som jämförs mot det aktuella attributet.",
+          "target_value": "Värde som attributet sätts till när regeln utlöses.",
           "delay_seconds": "Vänta så här länge efter en utlösare innan tillämpning. 0 = omedelbart. Max 86400 (24h)."
         }
       },

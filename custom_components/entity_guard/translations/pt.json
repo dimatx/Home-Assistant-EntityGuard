@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Nome de apresentação mostrado na interface. Tem de ser único.",
           "target_entities": "Uma ou mais entidades sobre as quais esta regra irá atuar.",
-          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
+          "mode": "O modo de estado força um estado específico. O modo de atributo limita um atributo numérico."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Modo de atributo",
-        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
+        "description": "Quando o atributo numa entidade alvo ultrapassar o limiar, repõe-no ao valor alvo após o atraso opcional.",
         "data": {
           "attribute": "Atributo",
           "operator": "Operador",
@@ -41,10 +41,10 @@
           "delay_seconds": "Atraso (segundos)"
         },
         "data_description": {
-          "attribute": "Attribute to monitor. Color options are available only for light entities.",
-          "operator": "Comparison operator used for numeric clamp rules.",
-          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
-          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
+          "attribute": "Atributo a monitorizar.",
+          "operator": "Operador de comparação. A igualdade não é suportada intencionalmente (precisão de vírgula flutuante).",
+          "threshold": "Valor numérico comparado com o atributo em tempo real.",
+          "target_value": "Valor para o qual o atributo será definido quando a regra disparar.",
           "delay_seconds": "Aguarda este tempo após um gatilho antes de aplicar. 0 = imediato. Máximo 86400 (24h)."
         }
       },

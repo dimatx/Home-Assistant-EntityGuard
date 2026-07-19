@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Visningsnavn som vises i grensesnittet. Må være unikt.",
           "target_entities": "En eller flere enheter som denne regelen skal håndheve.",
-          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
+          "mode": "Tilstandsmodus tvinger en bestemt tilstand. Attributtmodus begrenser et numerisk attributt."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attributtmodus",
-        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
+        "description": "Når attributtet på en målenhet krysser terskelen, settes det tilbake til målverdien etter en valgfri forsinkelse.",
         "data": {
           "attribute": "Attributt",
           "operator": "Operator",
@@ -41,10 +41,10 @@
           "delay_seconds": "Forsinkelse (sekunder)"
         },
         "data_description": {
-          "attribute": "Attribute to monitor. Color options are available only for light entities.",
-          "operator": "Comparison operator used for numeric clamp rules.",
-          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
-          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
+          "attribute": "Attributt som skal overvåkes.",
+          "operator": "Sammenligningsoperator. Likhet støttes med vilje ikke (flyttallspresisjon).",
+          "threshold": "Numerisk verdi som sammenlignes med det aktive attributtet.",
+          "target_value": "Verdi attributtet settes til når regelen utløses.",
           "delay_seconds": "Vent så lenge etter en utløser før håndheving. 0 = umiddelbart. Maks 86400 (24t)."
         }
       },
