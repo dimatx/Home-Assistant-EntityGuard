@@ -23,6 +23,8 @@ from custom_components.entity_guard.config_flow import (
     _trigger_states_selector,
 )
 from custom_components.entity_guard.const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     CONF_ATTRIBUTE,
     CONF_DEBOUNCE_ENABLED,
     CONF_DEBOUNCE_SECONDS,
@@ -49,6 +51,7 @@ from custom_components.entity_guard.const import (
     MIN_DELAY_SECONDS,
     MODE_ATTRIBUTE,
     MODE_STATE,
+    NUMERIC_ATTRIBUTES,
 )
 
 
@@ -194,19 +197,17 @@ def test_states_for_entities_dedup_across_domains():
 def test_attributes_for_entities_known_domain():
     res = _attributes_for_entities(["light.bedroom"])
     assert "brightness" in res
+    assert ATTR_RGB_COLOR in res
+    assert ATTR_COLOR_TEMP_KELVIN in res
 
 
 def test_attributes_for_entities_unknown_domain():
-    from custom_components.entity_guard.const import SUPPORTED_ATTRIBUTES
-
     res = _attributes_for_entities(["foo.bar"])
-    assert res == list(SUPPORTED_ATTRIBUTES)
+    assert res == list(NUMERIC_ATTRIBUTES)
 
 
 def test_attributes_for_entities_empty():
-    from custom_components.entity_guard.const import SUPPORTED_ATTRIBUTES
-
-    assert _attributes_for_entities([]) == list(SUPPORTED_ATTRIBUTES)
+    assert _attributes_for_entities([]) == list(NUMERIC_ATTRIBUTES)
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +290,21 @@ def test_build_summary_attribute_mode():
     assert "brightness" in summary
     assert "Targets:" in summary
     assert "5s" in summary
+
+
+def test_build_summary_attribute_mode_rgb_color():
+    data = {
+        CONF_RULE_NAME: "Accent",
+        CONF_TARGET_ENTITIES: ["light.strip"],
+        CONF_MODE: MODE_ATTRIBUTE,
+        CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+        CONF_TARGET_VALUE: [255, 0, 0],
+        CONF_DELAY_SECONDS: 0,
+        CONF_FLAGS: [],
+    }
+    summary = _build_summary(data)
+    assert ATTR_RGB_COLOR in summary
+    assert "enforce match" in summary
 
 
 def test_build_summary_with_flags():

@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Anzeigename in der Benutzeroberfläche. Muss eindeutig sein.",
           "target_entities": "Eine oder mehrere Entitäten, auf die diese Regel angewendet wird.",
-          "mode": "Der Statusmodus erzwingt einen bestimmten Status. Der Attributmodus begrenzt ein numerisches Attribut."
+          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attributmodus",
-        "description": "Wenn das Attribut einer Zielentität den Schwellenwert über- oder unterschreitet, wird es nach der optionalen Verzögerung auf den Zielwert zurückgesetzt.",
+        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
         "data": {
           "attribute": "Attribut",
           "operator": "Operator",
@@ -41,10 +41,10 @@
           "delay_seconds": "Verzögerung (Sekunden)"
         },
         "data_description": {
-          "attribute": "Zu überwachendes Attribut.",
-          "operator": "Vergleichsoperator. Gleichheit wird absichtlich nicht unterstützt (Gleitkomma-Genauigkeit).",
-          "threshold": "Numerischer Wert, der mit dem aktuellen Attribut verglichen wird.",
-          "target_value": "Wert, auf den das Attribut gesetzt wird, wenn die Regel auslöst.",
+          "attribute": "Attribute to monitor. Color options are available only for light entities.",
+          "operator": "Comparison operator used for numeric clamp rules.",
+          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
+          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
           "delay_seconds": "Wartezeit nach einem Auslöser, bevor durchgesetzt wird. 0 = sofort. Max. 86400 (24 Std.)."
         }
       },
@@ -114,7 +114,9 @@
       "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
       "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
       "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
-      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
+      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
+      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Es kann nur ein Entity Guard-Hub konfiguriert werden.",
@@ -202,7 +204,9 @@
       "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
       "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
       "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
-      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
+      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
+      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
     },
     "abort": {
       "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
@@ -284,7 +288,9 @@
         "brightness": "Helligkeit",
         "volume_level": "Lautstärke",
         "temperature": "Temperatur",
-        "percentage": "Prozentsatz"
+        "percentage": "Prozentsatz",
+        "rgb_color": "RGB color",
+        "color_temp_kelvin": "Color temperature (Kelvin)"
       }
     },
     "operator": {

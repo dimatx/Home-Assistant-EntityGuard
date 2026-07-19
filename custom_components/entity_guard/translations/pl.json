@@ -13,7 +13,7 @@
         "data_description": {
           "rule_name": "Nazwa wyświetlana w interfejsie. Musi być unikalna.",
           "target_entities": "Jedna lub więcej encji, na które ta reguła będzie oddziaływać.",
-          "mode": "Tryb stanu wymusza określony stan. Tryb atrybutu ogranicza wartość atrybutu liczbowego."
+          "mode": "State mode forces a specific state. Attribute mode clamps numeric attributes or matches a light color target."
         }
       },
       "state": {
@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Tryb atrybutu",
-        "description": "Gdy atrybut dowolnej encji docelowej przekroczy próg, zostanie ograniczony do wartości docelowej po opcjonalnym opóźnieniu.",
+        "description": "For numeric attributes, when the value crosses the threshold, clamp it back to the target value after the optional delay. For light color attributes, enforce the target color whenever the current color differs.",
         "data": {
           "attribute": "Atrybut",
           "operator": "Operator",
@@ -41,10 +41,10 @@
           "delay_seconds": "Opóźnienie (sekundy)"
         },
         "data_description": {
-          "attribute": "Atrybut do monitorowania.",
-          "operator": "Operator porównania. Równość celowo nie jest obsługiwana (precyzja liczb zmiennoprzecinkowych).",
-          "threshold": "Wartość liczbowa porównywana z bieżącym atrybutem.",
-          "target_value": "Wartość, na którą atrybut zostanie ustawiony, gdy reguła zadziała.",
+          "attribute": "Attribute to monitor. Color options are available only for light entities.",
+          "operator": "Comparison operator used for numeric clamp rules.",
+          "threshold": "Numeric value compared against the live attribute. Only used for numeric clamp rules.",
+          "target_value": "Value to enforce. Numeric attributes clamp to this value; rgb_color and color_temp_kelvin must match it.",
           "delay_seconds": "Czas oczekiwania po wyzwoleniu przed wymuszeniem. 0 = natychmiast. Maks. 86400 (24h)."
         }
       },
@@ -114,7 +114,9 @@
       "forbidden_state": "Stany „unavailable”, „unknown” i „none” nie mogą być używane jako wyzwalacze ani cele.",
       "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
       "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
-      "name_already_exists": "Reguła o tej nazwie już istnieje."
+      "name_already_exists": "Reguła o tej nazwie już istnieje.",
+      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
+      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jeden hub Entity Guard.",
@@ -202,7 +204,9 @@
       "forbidden_state": "Stany „unavailable”, „unknown” i „none” nie mogą być używane jako wyzwalacze ani cele.",
       "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
       "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
-      "name_already_exists": "Reguła o tej nazwie już istnieje."
+      "name_already_exists": "Reguła o tej nazwie już istnieje.",
+      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
+      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
     },
     "abort": {
       "name_already_exists": "Reguła o tej nazwie już istnieje.",
@@ -284,7 +288,9 @@
         "brightness": "Jasność",
         "volume_level": "Poziom głośności",
         "temperature": "Temperatura",
-        "percentage": "Procent"
+        "percentage": "Procent",
+        "rgb_color": "RGB color",
+        "color_temp_kelvin": "Color temperature (Kelvin)"
       }
     },
     "operator": {

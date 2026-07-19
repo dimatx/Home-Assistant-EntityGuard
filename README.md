@@ -22,7 +22,7 @@ Enforce desired entity state in Home Assistant via declarative rules. Replaces N
 
 - **Declarative rules** -- bind 1+ target entities to a trigger and target state; integration enforces it
 - **State mode** -- force entity to a target state when it enters one of N trigger states
-- **Attribute mode** -- clamp a numeric attribute (brightness, volume, temperature, percentage) against a threshold
+- **Attribute mode** -- clamp numeric attributes or enforce `light` color targets (`rgb_color`, `color_temp_kelvin`)
 - **Conditional flags** -- list of `(entity, match_state)` conditions AND'd; rule only fires when all match
 - **Per-entity cooldown / debounce** -- avoid loop fights with the original cause
 - **Per-rule rate limiter** -- cap enforcements/min; auto-suppress on overshoot to break loops
@@ -68,7 +68,7 @@ Adding the integration takes you straight into rule creation. The **Entity Guard
 |-------|-------------|
 | Rule name | A descriptive name for the rule (e.g., "Front door auto-lock") |
 | Target entities | One or more entities the rule will enforce |
-| Mode | `state` (force a specific state) or `attribute` (clamp a numeric attribute) |
+| Mode | `state` (force a specific state) or `attribute` (clamp a numeric attribute / match a light color target) |
 
 ![Step 1: Rule Basics](assets/02_rule_basics.png)
 
@@ -86,11 +86,13 @@ Adding the integration takes you straight into rule creation. The **Entity Guard
 
 | Field | Description |
 |-------|-------------|
-| Attribute | One of `brightness`, `volume_level`, `temperature`, `percentage` |
-| Operator | `<`, `<=`, `>`, `>=` (equality comparisons unsupported -- float precision) |
-| Threshold | Numeric value to compare against |
-| Target value | Value to clamp the attribute to when the threshold is crossed |
+| Attribute | `brightness`, `volume_level`, `temperature`, `percentage`, `rgb_color`, or `color_temp_kelvin` |
+| Operator | `<`, `<=`, `>`, `>=` for numeric clamp rules only |
+| Threshold | Numeric value to compare against for numeric clamp rules only |
+| Target value | Numeric clamp target, RGB color target, or Kelvin color-temperature target |
 | Delay (seconds) | Wait this long before enforcing (0-86400) |
+
+For `rgb_color` and `color_temp_kelvin`, Entity Guard uses a **match** model instead of a clamp: if the light is on and its current color differs from the configured target beyond a small tolerance, the rule calls `light.turn_on` with the target color. Lights that are off or unavailable are skipped — Entity Guard will not turn them on just to enforce color.
 
 ![Step 2b: Attribute Mode](assets/03b_attribute_mode.png)
 
@@ -283,6 +285,27 @@ All four are described in the Logbook.
 | Threshold | `64` |
 | Target value | `64` |
 | Flags | `input_boolean.night_mode == on` |
+
+### Force living-room lights to warm white after sunset
+
+| Setting | Value |
+|---------|-------|
+| Target entities | `light.living_room_lamps` |
+| Mode | attribute |
+| Attribute | `color_temp_kelvin` |
+| Target value | `2700` |
+| Delay (seconds) | `0` |
+| Flags | `sun.sun == below_horizon` |
+
+### Lock accent strip to red
+
+| Setting | Value |
+|---------|-------|
+| Target entities | `light.accent_strip` |
+| Mode | attribute |
+| Attribute | `rgb_color` |
+| Target value | `[255, 0, 0]` |
+| Delay (seconds) | `0` |
 
 ---
 

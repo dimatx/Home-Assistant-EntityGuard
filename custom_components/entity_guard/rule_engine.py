@@ -25,7 +25,12 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     ATTRIBUTE_SERVICE_MAP,
+    COLOR_ATTRIBUTES,
+    COLOR_RGB_TOLERANCE,
+    COLOR_TEMP_KELVIN_TOLERANCE,
     DEFAULT_LOOP_SUPPRESS_MINUTES,
     DOMAIN,
     DOMAIN_SERVICE_MAP,
@@ -344,7 +349,13 @@ class RuleEngine:
             if entity_id not in self._config.target_entities:
                 return
 
-        triggered = self._is_triggered(entity_id, new_state)
+        triggered, skip_reason = self._trigger_decision(entity_id, new_state)
+
+        if skip_reason is not None:
+            self._cancel_pending(entity_id)
+            self._fire_skipped(entity_id, skip_reason)
+            self._set_status(self._derive_armed_or_cooldown(now))
+            return
 
         if not triggered:
             # State no longer matches; cancel any pending delayed enforcement.
@@ -379,20 +390,27 @@ class RuleEngine:
 
     def _is_triggered(self, entity_id: str, new_state: Any) -> bool:
         """Return True if the rule's trigger condition holds for entity_id's state."""
+        triggered, _skip_reason = self._trigger_decision(entity_id, new_state)
+        return triggered
+
+    def _trigger_decision(self, entity_id: str, new_state: Any) -> tuple[bool, str | None]:
+        """Return trigger result and optional skip reason."""
         if new_state is None:
-            return False
+            return False, None
 
         if self._config.mode == MODE_STATE:
             if new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-                return False
-            return new_state.state in self._config.trigger_states
+                return False, None
+            return new_state.state in self._config.trigger_states, None
 
         if self._config.mode == MODE_ATTRIBUTE:
             attr = self._config.attribute
+            if attr in COLOR_ATTRIBUTES:
+                return self._color_trigger_decision(new_state)
             op = self._config.operator
             threshold = self._config.threshold
             if attr is None or op is None or threshold is None:
-                return False
+                return False, None
             value = (
                 new_state.attributes.get(attr)
                 if hasattr(new_state, "attributes")
@@ -401,10 +419,41 @@ class RuleEngine:
             try:
                 value_f = float(value)
             except (TypeError, ValueError):
-                return False
-            return _compare(value_f, op, threshold)
+                return False, None
+            return _compare(value_f, op, threshold), None
 
-        return False
+        return False, None
+
+    def _color_trigger_decision(self, new_state: Any) -> tuple[bool, str | None]:
+        """Return trigger result and skip reason for color-match attributes."""
+        attr = self._config.attribute
+        if attr is None:
+            return False, None
+        if new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            return False, "light_unavailable"
+        if new_state.state != "on":
+            return False, "light_off"
+
+        attributes = new_state.attributes if hasattr(new_state, "attributes") else {}
+        if attr == ATTR_RGB_COLOR:
+            target = _normalize_rgb_color(self._config.target_value)
+            if target is None:
+                return False, None
+            current = _normalize_rgb_color(attributes.get(attr))
+            if current is None:
+                return True, None
+            return not _rgb_matches(current, target), None
+
+        if attr == ATTR_COLOR_TEMP_KELVIN:
+            target = _normalize_kelvin(self._config.target_value)
+            if target is None:
+                return False, None
+            current = _normalize_kelvin(attributes.get(attr))
+            if current is None:
+                return True, None
+            return abs(current - target) > COLOR_TEMP_KELVIN_TOLERANCE, None
+
+        return False, None
 
     def _in_cooldown(self, entity_id: str, now: datetime) -> bool:
         """Return True if the entity is still inside its debounce cooldown."""
@@ -436,7 +485,13 @@ class RuleEngine:
                 self._apply_idle_status()
                 return
             current = self._hass.states.get(entity_id)
-            if current is None or not self._is_triggered(entity_id, current):
+            triggered, skip_reason = self._trigger_decision(entity_id, current)
+            if skip_reason is not None:
+                if self._pending_enforcements.get(entity_id) is my_cancel:
+                    self._pending_enforcements.pop(entity_id, None)
+                self._fire_skipped(entity_id, skip_reason)
+                return
+            if current is None or not triggered:
                 # Only remove our own cancel handle — a newer timer may have replaced it.
                 if self._pending_enforcements.get(entity_id) is my_cancel:
                     self._pending_enforcements.pop(entity_id, None)
@@ -502,17 +557,17 @@ class RuleEngine:
             was_in_error = self._current_status == STATUS_ERROR
             self._set_status(STATUS_ENFORCING)
 
+            current_state = self._hass.states.get(entity_id)
+            if self._config.attribute in COLOR_ATTRIBUTES and current_state is not None:
+                _triggered, skip_reason = self._color_trigger_decision(current_state)
+                if skip_reason is not None:
+                    self._fire_skipped(entity_id, skip_reason)
+                    self._set_status(self._derive_armed_or_cooldown(now))
+                    return
+
             service_call = self._resolve_service(entity_id)
             if service_call is None:
-                self._hass.bus.async_fire(
-                    EVENT_SKIPPED,
-                    {
-                        "rule_id": self._config.unique_id,
-                        "rule_name": self._config.name,
-                        "entity_id": entity_id,
-                        "reason": "no_service_mapping",
-                    },
-                )
+                self._fire_skipped(entity_id, "no_service_mapping")
                 _LOGGER.debug("No service mapping resolved for %s", entity_id)
                 self._set_status(self._derive_armed_or_cooldown(now))
                 return
@@ -533,16 +588,7 @@ class RuleEngine:
                 )
             except Exception as err:  # noqa: BLE001
                 # Spec: target unavailable / service errors → skip silently + debug log.
-                self._hass.bus.async_fire(
-                    EVENT_SKIPPED,
-                    {
-                        "rule_id": self._config.unique_id,
-                        "rule_name": self._config.name,
-                        "entity_id": entity_id,
-                        "reason": "service_call_failed",
-                        "error": str(err),
-                    },
-                )
+                self._fire_skipped(entity_id, "service_call_failed", error=str(err))
                 _LOGGER.warning(
                     "Enforcement failed for %s on rule '%s': %s",
                     entity_id,
@@ -601,9 +647,7 @@ class RuleEngine:
                     "entity_id": entity_id,
                     "domain": entity_id.split(".", 1)[0],
                     "trigger": self._config.mode,
-                    "target": self._config.target_state
-                    if self._config.mode == MODE_STATE
-                    else self._config.target_value,
+                    "target": self._event_target(),
                     "reason": "rule_match",
                     "user_id": user_id,
                 },
@@ -724,6 +768,30 @@ class RuleEngine:
             return svc_domain, svc_name, {"entity_id": entity_id, kwarg: value}
 
         return None
+
+    def _event_target(self) -> Any:
+        """Return the event/logbook target payload."""
+        if self._config.mode == MODE_STATE:
+            return self._config.target_state
+        if self._config.attribute in COLOR_ATTRIBUTES:
+            return _describe_color_target(
+                self._config.attribute, self._config.target_value
+            )
+        return self._config.target_value
+
+    def _fire_skipped(
+        self, entity_id: str, reason: str, *, error: str | None = None
+    ) -> None:
+        """Emit a skipped-enforcement event."""
+        data: dict[str, Any] = {
+            "rule_id": self._config.unique_id,
+            "rule_name": self._config.name,
+            "entity_id": entity_id,
+            "reason": reason,
+        }
+        if error is not None:
+            data["error"] = error
+        self._hass.bus.async_fire(EVENT_SKIPPED, data)
 
     async def async_test_enforce(self, user_id: str | None = None) -> None:
         """Force an enforcement run against every target entity.
@@ -1098,3 +1166,40 @@ def _compare(value: float, op: str, threshold: float) -> bool:
     if op == OPERATOR_GE:
         return value >= threshold
     return False
+
+
+def _normalize_rgb_color(value: Any) -> tuple[int, int, int] | None:
+    """Normalize an RGB value into a 3-tuple."""
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return None
+    try:
+        return tuple(int(channel) for channel in value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_kelvin(value: Any) -> int | None:
+    """Normalize a Kelvin value to an int."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _rgb_matches(
+    current: tuple[int, int, int], target: tuple[int, int, int]
+) -> bool:
+    """Return True when every RGB channel is within tolerance."""
+    return all(
+        abs(current_channel - target_channel) <= COLOR_RGB_TOLERANCE
+        for current_channel, target_channel in zip(current, target, strict=True)
+    )
+
+
+def _describe_color_target(attribute: Any, value: Any) -> str:
+    """Return a log/event-friendly description for a color target."""
+    if attribute == ATTR_RGB_COLOR:
+        return f"{ATTR_RGB_COLOR}={list(value) if isinstance(value, tuple) else value}"
+    if attribute == ATTR_COLOR_TEMP_KELVIN:
+        return f"{ATTR_COLOR_TEMP_KELVIN}={value}K"
+    return str(value)

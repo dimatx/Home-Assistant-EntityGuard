@@ -8,6 +8,8 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.entity_guard.const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     DOMAIN,
     ENTRY_TYPE_RULE,
     MODE_ATTRIBUTE,
@@ -127,6 +129,36 @@ def test_parse_rule_config_attribute_mode():
     assert config.operator == "le"
     assert config.threshold == 50.0
     assert config.target_value == 0.0
+
+
+def test_parse_rule_config_attribute_mode_rgb_color():
+    entry = _make_entry(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_RGB_COLOR,
+        operator=None,
+        threshold=None,
+        target_value=[255, 0, 0],
+    )
+    config = parse_rule_config(entry)
+    assert config.attribute == ATTR_RGB_COLOR
+    assert config.threshold is None
+    assert config.target_value == [255, 0, 0]
+
+
+def test_parse_rule_config_options_override_color_target():
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_make_entry(
+            mode=MODE_ATTRIBUTE,
+            attribute=ATTR_COLOR_TEMP_KELVIN,
+            target_value=3000,
+        ).data,
+        options={"target_value": 2700},
+        title="My Rule",
+    )
+    config = parse_rule_config(entry)
+    assert config.attribute == ATTR_COLOR_TEMP_KELVIN
+    assert config.target_value == 2700
 
 
 def test_parse_rule_config_options_override_data():

@@ -43,12 +43,24 @@ ATTR_BRIGHTNESS = "brightness"
 ATTR_VOLUME_LEVEL = "volume_level"
 ATTR_TEMPERATURE = "temperature"
 ATTR_PERCENTAGE = "percentage"
+ATTR_RGB_COLOR = "rgb_color"
+ATTR_COLOR_TEMP_KELVIN = "color_temp_kelvin"
 
-SUPPORTED_ATTRIBUTES = [
+NUMERIC_ATTRIBUTES = [
     ATTR_BRIGHTNESS,
     ATTR_VOLUME_LEVEL,
     ATTR_TEMPERATURE,
     ATTR_PERCENTAGE,
+]
+
+COLOR_ATTRIBUTES = [
+    ATTR_RGB_COLOR,
+    ATTR_COLOR_TEMP_KELVIN,
+]
+
+SUPPORTED_ATTRIBUTES = [
+    *NUMERIC_ATTRIBUTES,
+    *COLOR_ATTRIBUTES,
 ]
 
 # Operators (no ==/!= due to float precision concerns)
@@ -84,6 +96,13 @@ STARTUP_GRACE_PERIOD_SECONDS = 60
 STORE_VERSION = 1
 STORE_SAVE_DELAY_SECONDS = 10
 RECENTLY_ENFORCED_WINDOW_SECONDS = 30
+
+# Color enforcement tolerances. Small tolerances prevent repeat enforcement loops
+# caused by minor device drift and lossy RGB/color-temperature conversions.
+COLOR_RGB_TOLERANCE = 10
+COLOR_TEMP_KELVIN_TOLERANCE = 50
+MIN_COLOR_TEMP_KELVIN = 2000
+MAX_COLOR_TEMP_KELVIN = 6500
 
 # Status values
 STATUS_ERROR = "error"
@@ -178,6 +197,8 @@ ATTRIBUTE_SERVICE_MAP: dict[str, tuple[str, str]] = {
     ATTR_VOLUME_LEVEL: ("media_player.volume_set", "volume_level"),
     ATTR_TEMPERATURE: ("climate.set_temperature", "temperature"),
     ATTR_PERCENTAGE: ("fan.set_percentage", "percentage"),
+    ATTR_RGB_COLOR: ("light.turn_on", "rgb_color"),
+    ATTR_COLOR_TEMP_KELVIN: ("light.turn_on", "color_temp_kelvin"),
 }
 
 # Reverse index: domain -> list[attr] (built from ATTRIBUTE_SERVICE_MAP service prefix).
