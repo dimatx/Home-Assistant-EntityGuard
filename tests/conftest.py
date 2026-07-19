@@ -49,3 +49,12 @@ def rule_entry():
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     yield
+
+
+def schema_key_names(schema):
+    """Return the set of string key names from a vol.Schema.
+
+    Handles vol.Required/vol.Optional markers by extracting the underlying key
+    via the ``.schema`` attribute.
+    """
+    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}

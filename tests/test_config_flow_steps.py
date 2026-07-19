@@ -35,6 +35,7 @@ from custom_components.entity_guard.const import (
     MODE_ATTRIBUTE,
     MODE_STATE,
 )
+from tests.conftest import schema_key_names
 
 
 @pytest.fixture(autouse=True)
@@ -437,11 +438,6 @@ async def test_attribute_invalid_delay_skipped(hass: HomeAssistant):
     pass
 
 
-def _schema_key_names(schema):
-    """Return the set of string key names from a vol.Schema."""
-    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
-
-
 async def test_create_attribute_first_render_numeric_default_has_operator_threshold(
     hass: HomeAssistant,
 ):
@@ -459,7 +455,7 @@ async def test_create_attribute_first_render_numeric_default_has_operator_thresh
         },
     )
     assert res["step_id"] == "attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR in keys
     assert CONF_THRESHOLD in keys
     assert CONF_TARGET_VALUE in keys
@@ -494,7 +490,7 @@ async def test_create_attribute_rerender_after_rgb_color_no_operator_threshold(
         },
     )
     assert res["step_id"] == "attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys
@@ -529,7 +525,7 @@ async def test_create_attribute_rerender_after_color_temp_kelvin_no_operator_thr
         },
     )
     assert res["step_id"] == "attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys

@@ -33,6 +33,7 @@ from custom_components.entity_guard.const import (
     MODE_ATTRIBUTE,
     MODE_STATE,
 )
+from tests.conftest import schema_key_names
 
 
 @pytest.fixture(autouse=True)
@@ -811,11 +812,6 @@ def _color_attr_entry(hass, name, attribute, target_value, uid="uid-color"):
     return e
 
 
-def _schema_key_names(schema):
-    """Return the set of string key names from a vol.Schema."""
-    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
-
-
 async def test_edit_attribute_first_render_rgb_color_no_operator_threshold(
     hass: HomeAssistant,
 ):
@@ -827,7 +823,7 @@ async def test_edit_attribute_first_render_rgb_color_no_operator_threshold(
         res["flow_id"], {"next_step_id": "edit_mode"}
     )
     assert res["step_id"] == "edit_attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys
@@ -847,7 +843,7 @@ async def test_edit_attribute_first_render_color_temp_kelvin_no_operator_thresho
         res["flow_id"], {"next_step_id": "edit_mode"}
     )
     assert res["step_id"] == "edit_attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys
@@ -865,7 +861,7 @@ async def test_edit_attribute_first_render_numeric_has_operator_threshold(
         res["flow_id"], {"next_step_id": "edit_mode"}
     )
     assert res["step_id"] == "edit_attribute"
-    keys = _schema_key_names(res["data_schema"])
+    keys = schema_key_names(res["data_schema"])
     assert CONF_OPERATOR in keys
     assert CONF_THRESHOLD in keys
     assert CONF_TARGET_VALUE in keys

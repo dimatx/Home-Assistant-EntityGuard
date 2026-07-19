@@ -56,6 +56,7 @@ from custom_components.entity_guard.const import (
     MODE_STATE,
     NUMERIC_ATTRIBUTES,
 )
+from tests.conftest import schema_key_names
 
 
 # ---------------------------------------------------------------------------
@@ -443,18 +444,13 @@ def test_current_state_hint_missing_entity(hass: HomeAssistant):
 # ---------------------------------------------------------------------------
 
 
-def _schema_key_names(schema):
-    """Return the set of string key names from a vol.Schema."""
-    return {k.schema if hasattr(k, "schema") else k for k in schema.schema}
-
-
 def test_attribute_schema_rgb_color_no_operator_threshold():
     """rgb_color schema must contain NO operator and NO threshold keys."""
     schema = _attribute_schema(
         [ATTR_RGB_COLOR, "brightness"],
         ATTR_RGB_COLOR,
     )
-    keys = _schema_key_names(schema)
+    keys = schema_key_names(schema)
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys
@@ -468,7 +464,7 @@ def test_attribute_schema_color_temp_kelvin_no_operator_threshold():
         [ATTR_COLOR_TEMP_KELVIN, "brightness"],
         ATTR_COLOR_TEMP_KELVIN,
     )
-    keys = _schema_key_names(schema)
+    keys = schema_key_names(schema)
     assert CONF_OPERATOR not in keys
     assert CONF_THRESHOLD not in keys
     assert CONF_TARGET_VALUE in keys
@@ -482,7 +478,7 @@ def test_attribute_schema_numeric_has_operator_threshold():
         ["brightness", ATTR_RGB_COLOR],
         "brightness",
     )
-    keys = _schema_key_names(schema)
+    keys = schema_key_names(schema)
     assert CONF_OPERATOR in keys
     assert CONF_THRESHOLD in keys
     assert CONF_TARGET_VALUE in keys
