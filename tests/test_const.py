@@ -46,3 +46,10 @@ def test_supported_operators_excludes_equality() -> None:
 
 def test_entry_types() -> None:
     assert const.ENTRY_TYPE_HUB != const.ENTRY_TYPE_RULE
+
+
+def test_color_attributes_supported() -> None:
+    assert const.ATTR_RGB_COLOR in const.SUPPORTED_ATTRIBUTES
+    assert const.ATTR_COLOR_TEMP_KELVIN in const.SUPPORTED_ATTRIBUTES
+    assert const.ATTR_RGB_COLOR in const.ATTRIBUTES_BY_DOMAIN["light"]
+    assert const.ATTR_COLOR_TEMP_KELVIN in const.ATTRIBUTES_BY_DOMAIN["light"]

@@ -10,7 +10,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.entity_guard.config_flow import (
     _attributes_for_entities,
     _build_summary,
+    _coerce_color_temp_kelvin,
     _coerce_delay,
+    _coerce_rgb_color,
     _current_state_hint,
     _debounce_selector,
     _delay_selector,
@@ -23,6 +25,8 @@ from custom_components.entity_guard.config_flow import (
     _trigger_states_selector,
 )
 from custom_components.entity_guard.const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     CONF_ATTRIBUTE,
     CONF_DEBOUNCE_ENABLED,
     CONF_DEBOUNCE_SECONDS,
@@ -49,6 +53,7 @@ from custom_components.entity_guard.const import (
     MIN_DELAY_SECONDS,
     MODE_ATTRIBUTE,
     MODE_STATE,
+    NUMERIC_ATTRIBUTES,
 )
 
 
@@ -194,19 +199,17 @@ def test_states_for_entities_dedup_across_domains():
 def test_attributes_for_entities_known_domain():
     res = _attributes_for_entities(["light.bedroom"])
     assert "brightness" in res
+    assert ATTR_RGB_COLOR in res
+    assert ATTR_COLOR_TEMP_KELVIN in res
 
 
 def test_attributes_for_entities_unknown_domain():
-    from custom_components.entity_guard.const import SUPPORTED_ATTRIBUTES
-
     res = _attributes_for_entities(["foo.bar"])
-    assert res == list(SUPPORTED_ATTRIBUTES)
+    assert res == list(NUMERIC_ATTRIBUTES)
 
 
 def test_attributes_for_entities_empty():
-    from custom_components.entity_guard.const import SUPPORTED_ATTRIBUTES
-
-    assert _attributes_for_entities([]) == list(SUPPORTED_ATTRIBUTES)
+    assert _attributes_for_entities([]) == list(NUMERIC_ATTRIBUTES)
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +231,14 @@ def test_rate_selector_returns_number():
 
 def test_number_selector_returns_number():
     assert isinstance(_number_selector(), selector.NumberSelector)
+
+
+def test_coerce_rgb_color_invalid():
+    assert _coerce_rgb_color([255, 0]) is None
+
+
+def test_coerce_color_temp_kelvin_invalid():
+    assert _coerce_color_temp_kelvin(1000) is None
 
 
 def test_trigger_states_selector_returns_select():
@@ -289,6 +300,21 @@ def test_build_summary_attribute_mode():
     assert "brightness" in summary
     assert "Targets:" in summary
     assert "5s" in summary
+
+
+def test_build_summary_attribute_mode_rgb_color():
+    data = {
+        CONF_RULE_NAME: "Accent",
+        CONF_TARGET_ENTITIES: ["light.strip"],
+        CONF_MODE: MODE_ATTRIBUTE,
+        CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+        CONF_TARGET_VALUE: [255, 0, 0],
+        CONF_DELAY_SECONDS: 0,
+        CONF_FLAGS: [],
+    }
+    summary = _build_summary(data)
+    assert ATTR_RGB_COLOR in summary
+    assert "enforce match" in summary
 
 
 def test_build_summary_with_flags():

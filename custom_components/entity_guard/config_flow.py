@@ -19,7 +19,10 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     ATTRIBUTES_BY_DOMAIN,
+    COLOR_ATTRIBUTES,
     CONF_ADD_DEBOUNCE,
     CONF_ADD_FLAGS,
     CONF_ATTRIBUTE,
@@ -56,16 +59,18 @@ from .const import (
     ENTRY_TYPE_RULE,
     FALLBACK_STATE_OPTIONS,
     FORBIDDEN_STATES,
+    MAX_COLOR_TEMP_KELVIN,
     MAX_DEBOUNCE_SECONDS,
     MAX_DELAY_SECONDS,
     MAX_RATE_LIMIT,
+    MIN_COLOR_TEMP_KELVIN,
     MIN_DEBOUNCE_SECONDS,
     MIN_DELAY_SECONDS,
     MIN_RATE_LIMIT,
     MODE_ATTRIBUTE,
     MODE_STATE,
+    NUMERIC_ATTRIBUTES,
     SAFETY_DOMAINS,
-    SUPPORTED_ATTRIBUTES,
     SUPPORTED_OPERATORS,
     has_safety_target as _has_safety_target,
 )
@@ -130,11 +135,18 @@ def _build_summary(data: dict[str, Any], hass: Any = None) -> str:
         target_state = data.get(CONF_TARGET_STATE, "")
         lines.append(f"**Rule:** when state is {triggers} → force `{target_state}`")
     elif mode == MODE_ATTRIBUTE:
-        lines.append(
-            f"**Rule:** when `{data.get(CONF_ATTRIBUTE)}` "
-            f"{data.get(CONF_OPERATOR)} `{data.get(CONF_THRESHOLD)}` "
-            f"→ clamp to `{data.get(CONF_TARGET_VALUE)}`"
-        )
+        attribute = data.get(CONF_ATTRIBUTE)
+        if _is_color_attribute(attribute):
+            lines.append(
+                f"**Rule:** when `{attribute}` differs from "
+                f"`{data.get(CONF_TARGET_VALUE)}` → enforce match"
+            )
+        else:
+            lines.append(
+                f"**Rule:** when `{attribute}` "
+                f"{data.get(CONF_OPERATOR)} `{data.get(CONF_THRESHOLD)}` "
+                f"→ clamp to `{data.get(CONF_TARGET_VALUE)}`"
+            )
 
     delay = data.get(CONF_DELAY_SECONDS, 0)
     lines.append(f"**Delay:** {delay}s" + (" (immediate)" if delay == 0 else ""))
@@ -222,6 +234,41 @@ def _number_selector() -> selector.NumberSelector:
     )
 
 
+def _rgb_color_selector() -> selector.ColorRGBSelector:
+    return selector.ColorRGBSelector()
+
+
+def _color_temp_kelvin_selector() -> selector.ColorTempSelector:
+    return selector.ColorTempSelector(
+        selector.ColorTempSelectorConfig(
+            unit=selector.ColorTempSelectorUnit.KELVIN,
+            min=MIN_COLOR_TEMP_KELVIN,
+            max=MAX_COLOR_TEMP_KELVIN,
+        )
+    )
+
+
+def _is_color_attribute(attribute: Any) -> bool:
+    """Return True when the attribute uses match-style color enforcement."""
+    return attribute in COLOR_ATTRIBUTES
+
+
+def _coerce_rgb_color(raw: Any) -> list[int] | None:
+    """Validate and normalize an RGB selector value."""
+    try:
+        return _rgb_color_selector()(raw)
+    except vol.Invalid:
+        return None
+
+
+def _coerce_color_temp_kelvin(raw: Any) -> int | None:
+    """Validate and normalize a Kelvin selector value."""
+    try:
+        return int(_color_temp_kelvin_selector()(raw))
+    except vol.Invalid:
+        return None
+
+
 def _states_for_entities(entities: list[str]) -> list[str]:
     """Union of typical state values across the domains of the given entities.
 
@@ -242,9 +289,9 @@ def _states_for_entities(entities: list[str]) -> list[str]:
 def _attributes_for_entities(entities: list[str]) -> list[str]:
     """Union of supported attributes across the domains of the given entities.
 
-    Falls back to the full SUPPORTED_ATTRIBUTES list when no chosen entity
-    belongs to a domain with a known clamp service — keeps the form usable
-    even if the user picks a domain we don't have a service mapping for.
+    Falls back to numeric-only attributes when no chosen entity belongs to a
+    domain with a known service mapping. Color enforcement is intentionally
+    offered only when a light entity is part of the target set.
     """
     seen: dict[str, None] = {}
     for entity_id in entities:
@@ -252,8 +299,61 @@ def _attributes_for_entities(entities: list[str]) -> list[str]:
         for attr in ATTRIBUTES_BY_DOMAIN.get(domain, []):
             seen.setdefault(attr, None)
     if not seen:
-        return list(SUPPORTED_ATTRIBUTES)
+        return list(NUMERIC_ATTRIBUTES)
     return list(seen.keys())
+
+
+def _attribute_schema(
+    attr_options: list[str],
+    current_attr: str | None,
+    *,
+    target_value_default: Any = None,
+    threshold_default: Any = 0,
+    operator_default: str | None = None,
+    delay_default: int = DEFAULT_DELAY_SECONDS,
+) -> vol.Schema:
+    """Build the attribute-mode form schema for numeric or color attributes."""
+    default_attr = current_attr or (attr_options[0] if attr_options else None)
+    schema: dict[Any, Any] = {
+        vol.Required(CONF_ATTRIBUTE, default=default_attr): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=attr_options,
+                translation_key="attribute",
+            )
+        )
+    }
+
+    if current_attr == ATTR_RGB_COLOR:
+        schema[
+            vol.Required(
+                CONF_TARGET_VALUE, default=target_value_default or [255, 255, 255]
+            )
+        ] = _rgb_color_selector()
+    elif current_attr == ATTR_COLOR_TEMP_KELVIN:
+        schema[
+            vol.Required(CONF_TARGET_VALUE, default=target_value_default or 2700)
+        ] = _color_temp_kelvin_selector()
+    else:
+        schema[
+            vol.Required(
+                CONF_OPERATOR, default=operator_default or SUPPORTED_OPERATORS[0]
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=SUPPORTED_OPERATORS,
+                translation_key="operator",
+            )
+        )
+        schema[vol.Required(CONF_THRESHOLD, default=threshold_default)] = _number_selector()
+        schema[
+            vol.Required(
+                CONF_TARGET_VALUE,
+                default=target_value_default if target_value_default is not None else 0,
+            )
+        ] = _number_selector()
+
+    schema[vol.Required(CONF_DELAY_SECONDS, default=delay_default)] = _delay_selector()
+    return vol.Schema(schema)
 
 
 def _trigger_states_selector(options: list[str]) -> selector.SelectSelector:
@@ -431,58 +531,89 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Attribute-mode step: attribute, operator, threshold, target value, delay."""
         errors: dict[str, str] = {}
+        attr_options = _attributes_for_entities(
+            self._rule_data.get(CONF_TARGET_ENTITIES, [])
+        )
+        current_attr = self._rule_data.get(
+            CONF_ATTRIBUTE, attr_options[0] if attr_options else None
+        )
 
         if user_input is not None:
+            selected_attr = user_input[CONF_ATTRIBUTE]
+            if selected_attr != current_attr:
+                self._rule_data[CONF_ATTRIBUTE] = selected_attr
+                return self.async_show_form(
+                    step_id="attribute",
+                    data_schema=_attribute_schema(
+                        attr_options,
+                        selected_attr,
+                        delay_default=_coerce_delay(user_input.get(CONF_DELAY_SECONDS))
+                        or self._rule_data.get(
+                            CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
+                        ),
+                    ),
+                    errors=errors,
+                )
+
             delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
-            try:
-                threshold = float(user_input[CONF_THRESHOLD])
-                target_value = float(user_input[CONF_TARGET_VALUE])
-            except (
-                TypeError,
-                ValueError,
-            ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
-                errors["base"] = "invalid_threshold"
-            else:
-                if delay is None:
-                    errors[CONF_DELAY_SECONDS] = "invalid_delay"
+            if delay is None:
+                errors[CONF_DELAY_SECONDS] = "invalid_delay"
+            elif selected_attr == ATTR_RGB_COLOR:
+                target_value = _coerce_rgb_color(user_input.get(CONF_TARGET_VALUE))
+                if target_value is None:
+                    errors[CONF_TARGET_VALUE] = "invalid_rgb_color"
                 else:
-                    self._rule_data[CONF_ATTRIBUTE] = user_input[CONF_ATTRIBUTE]
+                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
+                    self._rule_data[CONF_OPERATOR] = None
+                    self._rule_data[CONF_THRESHOLD] = None
+                    self._rule_data[CONF_TARGET_VALUE] = target_value
+                    self._rule_data[CONF_DELAY_SECONDS] = delay
+                    return await self.async_step_extras()
+            elif selected_attr == ATTR_COLOR_TEMP_KELVIN:
+                target_value = _coerce_color_temp_kelvin(
+                    user_input.get(CONF_TARGET_VALUE)
+                )
+                if target_value is None:
+                    errors[CONF_TARGET_VALUE] = "invalid_color_temp_kelvin"
+                else:
+                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
+                    self._rule_data[CONF_OPERATOR] = None
+                    self._rule_data[CONF_THRESHOLD] = None
+                    self._rule_data[CONF_TARGET_VALUE] = target_value
+                    self._rule_data[CONF_DELAY_SECONDS] = delay
+                    return await self.async_step_extras()
+            else:
+                try:
+                    threshold = float(user_input[CONF_THRESHOLD])
+                    target_value = float(user_input[CONF_TARGET_VALUE])
+                except (
+                    TypeError,
+                    ValueError,
+                ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
+                    errors["base"] = "invalid_threshold"
+                else:
+                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
                     self._rule_data[CONF_OPERATOR] = user_input[CONF_OPERATOR]
                     self._rule_data[CONF_THRESHOLD] = threshold
                     self._rule_data[CONF_TARGET_VALUE] = target_value
                     self._rule_data[CONF_DELAY_SECONDS] = delay
                     return await self.async_step_extras()
 
-        attr_options = _attributes_for_entities(
-            self._rule_data.get(CONF_TARGET_ENTITIES, [])
-        )
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_ATTRIBUTE, default=attr_options[0] if attr_options else None
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=attr_options,
-                        translation_key="attribute",
-                    )
-                ),
-                vol.Required(
-                    CONF_OPERATOR, default=SUPPORTED_OPERATORS[0]
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=SUPPORTED_OPERATORS,
-                        translation_key="operator",
-                    )
-                ),
-                vol.Required(CONF_THRESHOLD): _number_selector(),
-                vol.Required(CONF_TARGET_VALUE): _number_selector(),
-                vol.Required(
-                    CONF_DELAY_SECONDS, default=DEFAULT_DELAY_SECONDS
-                ): _delay_selector(),
-            }
-        )
         return self.async_show_form(
-            step_id="attribute", data_schema=schema, errors=errors
+            step_id="attribute",
+            data_schema=_attribute_schema(
+                attr_options,
+                current_attr,
+                target_value_default=self._rule_data.get(CONF_TARGET_VALUE),
+                threshold_default=self._rule_data.get(CONF_THRESHOLD, 0),
+                operator_default=self._rule_data.get(
+                    CONF_OPERATOR, SUPPORTED_OPERATORS[0]
+                ),
+                delay_default=self._rule_data.get(
+                    CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
+                ),
+            ),
+            errors=errors,
         )
 
     # ------------------------------------------------------------------ Options toggles
@@ -954,27 +1085,6 @@ class EntityGuardOptionsFlow(OptionsFlow):
         """Edit attribute-mode parameters."""
         errors: dict[str, str] = {}
 
-        if user_input is not None:
-            delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
-            try:
-                threshold = float(user_input[CONF_THRESHOLD])
-                target_value = float(user_input[CONF_TARGET_VALUE])
-            except (
-                TypeError,
-                ValueError,
-            ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
-                errors["base"] = "invalid_threshold"
-            else:
-                if delay is None:
-                    errors[CONF_DELAY_SECONDS] = "invalid_delay"
-                else:
-                    self._working[CONF_ATTRIBUTE] = user_input[CONF_ATTRIBUTE]
-                    self._working[CONF_OPERATOR] = user_input[CONF_OPERATOR]
-                    self._working[CONF_THRESHOLD] = threshold
-                    self._working[CONF_TARGET_VALUE] = target_value
-                    self._working[CONF_DELAY_SECONDS] = delay
-                    return self._save()
-
         attr_options = _attributes_for_entities(
             self._working.get(CONF_TARGET_ENTITIES, [])
         )
@@ -985,40 +1095,82 @@ class EntityGuardOptionsFlow(OptionsFlow):
         )
         if current_attr not in attr_options:
             attr_options = [current_attr, *attr_options]
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_ATTRIBUTE,
-                    default=current_attr,
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=attr_options, translation_key="attribute"
-                    )
-                ),
-                vol.Required(
-                    CONF_OPERATOR,
-                    default=self._working.get(CONF_OPERATOR, SUPPORTED_OPERATORS[0]),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=SUPPORTED_OPERATORS, translation_key="operator"
-                    )
-                ),
-                vol.Required(
-                    CONF_THRESHOLD, default=self._working.get(CONF_THRESHOLD, 0)
-                ): _number_selector(),
-                vol.Required(
-                    CONF_TARGET_VALUE, default=self._working.get(CONF_TARGET_VALUE, 0)
-                ): _number_selector(),
-                vol.Required(
-                    CONF_DELAY_SECONDS,
-                    default=self._working.get(
-                        CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
+        if user_input is not None:
+            selected_attr = user_input[CONF_ATTRIBUTE]
+            if selected_attr != current_attr:
+                self._working[CONF_ATTRIBUTE] = selected_attr
+                return self.async_show_form(
+                    step_id="edit_attribute",
+                    data_schema=_attribute_schema(
+                        attr_options,
+                        selected_attr,
+                        delay_default=_coerce_delay(user_input.get(CONF_DELAY_SECONDS))
+                        or self._working.get(
+                            CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
+                        ),
                     ),
-                ): _delay_selector(),
-            }
-        )
+                    errors=errors,
+                )
+
+            delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
+            if delay is None:
+                errors[CONF_DELAY_SECONDS] = "invalid_delay"
+            elif selected_attr == ATTR_RGB_COLOR:
+                target_value = _coerce_rgb_color(user_input.get(CONF_TARGET_VALUE))
+                if target_value is None:
+                    errors[CONF_TARGET_VALUE] = "invalid_rgb_color"
+                else:
+                    self._working[CONF_ATTRIBUTE] = selected_attr
+                    self._working[CONF_OPERATOR] = None
+                    self._working[CONF_THRESHOLD] = None
+                    self._working[CONF_TARGET_VALUE] = target_value
+                    self._working[CONF_DELAY_SECONDS] = delay
+                    return self._save()
+            elif selected_attr == ATTR_COLOR_TEMP_KELVIN:
+                target_value = _coerce_color_temp_kelvin(
+                    user_input.get(CONF_TARGET_VALUE)
+                )
+                if target_value is None:
+                    errors[CONF_TARGET_VALUE] = "invalid_color_temp_kelvin"
+                else:
+                    self._working[CONF_ATTRIBUTE] = selected_attr
+                    self._working[CONF_OPERATOR] = None
+                    self._working[CONF_THRESHOLD] = None
+                    self._working[CONF_TARGET_VALUE] = target_value
+                    self._working[CONF_DELAY_SECONDS] = delay
+                    return self._save()
+            else:
+                try:
+                    threshold = float(user_input[CONF_THRESHOLD])
+                    target_value = float(user_input[CONF_TARGET_VALUE])
+                except (
+                    TypeError,
+                    ValueError,
+                ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
+                    errors["base"] = "invalid_threshold"
+                else:
+                    self._working[CONF_ATTRIBUTE] = selected_attr
+                    self._working[CONF_OPERATOR] = user_input[CONF_OPERATOR]
+                    self._working[CONF_THRESHOLD] = threshold
+                    self._working[CONF_TARGET_VALUE] = target_value
+                    self._working[CONF_DELAY_SECONDS] = delay
+                    return self._save()
+
         return self.async_show_form(
-            step_id="edit_attribute", data_schema=schema, errors=errors
+            step_id="edit_attribute",
+            data_schema=_attribute_schema(
+                attr_options,
+                current_attr,
+                target_value_default=self._working.get(CONF_TARGET_VALUE),
+                threshold_default=self._working.get(CONF_THRESHOLD, 0),
+                operator_default=self._working.get(
+                    CONF_OPERATOR, SUPPORTED_OPERATORS[0]
+                ),
+                delay_default=self._working.get(
+                    CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
+                ),
+            ),
+            errors=errors,
         )
 
     # ------------------------------------------------------------------ Flags

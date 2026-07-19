@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.8] — 2026-07-19
+
+### Added
+
+- **Color enforcement for light entities**: attribute mode now supports `rgb_color` and `color_temp_kelvin` in addition to the existing numeric clamp attributes. Color rules use a tolerance-aware match model and call `light.turn_on` only when the light is already on and its current color differs materially from the configured target.
+
+### Tests
+
+- Added coverage for color target parsing, config-flow creation/editing, tolerance boundaries, skipped enforcement on off/unavailable lights, and debounce behavior for color rules.
+
+---
+
 ## [0.2.7] — 2026-07-08
 
 ### Added

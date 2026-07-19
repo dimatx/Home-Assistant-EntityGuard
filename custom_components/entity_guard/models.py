@@ -10,6 +10,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     CONF_ATTRIBUTE,
     CONF_DEBOUNCE_ENABLED,
     CONF_DEBOUNCE_SECONDS,
@@ -80,7 +82,7 @@ class RuleConfig:
     attribute: str | None
     operator: str | None
     threshold: float | None
-    target_value: float | None
+    target_value: Any | None
     flags: list[Flag]
     debounce_enabled: bool
     debounce_seconds: int
@@ -174,8 +176,10 @@ def parse_rule_config(entry: ConfigEntry) -> RuleConfig:
         delay_seconds=_delay,
         attribute=raw.get(CONF_ATTRIBUTE),
         operator=raw.get(CONF_OPERATOR),
-        threshold=_to_float_or_none(raw.get(CONF_THRESHOLD)),
-        target_value=_to_float_or_none(raw.get(CONF_TARGET_VALUE)),
+        threshold=_parse_threshold(raw.get(CONF_ATTRIBUTE), raw.get(CONF_THRESHOLD)),
+        target_value=_parse_target_value(
+            raw.get(CONF_ATTRIBUTE), raw.get(CONF_TARGET_VALUE)
+        ),
         flags=flags,
         debounce_enabled=bool(raw.get(CONF_DEBOUNCE_ENABLED, DEFAULT_DEBOUNCE_ENABLED)),
         debounce_seconds=_debounce,
@@ -194,9 +198,46 @@ def _to_float_or_none(value: Any) -> float | None:
         return None
 
 
+def _to_rgb_color_or_none(value: Any) -> list[int] | None:
+    """Coerce value to an RGB list, returning None on failure."""
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return None
+    try:
+        rgb = [int(channel) for channel in value]
+    except (TypeError, ValueError):
+        return None
+    if any(channel < 0 or channel > 255 for channel in rgb):
+        return None
+    return rgb
+
+
+def _parse_threshold(attribute: Any, value: Any) -> float | None:
+    """Parse threshold, skipping it for color-match attributes."""
+    if attribute in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN):
+        return None
+    return _to_float_or_none(value)
+
+
+def _parse_target_value(attribute: Any, value: Any) -> Any | None:
+    """Parse target_value based on the configured attribute."""
+    if attribute == ATTR_RGB_COLOR:
+        return _to_rgb_color_or_none(value)
+    if attribute == ATTR_COLOR_TEMP_KELVIN:
+        return _to_int_or_none(value)
+    return _to_float_or_none(value)
+
+
 def _to_int_or_default(value: Any, default: int) -> int:
     """Coerce value to int, returning default on failure."""
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _to_int_or_none(value: Any) -> int | None:
+    """Coerce value to int, returning None on failure."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
