@@ -181,7 +181,7 @@
       },
       "edit_flags": {
         "title": "Edit flag conditions",
-        "description": "Current flags: {summary}.\n\n{current_state}\n\nChoose 'add' to append, 'clear' to remove all, or 'save' to leave unchanged.",
+        "description": "Current flags: {summary}.\n\n{current_state}\n\nChoose 'add' to append, 'replace' to replace all, 'clear' to remove all, or 'save' to leave unchanged.",
         "data": {
           "entity": "Flag entity",
           "match_state": "Required state",
