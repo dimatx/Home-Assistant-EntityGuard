@@ -40,6 +40,10 @@ from custom_components.entity_guard.models import Flag, RuleConfig, RuleRuntimeS
 from custom_components.entity_guard.rule_engine import (
     RuleEngine,
     _compare,
+    _describe_color_target,
+    _normalize_kelvin,
+    _normalize_rgb_color,
+    _rgb_matches,
     signal_for_rule,
 )
 from custom_components.entity_guard.storage import EntityGuardStore
@@ -120,6 +124,23 @@ def test_signal_for_rule():
 )
 def test_compare(value, op, threshold, expected):
     assert _compare(value, op, threshold) is expected
+
+
+def test_normalize_rgb_color_invalid():
+    assert _normalize_rgb_color([255, 0]) is None
+    assert _normalize_rgb_color([255, "bad", 0]) is None
+
+
+def test_normalize_kelvin_invalid():
+    assert _normalize_kelvin("bad") is None
+
+
+def test_rgb_matches_boundary():
+    assert _rgb_matches((255, 0, 0), (255 - COLOR_RGB_TOLERANCE, 0, 0)) is True
+
+
+def test_describe_color_target_unknown_attribute():
+    assert _describe_color_target("custom", "value") == "value"
 
 
 # ---------------------------------------------------------------------------
@@ -335,6 +356,66 @@ async def test_is_triggered_attribute_non_numeric(hass: HomeAssistant):
     assert engine._is_triggered("light.x", st) is False
 
 
+async def test_color_trigger_decision_missing_target_returns_false(hass: HomeAssistant):
+    config = _make_config(mode=MODE_ATTRIBUTE, attribute=ATTR_RGB_COLOR, target_value=None)
+    engine = _make_engine(hass, config)
+    st = _state("on", {"rgb_color": [1, 2, 3]})
+    assert engine._color_trigger_decision(st) == (False, None)
+
+
+async def test_color_trigger_decision_missing_attribute_returns_false(hass: HomeAssistant):
+    config = _make_config(mode=MODE_ATTRIBUTE, attribute=None, target_value=[255, 0, 0])
+    engine = _make_engine(hass, config)
+    st = _state("on", {"rgb_color": [1, 2, 3]})
+    assert engine._color_trigger_decision(st) == (False, None)
+
+
+async def test_color_trigger_decision_missing_current_value_enforces(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_COLOR_TEMP_KELVIN,
+        target_value=2700,
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {})
+    assert engine._color_trigger_decision(st) == (True, None)
+
+
+async def test_color_trigger_decision_missing_current_rgb_value_enforces(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_RGB_COLOR,
+        target_value=[255, 0, 0],
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {})
+    assert engine._color_trigger_decision(st) == (True, None)
+
+
+async def test_color_trigger_decision_missing_kelvin_target_returns_false(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_COLOR_TEMP_KELVIN,
+        target_value=None,
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {"color_temp_kelvin": 2700})
+    assert engine._color_trigger_decision(st) == (False, None)
+
+
+async def test_color_trigger_decision_unknown_color_attribute_returns_false(
+    hass: HomeAssistant,
+):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="color_effect",
+        target_value="red",
+    )
+    engine = _make_engine(hass, config)
+    st = _state("on", {"color_effect": "blue"})
+    assert engine._color_trigger_decision(st) == (False, None)
+
+
 async def test_is_triggered_rgb_color_within_tolerance(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
@@ -482,6 +563,51 @@ async def test_color_enforcement_skips_when_light_unavailable(hass: HomeAssistan
     assert skipped_events[-1].data["reason"] == "light_unavailable"
 
 
+async def test_delayed_color_enforcement_skips_if_light_turns_off(hass: HomeAssistant):
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_RGB_COLOR,
+        target_value=[255, 0, 0],
+        trigger_states=[],
+        delay_seconds=1,
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    skipped_events = []
+    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    hass.states.async_set("light.bedroom", "on", {"rgb_color": [0, 0, 255]})
+    await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
+
+    hass.states.async_set("light.bedroom", "off", {"rgb_color": [0, 0, 255]})
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+
+    assert skipped_events[-1].data["reason"] == "light_off"
+
+
+async def test_manual_color_enforce_skips_when_light_off(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_RGB_COLOR,
+        target_value=[255, 0, 0],
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    skipped_events = []
+    service = AsyncMock()
+    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    hass.services.async_register("light", "turn_on", service)
+    hass.states.async_set("light.bedroom", "off", {"rgb_color": [0, 0, 255]})
+
+    await engine.async_test_enforce()
+
+    service.assert_not_awaited()
+    assert skipped_events[-1].data["reason"] == "light_off"
+
+
 async def test_color_enforcement_respects_debounce_cooldown(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
@@ -505,6 +631,18 @@ async def test_color_enforcement_respects_debounce_cooldown(hass: HomeAssistant)
     assert engine.current_status() == STATUS_COOLDOWN
     engine._store.async_save_now = AsyncMock()
     await engine.async_unload()
+
+
+def test_event_target_numeric_attribute(hass: HomeAssistant):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute="brightness",
+        operator=OPERATOR_GT,
+        threshold=50.0,
+        target_value=25.0,
+    )
+    engine = _make_engine(hass, config)
+    assert engine._event_target() == 25.0
 
 
 # ---------------------------------------------------------------------------

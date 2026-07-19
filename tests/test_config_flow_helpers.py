@@ -10,7 +10,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.entity_guard.config_flow import (
     _attributes_for_entities,
     _build_summary,
+    _coerce_color_temp_kelvin,
     _coerce_delay,
+    _coerce_rgb_color,
     _current_state_hint,
     _debounce_selector,
     _delay_selector,
@@ -229,6 +231,14 @@ def test_rate_selector_returns_number():
 
 def test_number_selector_returns_number():
     assert isinstance(_number_selector(), selector.NumberSelector)
+
+
+def test_coerce_rgb_color_invalid():
+    assert _coerce_rgb_color([255, 0]) is None
+
+
+def test_coerce_color_temp_kelvin_invalid():
+    assert _coerce_color_temp_kelvin(1000) is None
 
 
 def test_trigger_states_selector_returns_select():

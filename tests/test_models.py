@@ -18,7 +18,11 @@ from custom_components.entity_guard.const import (
 from custom_components.entity_guard.models import (
     Flag,
     RuleRuntimeState,
+    _parse_target_value,
+    _parse_threshold,
     _to_float_or_none,
+    _to_int_or_none,
+    _to_rgb_color_or_none,
     _to_int_or_default,
     parse_rule_config,
 )
@@ -223,11 +227,31 @@ def test_to_float_or_none_invalid():
     assert _to_float_or_none([]) is None
 
 
+def test_to_rgb_color_or_none_invalid_shapes():
+    assert _to_rgb_color_or_none([255, 0]) is None
+    assert _to_rgb_color_or_none("255,0,0") is None
+
+
+def test_to_rgb_color_or_none_invalid_values():
+    assert _to_rgb_color_or_none([255, "bad", 0]) is None
+    assert _to_rgb_color_or_none([256, 0, 0]) is None
+
+
+def test_parse_threshold_and_target_value_color_helpers():
+    assert _parse_threshold(ATTR_RGB_COLOR, 50) is None
+    assert _parse_target_value(ATTR_RGB_COLOR, [1, 2, 3]) == [1, 2, 3]
+    assert _parse_target_value(ATTR_COLOR_TEMP_KELVIN, "2700") == 2700
+
+
 def test_to_int_or_default():
     assert _to_int_or_default(5, 99) == 5
     assert _to_int_or_default("7", 99) == 7
     assert _to_int_or_default(None, 99) == 99
     assert _to_int_or_default("bad", 99) == 99
+
+
+def test_to_int_or_none_invalid():
+    assert _to_int_or_none("bad") is None
 
 
 def test_flag_from_dict_missing_key_raises_value_error():

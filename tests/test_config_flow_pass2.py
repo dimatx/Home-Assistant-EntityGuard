@@ -563,6 +563,68 @@ async def test_options_edit_attribute_color_temp_kelvin_save(hass: HomeAssistant
     assert e.data[CONF_TARGET_VALUE] == 3000
 
 
+async def test_options_edit_attribute_invalid_rgb_color(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrColorBad")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_rgb_color",
+        return_value=None,
+    ):
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"],
+            {
+                CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+                CONF_TARGET_VALUE: [255, 0, 0],
+                CONF_DELAY_SECONDS: 0,
+            },
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_rgb_color"
+
+
+async def test_options_edit_attribute_invalid_color_temp_kelvin(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrKelvinBad")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_color_temp_kelvin",
+        return_value=None,
+    ):
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"],
+            {
+                CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
+                CONF_TARGET_VALUE: 2700,
+                CONF_DELAY_SECONDS: 0,
+            },
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_color_temp_kelvin"
+
+
 # ---------------------------------------------------------------------------
 # Options edit_flags — empty save branch
 # ---------------------------------------------------------------------------
