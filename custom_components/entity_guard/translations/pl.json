@@ -290,7 +290,7 @@
         "temperature": "Temperatura",
         "percentage": "Procent",
         "rgb_color": "Kolor RGB",
-        "color_temp_kelvin": "Temperatura barwowa (Kelwin)"
+        "color_temp_kelvin": "Temperatura barwowa (Kelvin)"
       }
     },
     "operator": {

@@ -180,77 +180,77 @@ async def test_attribute_invalid_delay_create(hass: HomeAssistant):
 
 
 async def test_attribute_invalid_rgb_color_create(hass: HomeAssistant):
-        res = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": SOURCE_USER}
-        )
-        res = await hass.config_entries.flow.async_configure(
-            res["flow_id"],
-            {
-                CONF_RULE_NAME: "AttrRgbBad",
-                CONF_TARGET_ENTITIES: ["light.bedroom"],
-                CONF_MODE: MODE_ATTRIBUTE,
-            },
-        )
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "AttrRgbBad",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_rgb_color",
+        return_value=None,
+    ):
         res = await hass.config_entries.flow.async_configure(
             res["flow_id"],
             {
                 CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-                CONF_OPERATOR: "gt",
-                CONF_THRESHOLD: 64,
-                CONF_TARGET_VALUE: 64,
+                CONF_TARGET_VALUE: [255, 0, 0],
                 CONF_DELAY_SECONDS: 0,
             },
         )
-        with patch(
-            "custom_components.entity_guard.config_flow._coerce_rgb_color",
-            return_value=None,
-        ):
-            res = await hass.config_entries.flow.async_configure(
-                res["flow_id"],
-                {
-                    CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-                    CONF_TARGET_VALUE: [255, 0, 0],
-                    CONF_DELAY_SECONDS: 0,
-                },
-            )
-        assert res["errors"][CONF_TARGET_VALUE] == "invalid_rgb_color"
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_rgb_color"
 
 
 async def test_attribute_invalid_color_temp_kelvin_create(hass: HomeAssistant):
-        res = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": SOURCE_USER}
-        )
-        res = await hass.config_entries.flow.async_configure(
-            res["flow_id"],
-            {
-                CONF_RULE_NAME: "AttrKelvinBad",
-                CONF_TARGET_ENTITIES: ["light.bedroom"],
-                CONF_MODE: MODE_ATTRIBUTE,
-            },
-        )
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "AttrKelvinBad",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
+            CONF_OPERATOR: "gt",
+            CONF_THRESHOLD: 64,
+            CONF_TARGET_VALUE: 64,
+            CONF_DELAY_SECONDS: 0,
+        },
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_color_temp_kelvin",
+        return_value=None,
+    ):
         res = await hass.config_entries.flow.async_configure(
             res["flow_id"],
             {
                 CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
-                CONF_OPERATOR: "gt",
-                CONF_THRESHOLD: 64,
-                CONF_TARGET_VALUE: 64,
+                CONF_TARGET_VALUE: 2700,
                 CONF_DELAY_SECONDS: 0,
             },
         )
-        with patch(
-            "custom_components.entity_guard.config_flow._coerce_color_temp_kelvin",
-            return_value=None,
-        ):
-            res = await hass.config_entries.flow.async_configure(
-                res["flow_id"],
-                {
-                    CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
-                    CONF_TARGET_VALUE: 2700,
-                    CONF_DELAY_SECONDS: 0,
-                },
-            )
-        assert res["errors"][CONF_TARGET_VALUE] == "invalid_color_temp_kelvin"
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_color_temp_kelvin"
 
 
 async def test_advanced_invalid_rate_via_int_failure_skipped():
