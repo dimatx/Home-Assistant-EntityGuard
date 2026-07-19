@@ -115,8 +115,8 @@
       "incomplete_flag": "Tanto a entidade da condição como o estado requerido têm de estar definidos.",
       "safety_not_acknowledged": "Tem de reconhecer o risco de segurança para continuar.",
       "name_already_exists": "Já existe uma regra com este nome.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "A cor RGB deve ser uma lista de três valores entre 0 e 255.",
+      "invalid_color_temp_kelvin": "A temperatura de cor deve estar entre 2000 K e 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Apenas pode ser configurado um hub Entity Guard.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "Tanto a entidade da condição como o estado requerido têm de estar definidos.",
       "safety_not_acknowledged": "Tem de reconhecer o risco de segurança para continuar.",
       "name_already_exists": "Já existe uma regra com este nome.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "A cor RGB deve ser uma lista de três valores entre 0 e 255.",
+      "invalid_color_temp_kelvin": "A temperatura de cor deve estar entre 2000 K e 6500 K."
     },
     "abort": {
       "name_already_exists": "Já existe uma regra com este nome.",
@@ -289,8 +289,8 @@
         "volume_level": "Nível de volume",
         "temperature": "Temperatura",
         "percentage": "Percentagem",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "Cor RGB",
+        "color_temp_kelvin": "Temperatura de cor (Kelvin)"
       }
     },
     "operator": {

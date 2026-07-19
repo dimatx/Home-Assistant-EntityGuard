@@ -115,8 +115,8 @@
       "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
       "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
       "name_already_exists": "Une règle portant ce nom existe déjà.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "La couleur RGB doit être une liste de trois valeurs entre 0 et 255.",
+      "invalid_color_temp_kelvin": "La température de couleur doit être comprise entre 2000 K et 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Un seul concentrateur Entity Guard peut être configuré.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
       "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
       "name_already_exists": "Une règle portant ce nom existe déjà.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "La couleur RGB doit être une liste de trois valeurs entre 0 et 255.",
+      "invalid_color_temp_kelvin": "La température de couleur doit être comprise entre 2000 K et 6500 K."
     },
     "abort": {
       "name_already_exists": "Une règle portant ce nom existe déjà.",
@@ -289,8 +289,8 @@
         "volume_level": "Niveau de volume",
         "temperature": "Température",
         "percentage": "Pourcentage",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "Couleur RGB",
+        "color_temp_kelvin": "Température de couleur (Kelvin)"
       }
     },
     "operator": {

@@ -115,8 +115,8 @@
       "incomplete_flag": "Både flag-entitet og krævet tilstand skal angives.",
       "safety_not_acknowledged": "Du skal anerkende sikkerhedsrisikoen for at fortsætte.",
       "name_already_exists": "Der findes allerede en regel med dette navn.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-farve skal være en liste med tre værdier mellem 0 og 255.",
+      "invalid_color_temp_kelvin": "Farvetemperaturen skal være mellem 2000 K og 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Kun ét Entity Guard-hub kan konfigureres.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "Både flag-entitet og krævet tilstand skal angives.",
       "safety_not_acknowledged": "Du skal anerkende sikkerhedsrisikoen for at fortsætte.",
       "name_already_exists": "Der findes allerede en regel med dette navn.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-farve skal være en liste med tre værdier mellem 0 og 255.",
+      "invalid_color_temp_kelvin": "Farvetemperaturen skal være mellem 2000 K og 6500 K."
     },
     "abort": {
       "name_already_exists": "Der findes allerede en regel med dette navn.",
@@ -289,8 +289,8 @@
         "volume_level": "Lydstyrke",
         "temperature": "Temperatur",
         "percentage": "Procent",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "RGB-farve",
+        "color_temp_kelvin": "Farvetemperatur (Kelvin)"
       }
     },
     "operator": {

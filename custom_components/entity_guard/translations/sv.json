@@ -115,8 +115,8 @@
       "incomplete_flag": "Både flaggentitet och krävt tillstånd måste anges.",
       "safety_not_acknowledged": "Du måste bekräfta säkerhetsrisken för att fortsätta.",
       "name_already_exists": "En regel med detta namn finns redan.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-färg måste vara en lista med tre värden mellan 0 och 255.",
+      "invalid_color_temp_kelvin": "Färgtemperaturen måste vara mellan 2000 K och 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Endast en Entity Guard-hubb kan konfigureras.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "Både flaggentitet och krävt tillstånd måste anges.",
       "safety_not_acknowledged": "Du måste bekräfta säkerhetsrisken för att fortsätta.",
       "name_already_exists": "En regel med detta namn finns redan.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-färg måste vara en lista med tre värden mellan 0 och 255.",
+      "invalid_color_temp_kelvin": "Färgtemperaturen måste vara mellan 2000 K och 6500 K."
     },
     "abort": {
       "name_already_exists": "En regel med detta namn finns redan.",
@@ -289,8 +289,8 @@
         "volume_level": "Volymnivå",
         "temperature": "Temperatur",
         "percentage": "Procent",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "RGB-färg",
+        "color_temp_kelvin": "Färgtemperatur (Kelvin)"
       }
     },
     "operator": {

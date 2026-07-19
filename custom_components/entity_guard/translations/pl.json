@@ -115,8 +115,8 @@
       "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
       "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
       "name_already_exists": "Reguła o tej nazwie już istnieje.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "Kolor RGB musi być listą trzech wartości z zakresu od 0 do 255.",
+      "invalid_color_temp_kelvin": "Temperatura barwowa musi mieścić się w zakresie od 2000 K do 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jeden hub Entity Guard.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "Należy ustawić zarówno encję flagi, jak i wymagany stan.",
       "safety_not_acknowledged": "Aby kontynuować, musisz potwierdzić ryzyko związane z bezpieczeństwem.",
       "name_already_exists": "Reguła o tej nazwie już istnieje.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "Kolor RGB musi być listą trzech wartości z zakresu od 0 do 255.",
+      "invalid_color_temp_kelvin": "Temperatura barwowa musi mieścić się w zakresie od 2000 K do 6500 K."
     },
     "abort": {
       "name_already_exists": "Reguła o tej nazwie już istnieje.",
@@ -289,8 +289,8 @@
         "volume_level": "Poziom głośności",
         "temperature": "Temperatura",
         "percentage": "Procent",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "Kolor RGB",
+        "color_temp_kelvin": "Temperatura barwowa (Kelwin)"
       }
     },
     "operator": {

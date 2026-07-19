@@ -115,8 +115,8 @@
       "incomplete_flag": "Zowel de voorwaarde-entiteit als de vereiste status moeten zijn ingesteld.",
       "safety_not_acknowledged": "Je moet het veiligheidsrisico bevestigen om door te gaan.",
       "name_already_exists": "Er bestaat al een regel met deze naam.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-kleur moet een lijst met drie waarden tussen 0 en 255 zijn.",
+      "invalid_color_temp_kelvin": "De kleurtemperatuur moet tussen 2000 K en 6500 K liggen."
     },
     "abort": {
       "single_instance_allowed": "Er kan slechts één Entity Guard-hub worden geconfigureerd.",
@@ -205,8 +205,8 @@
       "incomplete_flag": "Zowel de voorwaarde-entiteit als de vereiste status moeten zijn ingesteld.",
       "safety_not_acknowledged": "Je moet het veiligheidsrisico bevestigen om door te gaan.",
       "name_already_exists": "Er bestaat al een regel met deze naam.",
-      "invalid_rgb_color": "RGB color must be a list of three values between 0 and 255.",
-      "invalid_color_temp_kelvin": "Color temperature must be between 2000 K and 6500 K."
+      "invalid_rgb_color": "RGB-kleur moet een lijst met drie waarden tussen 0 en 255 zijn.",
+      "invalid_color_temp_kelvin": "De kleurtemperatuur moet tussen 2000 K en 6500 K liggen."
     },
     "abort": {
       "name_already_exists": "Er bestaat al een regel met deze naam.",
@@ -289,8 +289,8 @@
         "volume_level": "Volumeniveau",
         "temperature": "Temperatuur",
         "percentage": "Percentage",
-        "rgb_color": "RGB color",
-        "color_temp_kelvin": "Color temperature (Kelvin)"
+        "rgb_color": "RGB-kleur",
+        "color_temp_kelvin": "Kleurtemperatuur (Kelvin)"
       }
     },
     "operator": {
