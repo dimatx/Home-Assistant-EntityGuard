@@ -4,11 +4,11 @@
 
 ### Added
 
-- **Color enforcement for light entities**: attribute mode now supports `rgb_color` and `color_temp_kelvin` in addition to the existing numeric clamp attributes. Color rules use a tolerance-aware match model and call `light.turn_on` only when the light is already on and its current color differs materially from the configured target.
+- **Color enforcement for light entities**: attribute mode now supports `rgb_color` and `color_temp_kelvin` in addition to the existing numeric clamp attributes. Color rules use a tolerance-aware match model: when the current color differs materially from the configured target, `light.turn_on` is called with the target color. If the light is off, this naturally turns it on and sets the color in one call. Only `unavailable`/`unknown` lights are skipped. To enforce only when the light is already on, add a flag condition (e.g. `light.your_light == on`).
 
 ### Tests
 
-- Added coverage for color target parsing, config-flow creation/editing, tolerance boundaries, skipped enforcement on off/unavailable lights, and debounce behavior for color rules.
+- Added coverage for color target parsing, config-flow creation/editing, tolerance boundaries, unavailable-light skip, debounce behavior for color rules, and off-light enforcement.
 
 ---
 

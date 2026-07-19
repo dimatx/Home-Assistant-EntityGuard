@@ -114,9 +114,7 @@
       "forbidden_state": "Gli stati 'unavailable', 'unknown' e 'none' non possono essere usati come trigger o destinazioni.",
       "incomplete_flag": "Devono essere impostati sia l'entità della condizione sia lo stato richiesto.",
       "safety_not_acknowledged": "Devi confermare il rischio di sicurezza per continuare.",
-      "name_already_exists": "Esiste già una regola con questo nome.",
-      "invalid_rgb_color": "Il colore RGB deve essere un elenco di tre valori compresi tra 0 e 255.",
-      "invalid_color_temp_kelvin": "La temperatura colore deve essere compresa tra 2000 K e 6500 K."
+      "name_already_exists": "Esiste già una regola con questo nome."
     },
     "abort": {
       "single_instance_allowed": "Può essere configurato un solo hub Entity Guard.",
@@ -204,9 +202,7 @@
       "forbidden_state": "Gli stati 'unavailable', 'unknown' e 'none' non possono essere usati come trigger o destinazioni.",
       "incomplete_flag": "Devono essere impostati sia l'entità della condizione sia lo stato richiesto.",
       "safety_not_acknowledged": "Devi confermare il rischio di sicurezza per continuare.",
-      "name_already_exists": "Esiste già una regola con questo nome.",
-      "invalid_rgb_color": "Il colore RGB deve essere un elenco di tre valori compresi tra 0 e 255.",
-      "invalid_color_temp_kelvin": "La temperatura colore deve essere compresa tra 2000 K e 6500 K."
+      "name_already_exists": "Esiste già una regola con questo nome."
     },
     "abort": {
       "name_already_exists": "Esiste già una regola con questo nome.",
@@ -288,9 +284,7 @@
         "brightness": "Luminosità",
         "volume_level": "Livello volume",
         "temperature": "Temperatura",
-        "percentage": "Percentuale",
-        "rgb_color": "Colore RGB",
-        "color_temp_kelvin": "Temperatura colore (Kelvin)"
+        "percentage": "Percentuale"
       }
     },
     "operator": {

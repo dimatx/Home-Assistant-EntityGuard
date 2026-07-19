@@ -114,9 +114,7 @@
       "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
       "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
       "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
-      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
-      "invalid_rgb_color": "RGB-Farbe muss eine Liste mit drei Werten zwischen 0 und 255 sein.",
-      "invalid_color_temp_kelvin": "Die Farbtemperatur muss zwischen 2000 K und 6500 K liegen."
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
     },
     "abort": {
       "single_instance_allowed": "Es kann nur ein Entity Guard-Hub konfiguriert werden.",
@@ -204,9 +202,7 @@
       "forbidden_state": "Die Status „unavailable“, „unknown“ und „none“ können nicht als Auslöser oder Ziel verwendet werden.",
       "incomplete_flag": "Sowohl die Flag-Entität als auch der erforderliche Status müssen festgelegt sein.",
       "safety_not_acknowledged": "Du musst das Sicherheitsrisiko bestätigen, um fortzufahren.",
-      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
-      "invalid_rgb_color": "RGB-Farbe muss eine Liste mit drei Werten zwischen 0 und 255 sein.",
-      "invalid_color_temp_kelvin": "Die Farbtemperatur muss zwischen 2000 K und 6500 K liegen."
+      "name_already_exists": "Eine Regel mit diesem Namen existiert bereits."
     },
     "abort": {
       "name_already_exists": "Eine Regel mit diesem Namen existiert bereits.",
@@ -288,9 +284,7 @@
         "brightness": "Helligkeit",
         "volume_level": "Lautstärke",
         "temperature": "Temperatur",
-        "percentage": "Prozentsatz",
-        "rgb_color": "RGB-Farbe",
-        "color_temp_kelvin": "Farbtemperatur (Kelvin)"
+        "percentage": "Prozentsatz"
       }
     },
     "operator": {
