@@ -37,6 +37,10 @@ from custom_components.entity_guard.const import (
 )
 
 
+def _schema_key_names(result: dict) -> set[str]:
+    return {getattr(key, "schema", key) for key in result["data_schema"].schema}
+
+
 @pytest.fixture(autouse=True)
 def _no_setup():
     with (
@@ -310,9 +314,12 @@ async def test_attribute_flow(hass: HomeAssistant):
     )
     assert res["step_id"] == "attribute"
     res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: "brightness"}
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
         res["flow_id"],
         {
-            CONF_ATTRIBUTE: "brightness",
             CONF_OPERATOR: "gt",
             CONF_THRESHOLD: 64,
             CONF_TARGET_VALUE: 64,
@@ -322,39 +329,34 @@ async def test_attribute_flow(hass: HomeAssistant):
     assert res["step_id"] == "extras"
 
 
-async def test_attribute_flow_rgb_color(hass: HomeAssistant):
-    res = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
-    res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_RULE_NAME: "ColorRule",
-            CONF_TARGET_ENTITIES: ["light.bedroom"],
-            CONF_MODE: MODE_ATTRIBUTE,
-        },
-    )
-    assert res["step_id"] == "attribute"
-    res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-            CONF_OPERATOR: "gt",
-            CONF_THRESHOLD: 64,
-            CONF_TARGET_VALUE: 64,
-            CONF_DELAY_SECONDS: 0,
-        },
-    )
-    assert res["step_id"] == "attribute"
-    res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-            CONF_TARGET_VALUE: [255, 0, 0],
-            CONF_DELAY_SECONDS: 0,
-        },
-    )
-    assert res["step_id"] == "extras"
+async def test_attribute_params_schema_by_selected_attribute_create_flow(
+    hass: HomeAssistant,
+):
+    for attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, "brightness"):
+        res = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"],
+            {
+                CONF_RULE_NAME: f"ColorRule-{attr}",
+                CONF_TARGET_ENTITIES: ["light.bedroom"],
+                CONF_MODE: MODE_ATTRIBUTE,
+            },
+        )
+        assert res["step_id"] == "attribute"
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"], {CONF_ATTRIBUTE: attr}
+        )
+        assert res["step_id"] == "attribute_params"
+        schema_keys = _schema_key_names(res)
+        assert CONF_TARGET_VALUE in schema_keys
+        if attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN):
+            assert CONF_OPERATOR not in schema_keys
+            assert CONF_THRESHOLD not in schema_keys
+        else:
+            assert CONF_OPERATOR in schema_keys
+            assert CONF_THRESHOLD in schema_keys
 
 
 async def test_attribute_flow_color_temp_kelvin(hass: HomeAssistant):
@@ -371,22 +373,11 @@ async def test_attribute_flow_color_temp_kelvin(hass: HomeAssistant):
     )
     res = await hass.config_entries.flow.async_configure(
         res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
-            CONF_OPERATOR: "gt",
-            CONF_THRESHOLD: 64,
-            CONF_TARGET_VALUE: 64,
-            CONF_DELAY_SECONDS: 0,
-        },
+        {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN},
     )
-    assert res["step_id"] == "attribute"
+    assert res["step_id"] == "attribute_params"
     res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN,
-            CONF_TARGET_VALUE: 2700,
-            CONF_DELAY_SECONDS: 0,
-        },
+        res["flow_id"], {CONF_TARGET_VALUE: 2700, CONF_DELAY_SECONDS: 0}
     )
     assert res["step_id"] == "extras"
 
@@ -404,22 +395,11 @@ async def test_full_attribute_flow_rgb_color_creates_entry(hass: HomeAssistant):
         },
     )
     res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-            CONF_OPERATOR: "gt",
-            CONF_THRESHOLD: 64,
-            CONF_TARGET_VALUE: 64,
-            CONF_DELAY_SECONDS: 0,
-        },
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_RGB_COLOR}
     )
+    assert res["step_id"] == "attribute_params"
     res = await hass.config_entries.flow.async_configure(
-        res["flow_id"],
-        {
-            CONF_ATTRIBUTE: ATTR_RGB_COLOR,
-            CONF_TARGET_VALUE: [255, 0, 0],
-            CONF_DELAY_SECONDS: 0,
-        },
+        res["flow_id"], {CONF_TARGET_VALUE: [255, 0, 0], CONF_DELAY_SECONDS: 0}
     )
     res = await hass.config_entries.flow.async_configure(
         res["flow_id"],
@@ -429,6 +409,39 @@ async def test_full_attribute_flow_rgb_color_creates_entry(hass: HomeAssistant):
     res = await hass.config_entries.flow.async_configure(res["flow_id"], {})
     assert res["type"] == FlowResultType.CREATE_ENTRY
     assert res["data"][CONF_TARGET_VALUE] == [255, 0, 0]
+    assert res["data"][CONF_OPERATOR] is None
+    assert res["data"][CONF_THRESHOLD] is None
+
+
+async def test_full_attribute_flow_color_temp_kelvin_creates_entry(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "Kelvin Lock",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN}
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: 3000, CONF_DELAY_SECONDS: 0}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {"add_flags": False, "custom_rate_limit": False, "add_debounce": False},
+    )
+    assert res["step_id"] == "preview"
+    res = await hass.config_entries.flow.async_configure(res["flow_id"], {})
+    assert res["type"] == FlowResultType.CREATE_ENTRY
+    assert res["data"][CONF_TARGET_VALUE] == 3000
+    assert res["data"][CONF_OPERATOR] is None
+    assert res["data"][CONF_THRESHOLD] is None
 
 
 async def test_attribute_invalid_delay_skipped(hass: HomeAssistant):
