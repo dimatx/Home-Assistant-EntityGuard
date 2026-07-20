@@ -84,17 +84,41 @@ Adding the integration takes you straight into rule creation. The **Entity Guard
 
 ### Step 2b: Attribute Mode
 
+Attribute mode is configured in two screens. First choose **which** attribute to enforce; the parameters screen then adapts to that choice.
+
+**Choose the attribute**
+
 | Field | Description |
 |-------|-------------|
-| Attribute | `brightness`, `volume_level`, `temperature`, `percentage`, `rgb_color`, or `color_temp_kelvin` |
-| Operator | `<`, `<=`, `>`, `>=` for numeric clamp rules only |
-| Threshold | Numeric value to compare against for numeric clamp rules only |
-| Target value | Numeric clamp target, RGB color target, or Kelvin color-temperature target |
+| Attribute | `brightness`, `volume_level`, `temperature`, `percentage`, `rgb_color`, or `color_temp_kelvin` (color attributes appear only for entities whose domain supports them) |
+
+![Step 2b: Choose attribute](assets/03b_attribute_mode.png)
+
+**Attribute parameters**
+
+The fields on this screen depend on the attribute you picked.
+
+*Numeric attributes* (`brightness`, `volume_level`, `temperature`, `percentage`) use a **clamp** model:
+
+| Field | Description |
+|-------|-------------|
+| Operator | `<`, `<=`, `>`, `>=` — the comparison that triggers a clamp |
+| Threshold | Numeric value compared against the live attribute |
+| Target value | Value to clamp the attribute to when the rule fires |
 | Delay (seconds) | Wait this long before enforcing (0-86400) |
 
-For `rgb_color` and `color_temp_kelvin`, Entity Guard uses a **match** model instead of a clamp: if the light is on and its current color differs from the configured target beyond a small tolerance, the rule calls `light.turn_on` with the target color. Lights that are off or unavailable are skipped — Entity Guard will not turn them on just to enforce color.
+![Step 2b: Numeric parameters](assets/03c_attribute_params_numeric.png)
 
-![Step 2b: Attribute Mode](assets/03b_attribute_mode.png)
+*Color attributes* (`rgb_color`, `color_temp_kelvin`) use a **match** model instead — no operator or threshold, just a target the light must match:
+
+| Field | Description |
+|-------|-------------|
+| Target value | RGB color (picker) or color temperature in Kelvin (slider) the light must match |
+| Delay (seconds) | Wait this long before enforcing (0-86400) |
+
+If the light is on and its current color differs from the target beyond a small tolerance, the rule calls `light.turn_on` with the target color. Lights that are off or unavailable are skipped — Entity Guard will not turn them on just to enforce color.
+
+![Step 2b: RGB color parameters](assets/03c_attribute_params_rgb.png)
 
 ### Step 2c: Optional Features
 
@@ -232,11 +256,21 @@ Every rule action fires a Home Assistant event:
 | Event | Fired when |
 |-------|------------|
 | `entity_guard_enforced` | Successful enforcement |
-| `entity_guard_skipped` | Enforcement skipped (target unavailable, flag mismatch) |
+| `entity_guard_skipped` | Enforcement skipped (see `reason` below) |
 | `entity_guard_loop_detected` | Rate limit hit; rule auto-suppressed |
 | `entity_guard_suppressed` | Suppress service called |
 
 All four are described in the Logbook.
+
+`entity_guard_skipped` carries a `reason` field:
+
+| `reason` | Meaning |
+|----------|---------|
+| `no_service_mapping` | No service known for the target's domain/attribute |
+| `service_call_failed` | The enforcing service call raised (also sets `error`) |
+| `light_off` | Color rule: target light is off (not turned on to enforce color) |
+| `light_unavailable` | Color rule: target light is `unavailable`/`unknown` |
+| `attribute_unavailable` | Color rule: target's color attribute is missing/unreadable |
 
 ---
 
