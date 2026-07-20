@@ -290,8 +290,7 @@ def _attributes_for_entities(entities: list[str]) -> list[str]:
     """Union of supported attributes across the domains of the given entities.
 
     Falls back to numeric-only attributes when no chosen entity belongs to a
-    domain with a known service mapping. Color enforcement is intentionally
-    offered only when a light entity is part of the target set.
+    domain with a known service mapping.
     """
     seen: dict[str, None] = {}
     for entity_id in entities:
@@ -304,7 +303,6 @@ def _attributes_for_entities(entities: list[str]) -> list[str]:
 
 
 def _attribute_schema(
-    attr_options: list[str],
     current_attr: str | None,
     *,
     target_value_default: Any = None,
@@ -313,15 +311,7 @@ def _attribute_schema(
     delay_default: int = DEFAULT_DELAY_SECONDS,
 ) -> vol.Schema:
     """Build the attribute-mode form schema for numeric or color attributes."""
-    default_attr = current_attr or (attr_options[0] if attr_options else None)
-    schema: dict[Any, Any] = {
-        vol.Required(CONF_ATTRIBUTE, default=default_attr): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=attr_options,
-                translation_key="attribute",
-            )
-        )
-    }
+    schema: dict[Any, Any] = {}
 
     if current_attr == ATTR_RGB_COLOR:
         schema[
@@ -354,6 +344,23 @@ def _attribute_schema(
 
     schema[vol.Required(CONF_DELAY_SECONDS, default=delay_default)] = _delay_selector()
     return vol.Schema(schema)
+
+
+def _attribute_choice_schema(
+    attr_options: list[str], current_attr: str | None = None
+) -> vol.Schema:
+    """Build the attribute-selection form schema."""
+    default_attr = current_attr or (attr_options[0] if attr_options else None)
+    return vol.Schema(
+        {
+            vol.Required(CONF_ATTRIBUTE, default=default_attr): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=attr_options,
+                    translation_key="attribute",
+                )
+            )
+        }
+    )
 
 
 def _trigger_states_selector(options: list[str]) -> selector.SelectSelector:
@@ -529,8 +536,7 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_attribute(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Attribute-mode step: attribute, operator, threshold, target value, delay."""
-        errors: dict[str, str] = {}
+        """Attribute-mode step: choose which attribute to enforce."""
         attr_options = _attributes_for_entities(
             self._rule_data.get(CONF_TARGET_ENTITIES, [])
         )
@@ -539,22 +545,28 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
         if user_input is not None:
-            selected_attr = user_input[CONF_ATTRIBUTE]
-            if selected_attr != current_attr:
-                self._rule_data[CONF_ATTRIBUTE] = selected_attr
-                return self.async_show_form(
-                    step_id="attribute",
-                    data_schema=_attribute_schema(
-                        attr_options,
-                        selected_attr,
-                        delay_default=_coerce_delay(user_input.get(CONF_DELAY_SECONDS))
-                        or self._rule_data.get(
-                            CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
-                        ),
-                    ),
-                    errors=errors,
-                )
+            self._rule_data[CONF_ATTRIBUTE] = user_input[CONF_ATTRIBUTE]
+            return await self.async_step_attribute_params()
 
+        return self.async_show_form(
+            step_id="attribute",
+            data_schema=_attribute_choice_schema(attr_options, current_attr),
+        )
+
+    async def async_step_attribute_params(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Attribute-mode step: configure params for the chosen attribute."""
+        errors: dict[str, str] = {}
+        attr_options = _attributes_for_entities(
+            self._rule_data.get(CONF_TARGET_ENTITIES, [])
+        )
+        selected_attr = self._rule_data.get(
+            CONF_ATTRIBUTE, attr_options[0] if attr_options else None
+        )
+        self._rule_data[CONF_ATTRIBUTE] = selected_attr
+
+        if user_input is not None:
             delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
             if delay is None:
                 errors[CONF_DELAY_SECONDS] = "invalid_delay"
@@ -563,7 +575,6 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 if target_value is None:
                     errors[CONF_TARGET_VALUE] = "invalid_rgb_color"
                 else:
-                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
                     self._rule_data[CONF_OPERATOR] = None
                     self._rule_data[CONF_THRESHOLD] = None
                     self._rule_data[CONF_TARGET_VALUE] = target_value
@@ -576,7 +587,6 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 if target_value is None:
                     errors[CONF_TARGET_VALUE] = "invalid_color_temp_kelvin"
                 else:
-                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
                     self._rule_data[CONF_OPERATOR] = None
                     self._rule_data[CONF_THRESHOLD] = None
                     self._rule_data[CONF_TARGET_VALUE] = target_value
@@ -592,7 +602,6 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                 ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
                     errors["base"] = "invalid_threshold"
                 else:
-                    self._rule_data[CONF_ATTRIBUTE] = selected_attr
                     self._rule_data[CONF_OPERATOR] = user_input[CONF_OPERATOR]
                     self._rule_data[CONF_THRESHOLD] = threshold
                     self._rule_data[CONF_TARGET_VALUE] = target_value
@@ -600,10 +609,9 @@ class EntityGuardConfigFlow(ConfigFlow, domain=DOMAIN):
                     return await self.async_step_extras()
 
         return self.async_show_form(
-            step_id="attribute",
+            step_id="attribute_params",
             data_schema=_attribute_schema(
-                attr_options,
-                current_attr,
+                selected_attr,
                 target_value_default=self._rule_data.get(CONF_TARGET_VALUE),
                 threshold_default=self._rule_data.get(CONF_THRESHOLD, 0),
                 operator_default=self._rule_data.get(
@@ -1082,8 +1090,7 @@ class EntityGuardOptionsFlow(OptionsFlow):
     async def async_step_edit_attribute(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Edit attribute-mode parameters."""
-        errors: dict[str, str] = {}
+        """Edit attribute mode: choose which attribute to enforce."""
 
         attr_options = _attributes_for_entities(
             self._working.get(CONF_TARGET_ENTITIES, [])
@@ -1096,22 +1103,31 @@ class EntityGuardOptionsFlow(OptionsFlow):
         if current_attr not in attr_options:
             attr_options = [current_attr, *attr_options]
         if user_input is not None:
-            selected_attr = user_input[CONF_ATTRIBUTE]
-            if selected_attr != current_attr:
-                self._working[CONF_ATTRIBUTE] = selected_attr
-                return self.async_show_form(
-                    step_id="edit_attribute",
-                    data_schema=_attribute_schema(
-                        attr_options,
-                        selected_attr,
-                        delay_default=_coerce_delay(user_input.get(CONF_DELAY_SECONDS))
-                        or self._working.get(
-                            CONF_DELAY_SECONDS, DEFAULT_DELAY_SECONDS
-                        ),
-                    ),
-                    errors=errors,
-                )
+            self._working[CONF_ATTRIBUTE] = user_input[CONF_ATTRIBUTE]
+            return await self.async_step_edit_attribute_params()
 
+        return self.async_show_form(
+            step_id="edit_attribute",
+            data_schema=_attribute_choice_schema(
+                attr_options,
+                current_attr,
+            ),
+        )
+
+    async def async_step_edit_attribute_params(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit attribute mode: parameters for the chosen attribute."""
+        errors: dict[str, str] = {}
+        attr_options = _attributes_for_entities(
+            self._working.get(CONF_TARGET_ENTITIES, [])
+        )
+        selected_attr = self._working.get(
+            CONF_ATTRIBUTE, attr_options[0] if attr_options else None
+        )
+        self._working[CONF_ATTRIBUTE] = selected_attr
+
+        if user_input is not None:
             delay = _coerce_delay(user_input.get(CONF_DELAY_SECONDS))
             if delay is None:
                 errors[CONF_DELAY_SECONDS] = "invalid_delay"
@@ -1120,7 +1136,6 @@ class EntityGuardOptionsFlow(OptionsFlow):
                 if target_value is None:
                     errors[CONF_TARGET_VALUE] = "invalid_rgb_color"
                 else:
-                    self._working[CONF_ATTRIBUTE] = selected_attr
                     self._working[CONF_OPERATOR] = None
                     self._working[CONF_THRESHOLD] = None
                     self._working[CONF_TARGET_VALUE] = target_value
@@ -1133,7 +1148,6 @@ class EntityGuardOptionsFlow(OptionsFlow):
                 if target_value is None:
                     errors[CONF_TARGET_VALUE] = "invalid_color_temp_kelvin"
                 else:
-                    self._working[CONF_ATTRIBUTE] = selected_attr
                     self._working[CONF_OPERATOR] = None
                     self._working[CONF_THRESHOLD] = None
                     self._working[CONF_TARGET_VALUE] = target_value
@@ -1149,7 +1163,6 @@ class EntityGuardOptionsFlow(OptionsFlow):
                 ):  # pragma: no cover — vol.Coerce(float) in schema prevents this
                     errors["base"] = "invalid_threshold"
                 else:
-                    self._working[CONF_ATTRIBUTE] = selected_attr
                     self._working[CONF_OPERATOR] = user_input[CONF_OPERATOR]
                     self._working[CONF_THRESHOLD] = threshold
                     self._working[CONF_TARGET_VALUE] = target_value
@@ -1157,10 +1170,9 @@ class EntityGuardOptionsFlow(OptionsFlow):
                     return self._save()
 
         return self.async_show_form(
-            step_id="edit_attribute",
+            step_id="edit_attribute_params",
             data_schema=_attribute_schema(
-                attr_options,
-                current_attr,
+                selected_attr,
                 target_value_default=self._working.get(CONF_TARGET_VALUE),
                 threshold_default=self._working.get(CONF_THRESHOLD, 0),
                 operator_default=self._working.get(
