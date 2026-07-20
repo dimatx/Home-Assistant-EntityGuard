@@ -114,7 +114,9 @@
       "forbidden_state": "Les états « unavailable », « unknown » et « none » ne peuvent pas être utilisés comme déclencheurs ou cibles.",
       "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
       "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
-      "name_already_exists": "Une règle portant ce nom existe déjà."
+      "name_already_exists": "Une règle portant ce nom existe déjà.",
+      "invalid_rgb_color": "La couleur RGB doit être une liste de trois valeurs entre 0 et 255.",
+      "invalid_color_temp_kelvin": "La température de couleur doit être comprise entre 2000 K et 6500 K."
     },
     "abort": {
       "single_instance_allowed": "Un seul concentrateur Entity Guard peut être configuré.",
@@ -202,7 +204,9 @@
       "forbidden_state": "Les états « unavailable », « unknown » et « none » ne peuvent pas être utilisés comme déclencheurs ou cibles.",
       "incomplete_flag": "L'entité de condition et l'état requis doivent tous deux être renseignés.",
       "safety_not_acknowledged": "Vous devez reconnaître le risque de sécurité pour continuer.",
-      "name_already_exists": "Une règle portant ce nom existe déjà."
+      "name_already_exists": "Une règle portant ce nom existe déjà.",
+      "invalid_rgb_color": "La couleur RGB doit être une liste de trois valeurs entre 0 et 255.",
+      "invalid_color_temp_kelvin": "La température de couleur doit être comprise entre 2000 K et 6500 K."
     },
     "abort": {
       "name_already_exists": "Une règle portant ce nom existe déjà.",
@@ -284,7 +288,9 @@
         "brightness": "Luminosité",
         "volume_level": "Niveau de volume",
         "temperature": "Température",
-        "percentage": "Pourcentage"
+        "percentage": "Pourcentage",
+        "rgb_color": "Couleur RGB",
+        "color_temp_kelvin": "Température de couleur (Kelvin)"
       }
     },
     "operator": {

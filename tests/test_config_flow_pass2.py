@@ -11,6 +11,8 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.entity_guard.const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     CONF_ATTRIBUTE,
     CONF_DEBOUNCE_ENABLED,
     CONF_DEBOUNCE_SECONDS,
@@ -31,6 +33,10 @@ from custom_components.entity_guard.const import (
     MODE_ATTRIBUTE,
     MODE_STATE,
 )
+
+
+def _schema_key_names(result: dict) -> set[str]:
+    return {getattr(key, "schema", key) for key in result["data_schema"].schema}
 
 
 @pytest.fixture(autouse=True)
@@ -165,9 +171,11 @@ async def test_attribute_invalid_delay_create(hass: HomeAssistant):
         "custom_components.entity_guard.config_flow._coerce_delay", return_value=None
     ):
         res = await hass.config_entries.flow.async_configure(
+            res["flow_id"], {CONF_ATTRIBUTE: "brightness"}
+        )
+        res = await hass.config_entries.flow.async_configure(
             res["flow_id"],
             {
-                CONF_ATTRIBUTE: "brightness",
                 CONF_OPERATOR: "gt",
                 CONF_THRESHOLD: 64,
                 CONF_TARGET_VALUE: 64,
@@ -175,6 +183,56 @@ async def test_attribute_invalid_delay_create(hass: HomeAssistant):
             },
         )
     assert res["errors"][CONF_DELAY_SECONDS] == "invalid_delay"
+
+
+async def test_attribute_invalid_rgb_color_create(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "AttrRgbBad",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_RGB_COLOR}
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_rgb_color",
+        return_value=None,
+    ):
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"], {CONF_TARGET_VALUE: [255, 0, 0], CONF_DELAY_SECONDS: 0}
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_rgb_color"
+
+
+async def test_attribute_invalid_color_temp_kelvin_create(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "AttrKelvinBad",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN}
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_color_temp_kelvin",
+        return_value=None,
+    ):
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"], {CONF_TARGET_VALUE: 2700, CONF_DELAY_SECONDS: 0}
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_color_temp_kelvin"
 
 
 async def test_advanced_invalid_rate_via_int_failure_skipped():
@@ -374,9 +432,12 @@ async def test_options_edit_attribute_save(hass: HomeAssistant):
     )
     assert res["step_id"] == "edit_attribute"
     res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: "brightness"}
+    )
+    assert res["step_id"] == "edit_attribute_params"
+    res = await hass.config_entries.options.async_configure(
         res["flow_id"],
         {
-            CONF_ATTRIBUTE: "brightness",
             CONF_OPERATOR: "gt",
             CONF_THRESHOLD: 100,
             CONF_TARGET_VALUE: 80,
@@ -402,9 +463,11 @@ async def test_options_edit_attribute_invalid_delay(hass: HomeAssistant):
         "custom_components.entity_guard.config_flow._coerce_delay", return_value=None
     ):
         res = await hass.config_entries.options.async_configure(
+            res["flow_id"], {CONF_ATTRIBUTE: "brightness"}
+        )
+        res = await hass.config_entries.options.async_configure(
             res["flow_id"],
             {
-                CONF_ATTRIBUTE: "brightness",
                 CONF_OPERATOR: "gt",
                 CONF_THRESHOLD: 64,
                 CONF_TARGET_VALUE: 64,
@@ -425,6 +488,108 @@ async def test_options_edit_attribute_preserves_unknown_attr(hass: HomeAssistant
         res["flow_id"], {"next_step_id": "edit_mode"}
     )
     assert res["step_id"] == "edit_attribute"
+    schema_keys = _schema_key_names(res)
+    assert CONF_ATTRIBUTE in schema_keys
+
+
+async def test_options_edit_attribute_params_schema_by_selected_attribute(hass: HomeAssistant):
+    for attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, "brightness"):
+        e = _attr_entry(hass, f"AttrSchema-{attr}")
+        res = await hass.config_entries.options.async_init(e.entry_id)
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"], {"next_step_id": "edit_mode"}
+        )
+        assert res["step_id"] == "edit_attribute"
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"], {CONF_ATTRIBUTE: attr}
+        )
+        assert res["step_id"] == "edit_attribute_params"
+        schema_keys = _schema_key_names(res)
+        assert CONF_TARGET_VALUE in schema_keys
+        if attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN):
+            assert CONF_OPERATOR not in schema_keys
+            assert CONF_THRESHOLD not in schema_keys
+        else:
+            assert CONF_OPERATOR in schema_keys
+            assert CONF_THRESHOLD in schema_keys
+
+
+async def test_options_edit_attribute_switch_to_rgb_color(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrColor")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_RGB_COLOR}
+    )
+    assert res["step_id"] == "edit_attribute_params"
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: [255, 0, 0], CONF_DELAY_SECONDS: 0}
+    )
+    assert res["type"] == FlowResultType.CREATE_ENTRY
+    assert e.data[CONF_ATTRIBUTE] == ATTR_RGB_COLOR
+    assert e.data[CONF_TARGET_VALUE] == [255, 0, 0]
+    assert e.data[CONF_OPERATOR] is None
+    assert e.data[CONF_THRESHOLD] is None
+
+
+async def test_options_edit_attribute_color_temp_kelvin_save(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrKelvin")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN}
+    )
+    assert res["step_id"] == "edit_attribute_params"
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: 3000, CONF_DELAY_SECONDS: 0}
+    )
+    assert res["type"] == FlowResultType.CREATE_ENTRY
+    assert e.data[CONF_ATTRIBUTE] == ATTR_COLOR_TEMP_KELVIN
+    assert e.data[CONF_TARGET_VALUE] == 3000
+    assert e.data[CONF_OPERATOR] is None
+    assert e.data[CONF_THRESHOLD] is None
+
+
+async def test_options_edit_attribute_invalid_rgb_color(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrColorBad")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_RGB_COLOR}
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_rgb_color",
+        return_value=None,
+    ):
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"], {CONF_TARGET_VALUE: [255, 0, 0], CONF_DELAY_SECONDS: 0}
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_rgb_color"
+
+
+async def test_options_edit_attribute_invalid_color_temp_kelvin(hass: HomeAssistant):
+    e = _attr_entry(hass, "AttrKelvinBad")
+    res = await hass.config_entries.options.async_init(e.entry_id)
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {"next_step_id": "edit_mode"}
+    )
+    res = await hass.config_entries.options.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN}
+    )
+    with patch(
+        "custom_components.entity_guard.config_flow._coerce_color_temp_kelvin",
+        return_value=None,
+    ):
+        res = await hass.config_entries.options.async_configure(
+            res["flow_id"], {CONF_TARGET_VALUE: 2700, CONF_DELAY_SECONDS: 0}
+        )
+    assert res["errors"][CONF_TARGET_VALUE] == "invalid_color_temp_kelvin"
 
 
 # ---------------------------------------------------------------------------

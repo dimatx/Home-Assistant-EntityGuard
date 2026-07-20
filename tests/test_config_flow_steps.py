@@ -11,6 +11,8 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.entity_guard.const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGB_COLOR,
     CONF_ATTRIBUTE,
     CONF_DEBOUNCE_ENABLED,
     CONF_DEBOUNCE_SECONDS,
@@ -33,6 +35,10 @@ from custom_components.entity_guard.const import (
     MODE_ATTRIBUTE,
     MODE_STATE,
 )
+
+
+def _schema_key_names(result: dict) -> set[str]:
+    return {getattr(key, "schema", key) for key in result["data_schema"].schema}
 
 
 @pytest.fixture(autouse=True)
@@ -308,9 +314,12 @@ async def test_attribute_flow(hass: HomeAssistant):
     )
     assert res["step_id"] == "attribute"
     res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: "brightness"}
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
         res["flow_id"],
         {
-            CONF_ATTRIBUTE: "brightness",
             CONF_OPERATOR: "gt",
             CONF_THRESHOLD: 64,
             CONF_TARGET_VALUE: 64,
@@ -320,10 +329,182 @@ async def test_attribute_flow(hass: HomeAssistant):
     assert res["step_id"] == "extras"
 
 
+async def test_attribute_params_schema_by_selected_attribute_create_flow(
+    hass: HomeAssistant,
+):
+    for attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN, "brightness"):
+        res = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"],
+            {
+                CONF_RULE_NAME: f"ColorRule-{attr}",
+                CONF_TARGET_ENTITIES: ["light.bedroom"],
+                CONF_MODE: MODE_ATTRIBUTE,
+            },
+        )
+        assert res["step_id"] == "attribute"
+        res = await hass.config_entries.flow.async_configure(
+            res["flow_id"], {CONF_ATTRIBUTE: attr}
+        )
+        assert res["step_id"] == "attribute_params"
+        schema_keys = _schema_key_names(res)
+        assert CONF_TARGET_VALUE in schema_keys
+        if attr in (ATTR_RGB_COLOR, ATTR_COLOR_TEMP_KELVIN):
+            assert CONF_OPERATOR not in schema_keys
+            assert CONF_THRESHOLD not in schema_keys
+        else:
+            assert CONF_OPERATOR in schema_keys
+            assert CONF_THRESHOLD in schema_keys
+
+
+async def test_attribute_flow_color_temp_kelvin(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "KelvinRule",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN},
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: 2700, CONF_DELAY_SECONDS: 0}
+    )
+    assert res["step_id"] == "extras"
+
+
+async def test_full_attribute_flow_rgb_color_creates_entry(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "Accent Lock",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_RGB_COLOR}
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: [255, 0, 0], CONF_DELAY_SECONDS: 0}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {"add_flags": False, "custom_rate_limit": False, "add_debounce": False},
+    )
+    assert res["step_id"] == "preview"
+    res = await hass.config_entries.flow.async_configure(res["flow_id"], {})
+    assert res["type"] == FlowResultType.CREATE_ENTRY
+    assert res["data"][CONF_TARGET_VALUE] == [255, 0, 0]
+    assert res["data"][CONF_OPERATOR] is None
+    assert res["data"][CONF_THRESHOLD] is None
+
+
+async def test_full_attribute_flow_color_temp_kelvin_creates_entry(hass: HomeAssistant):
+    res = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {
+            CONF_RULE_NAME: "Kelvin Lock",
+            CONF_TARGET_ENTITIES: ["light.bedroom"],
+            CONF_MODE: MODE_ATTRIBUTE,
+        },
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_ATTRIBUTE: ATTR_COLOR_TEMP_KELVIN}
+    )
+    assert res["step_id"] == "attribute_params"
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"], {CONF_TARGET_VALUE: 3000, CONF_DELAY_SECONDS: 0}
+    )
+    res = await hass.config_entries.flow.async_configure(
+        res["flow_id"],
+        {"add_flags": False, "custom_rate_limit": False, "add_debounce": False},
+    )
+    assert res["step_id"] == "preview"
+    res = await hass.config_entries.flow.async_configure(res["flow_id"], {})
+    assert res["type"] == FlowResultType.CREATE_ENTRY
+    assert res["data"][CONF_TARGET_VALUE] == 3000
+    assert res["data"][CONF_OPERATOR] is None
+    assert res["data"][CONF_THRESHOLD] is None
+
+
 async def test_attribute_invalid_delay_skipped(hass: HomeAssistant):
     # Schema-validated bounds prevent reaching invalid_delay error branch via flow harness;
     # _coerce_delay rejection covered in helper unit tests.
     pass
+
+
+# ---------------------------------------------------------------------------
+# _attribute_schema default type-guard tests (Item 2)
+# ---------------------------------------------------------------------------
+
+
+def test_attribute_schema_rgb_default_falls_back_when_prior_value_is_int():
+    """Switching to rgb_color when prior target_value was a Kelvin int yields RGB default."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_RGB_COLOR, target_value_default=2700)
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == [255, 255, 255]
+
+
+def test_attribute_schema_rgb_default_uses_valid_list():
+    """Switching to rgb_color when prior target_value is a valid RGB list uses it."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_RGB_COLOR, target_value_default=[10, 20, 30])
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == [10, 20, 30]
+
+
+def test_attribute_schema_kelvin_default_falls_back_when_prior_value_is_list():
+    """Switching to color_temp_kelvin when prior target_value was an RGB list yields Kelvin default."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_COLOR_TEMP_KELVIN, target_value_default=[255, 0, 0])
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == 2700
+
+
+def test_attribute_schema_kelvin_default_uses_valid_int():
+    """Switching to color_temp_kelvin when prior target_value is a valid int uses it."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_COLOR_TEMP_KELVIN, target_value_default=4000)
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == 4000
 
 
 # ---------------------------------------------------------------------------
