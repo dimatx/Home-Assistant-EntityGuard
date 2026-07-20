@@ -22,7 +22,7 @@ Enforce desired entity state in Home Assistant via declarative rules. Replaces N
 
 - **Declarative rules** -- bind 1+ target entities to a trigger and target state; integration enforces it
 - **State mode** -- force entity to a target state when it enters one of N trigger states
-- **Attribute mode** -- clamp numeric attributes or enforce `light` color targets (`rgb_color`, `color_temp_kelvin`)
+- **Attribute mode** -- clamp numeric attributes or match a color target (`rgb_color`, `color_temp_kelvin`)
 - **Conditional flags** -- list of `(entity, match_state)` conditions AND'd; rule only fires when all match
 - **Per-entity cooldown / debounce** -- avoid loop fights with the original cause
 - **Per-rule rate limiter** -- cap enforcements/min; auto-suppress on overshoot to break loops
@@ -68,7 +68,7 @@ Adding the integration takes you straight into rule creation. The **Entity Guard
 |-------|-------------|
 | Rule name | A descriptive name for the rule (e.g., "Front door auto-lock") |
 | Target entities | One or more entities the rule will enforce |
-| Mode | `state` (force a specific state) or `attribute` (clamp a numeric attribute / match a light color target) |
+| Mode | `state` (force a specific state) or `attribute` (clamp a numeric attribute / match a color target) |
 
 ![Step 1: Rule Basics](assets/02_rule_basics.png)
 
