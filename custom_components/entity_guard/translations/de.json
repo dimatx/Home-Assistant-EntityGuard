@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attributmodus",
-        "description": "Wenn das Attribut einer Zielentität den Schwellenwert über- oder unterschreitet, wird es nach der optionalen Verzögerung auf den Zielwert zurückgesetzt.",
+        "description": "Wähle aus, welches Attribut diese Regel durchsetzen soll. Numerische Attribute werden auf einen Zielwert begrenzt; Farbattribute gleichen einer Zielfarbe.",
         "data": {
           "attribute": "Attribut"
         },
@@ -94,8 +94,8 @@
         "description": "Überprüfe deine Regel unten. Klicke auf **Senden**, um sie zu erstellen, oder verwende den Zurück-Pfeil, um Änderungen vorzunehmen.\n\n---\n\n{summary}"
       },
       "attribute_params": {
-        "title": "Attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Attributparameter",
+        "description": "Konfiguriere die Durchsetzungswerte für das ausgewählte Attribut.",
         "data": {
           "operator": "Operator",
           "threshold": "Schwellenwert",
@@ -174,7 +174,7 @@
       },
       "edit_attribute": {
         "title": "Attributmodus bearbeiten",
-        "description": "Choose which attribute this rule should enforce.",
+        "description": "Wähle aus, welches Attribut diese Regel durchsetzen soll. Numerische Attribute werden auf einen Zielwert begrenzt; Farbattribute gleichen einer Zielfarbe.",
         "data": {
           "attribute": "Attribut"
         }
@@ -197,8 +197,8 @@
         }
       },
       "edit_attribute_params": {
-        "title": "Edit attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Attributparameter bearbeiten",
+        "description": "Konfiguriere die Durchsetzungswerte für das ausgewählte Attribut.",
         "data": {
           "operator": "Operator",
           "threshold": "Schwellenwert",

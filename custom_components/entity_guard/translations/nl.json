@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attribuutmodus",
-        "description": "Wanneer het attribuut van een doelentiteit de drempelwaarde overschrijdt, wordt het na de optionele vertraging teruggezet naar de doelwaarde.",
+        "description": "Kies welk attribuut deze regel moet afdwingen. Numerieke attributen worden teruggezet naar een doelwaarde; kleurattributen komen overeen met een doelkleur.",
         "data": {
           "attribute": "Attribuut"
         },
@@ -94,8 +94,8 @@
         "description": "Bekijk je regel hieronder. Klik op **Verzenden** om hem aan te maken, of gebruik de terugknop om wijzigingen aan te brengen.\n\n---\n\n{summary}"
       },
       "attribute_params": {
-        "title": "Attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Attribuutparameters",
+        "description": "Configureer de handhavingswaarden voor het geselecteerde attribuut.",
         "data": {
           "operator": "Operator",
           "threshold": "Drempelwaarde",
@@ -174,7 +174,7 @@
       },
       "edit_attribute": {
         "title": "Attribuutmodus bewerken",
-        "description": "Choose which attribute this rule should enforce.",
+        "description": "Kies welk attribuut deze regel moet afdwingen. Numerieke attributen worden teruggezet naar een doelwaarde; kleurattributen komen overeen met een doelkleur.",
         "data": {
           "attribute": "Attribuut"
         }
@@ -197,8 +197,8 @@
         }
       },
       "edit_attribute_params": {
-        "title": "Edit attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Attribuutparameters bewerken",
+        "description": "Configureer de handhavingswaarden voor het geselecteerde attribuut.",
         "data": {
           "operator": "Operator",
           "threshold": "Drempelwaarde",
@@ -285,7 +285,7 @@
         "master_disabled": "Master uitgeschakeld",
         "suppressed": "Onderdrukt",
         "enforcing": "Bezig met afdwingen",
-        "cooldown": "Cooldown",
+        "cooldown": "Afkoeling",
         "armed": "Gewapend",
         "conditional": "Wachten op voorwaarden",
         "starting": "Bezig met starten",
@@ -334,7 +334,7 @@
         "name": "Actief"
       },
       "in_cooldown": {
-        "name": "In cooldown"
+        "name": "In afkoeling"
       },
       "pending": {
         "name": "In behandeling"

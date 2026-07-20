@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Tryb atrybutu",
-        "description": "Gdy atrybut dowolnej encji docelowej przekroczy próg, zostanie ograniczony do wartości docelowej po opcjonalnym opóźnieniu.",
+        "description": "Wybierz, który atrybut ma egzekwować ta reguła. Atrybuty numeryczne są ograniczane do wartości docelowej; atrybuty koloru dopasowują się do koloru docelowego.",
         "data": {
           "attribute": "Atrybut"
         },
@@ -94,8 +94,8 @@
         "description": "Przejrzyj swoją regułę poniżej. Kliknij **Wyślij**, aby ją utworzyć, lub użyj strzałki wstecz, aby wprowadzić zmiany.\n\n---\n\n{summary}"
       },
       "attribute_params": {
-        "title": "Attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Parametry atrybutu",
+        "description": "Skonfiguruj wartości egzekwowania dla wybranego atrybutu.",
         "data": {
           "operator": "Operator",
           "threshold": "Próg",
@@ -174,7 +174,7 @@
       },
       "edit_attribute": {
         "title": "Edytuj tryb atrybutu",
-        "description": "Choose which attribute this rule should enforce.",
+        "description": "Wybierz, który atrybut ma egzekwować ta reguła. Atrybuty numeryczne są ograniczane do wartości docelowej; atrybuty koloru dopasowują się do koloru docelowego.",
         "data": {
           "attribute": "Atrybut"
         }
@@ -197,8 +197,8 @@
         }
       },
       "edit_attribute_params": {
-        "title": "Edit attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Edytuj parametry atrybutu",
+        "description": "Skonfiguruj wartości egzekwowania dla wybranego atrybutu.",
         "data": {
           "operator": "Operator",
           "threshold": "Próg",

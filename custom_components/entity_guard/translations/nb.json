@@ -32,7 +32,7 @@
       },
       "attribute": {
         "title": "Attributtmodus",
-        "description": "Når attributtet på en målenhet krysser terskelen, settes det tilbake til målverdien etter en valgfri forsinkelse.",
+        "description": "Velg hvilket attributt denne regelen skal håndheve. Numeriske attributter settes til en målverdi; fargeattributter matcher en målfarge.",
         "data": {
           "attribute": "Attributt"
         },
@@ -94,8 +94,8 @@
         "description": "Se gjennom regelen din nedenfor. Klikk **Send inn** for å opprette den, eller bruk tilbakepilen for å gjøre endringer.\n\n---\n\n{summary}"
       },
       "attribute_params": {
-        "title": "Attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Attributtparametere",
+        "description": "Konfigurer håndhevingsverdier for det valgte attributtet.",
         "data": {
           "operator": "Operator",
           "threshold": "Terskel",
@@ -174,7 +174,7 @@
       },
       "edit_attribute": {
         "title": "Rediger attributtmodus",
-        "description": "Choose which attribute this rule should enforce.",
+        "description": "Velg hvilket attributt denne regelen skal håndheve. Numeriske attributter settes til en målverdi; fargeattributter matcher en målfarge.",
         "data": {
           "attribute": "Attributt"
         }
@@ -197,8 +197,8 @@
         }
       },
       "edit_attribute_params": {
-        "title": "Edit attribute parameters",
-        "description": "Configure enforcement values for the selected attribute.",
+        "title": "Rediger attributtparametere",
+        "description": "Konfigurer håndhevingsverdier for det valgte attributtet.",
         "data": {
           "operator": "Operator",
           "threshold": "Terskel",
