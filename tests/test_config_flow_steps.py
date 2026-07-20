@@ -451,6 +451,63 @@ async def test_attribute_invalid_delay_skipped(hass: HomeAssistant):
 
 
 # ---------------------------------------------------------------------------
+# _attribute_schema default type-guard tests (Item 2)
+# ---------------------------------------------------------------------------
+
+
+def test_attribute_schema_rgb_default_falls_back_when_prior_value_is_int():
+    """Switching to rgb_color when prior target_value was a Kelvin int yields RGB default."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_RGB_COLOR, target_value_default=2700)
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == [255, 255, 255]
+
+
+def test_attribute_schema_rgb_default_uses_valid_list():
+    """Switching to rgb_color when prior target_value is a valid RGB list uses it."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_RGB_COLOR, target_value_default=[10, 20, 30])
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == [10, 20, 30]
+
+
+def test_attribute_schema_kelvin_default_falls_back_when_prior_value_is_list():
+    """Switching to color_temp_kelvin when prior target_value was an RGB list yields Kelvin default."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_COLOR_TEMP_KELVIN, target_value_default=[255, 0, 0])
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == 2700
+
+
+def test_attribute_schema_kelvin_default_uses_valid_int():
+    """Switching to color_temp_kelvin when prior target_value is a valid int uses it."""
+    from custom_components.entity_guard.config_flow import _attribute_schema
+
+    schema = _attribute_schema(ATTR_COLOR_TEMP_KELVIN, target_value_default=4000)
+    defaults = {
+        getattr(key, "schema", key): key.default()
+        for key in schema.schema
+        if hasattr(key, "default")
+    }
+    assert defaults[CONF_TARGET_VALUE] == 4000
+
+
+# ---------------------------------------------------------------------------
 # Safety step
 # ---------------------------------------------------------------------------
 

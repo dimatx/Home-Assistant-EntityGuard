@@ -314,14 +314,24 @@ def _attribute_schema(
     schema: dict[Any, Any] = {}
 
     if current_attr == ATTR_RGB_COLOR:
+        rgb_default = (
+            target_value_default
+            if isinstance(target_value_default, (list, tuple))
+            and len(target_value_default) == 3
+            else [255, 255, 255]
+        )
         schema[
-            vol.Required(
-                CONF_TARGET_VALUE, default=target_value_default or [255, 255, 255]
-            )
+            vol.Required(CONF_TARGET_VALUE, default=rgb_default)
         ] = _rgb_color_selector()
     elif current_attr == ATTR_COLOR_TEMP_KELVIN:
+        kelvin_default = (
+            target_value_default
+            if isinstance(target_value_default, int)
+            and not isinstance(target_value_default, bool)
+            else 2700
+        )
         schema[
-            vol.Required(CONF_TARGET_VALUE, default=target_value_default or 2700)
+            vol.Required(CONF_TARGET_VALUE, default=kelvin_default)
         ] = _color_temp_kelvin_selector()
     else:
         schema[

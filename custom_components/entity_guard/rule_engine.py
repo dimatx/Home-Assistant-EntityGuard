@@ -441,7 +441,7 @@ class RuleEngine:
                 return False, None
             current = _normalize_rgb_color(attributes.get(attr))
             if current is None:
-                return True, None
+                return False, "attribute_unavailable"
             return not _rgb_matches(current, target), None
 
         if attr == ATTR_COLOR_TEMP_KELVIN:
@@ -450,7 +450,7 @@ class RuleEngine:
                 return False, None
             current = _normalize_kelvin(attributes.get(attr))
             if current is None:
-                return True, None
+                return False, "attribute_unavailable"
             return abs(current - target) > COLOR_TEMP_KELVIN_TOLERANCE, None
 
         return False, None
@@ -491,8 +491,9 @@ class RuleEngine:
                     self._pending_enforcements.pop(entity_id, None)
                 self._fire_skipped(entity_id, skip_reason)
                 return
-            if current is None or not triggered:
-                # Only remove our own cancel handle — a newer timer may have replaced it.
+            if not triggered:
+                # _trigger_decision returns (False, None) when current is None, so
+                # `not triggered` already covers the state-gone case.
                 if self._pending_enforcements.get(entity_id) is my_cancel:
                     self._pending_enforcements.pop(entity_id, None)
                 return

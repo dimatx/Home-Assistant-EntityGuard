@@ -370,7 +370,7 @@ async def test_color_trigger_decision_missing_attribute_returns_false(hass: Home
     assert engine._color_trigger_decision(st) == (False, None)
 
 
-async def test_color_trigger_decision_missing_current_value_enforces(hass: HomeAssistant):
+async def test_color_trigger_decision_missing_current_value_skips(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
         attribute=ATTR_COLOR_TEMP_KELVIN,
@@ -378,10 +378,10 @@ async def test_color_trigger_decision_missing_current_value_enforces(hass: HomeA
     )
     engine = _make_engine(hass, config)
     st = _state("on", {})
-    assert engine._color_trigger_decision(st) == (True, None)
+    assert engine._color_trigger_decision(st) == (False, "attribute_unavailable")
 
 
-async def test_color_trigger_decision_missing_current_rgb_value_enforces(hass: HomeAssistant):
+async def test_color_trigger_decision_missing_current_rgb_value_skips(hass: HomeAssistant):
     config = _make_config(
         mode=MODE_ATTRIBUTE,
         attribute=ATTR_RGB_COLOR,
@@ -389,7 +389,7 @@ async def test_color_trigger_decision_missing_current_rgb_value_enforces(hass: H
     )
     engine = _make_engine(hass, config)
     st = _state("on", {})
-    assert engine._color_trigger_decision(st) == (True, None)
+    assert engine._color_trigger_decision(st) == (False, "attribute_unavailable")
 
 
 async def test_color_trigger_decision_missing_kelvin_target_returns_false(hass: HomeAssistant):
@@ -561,6 +561,52 @@ async def test_color_enforcement_skips_when_light_unavailable(hass: HomeAssistan
     await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
 
     assert skipped_events[-1].data["reason"] == "light_unavailable"
+
+
+async def test_color_enforcement_skips_when_rgb_attribute_unavailable(
+    hass: HomeAssistant,
+):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_RGB_COLOR,
+        target_value=[255, 0, 0],
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    skipped_events = []
+    service = AsyncMock()
+    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    hass.services.async_register("light", "turn_on", service)
+    hass.states.async_set("light.bedroom", "on", {})
+
+    await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
+
+    service.assert_not_awaited()
+    assert skipped_events[-1].data["reason"] == "attribute_unavailable"
+
+
+async def test_color_enforcement_skips_when_kelvin_attribute_unavailable(
+    hass: HomeAssistant,
+):
+    config = _make_config(
+        mode=MODE_ATTRIBUTE,
+        attribute=ATTR_COLOR_TEMP_KELVIN,
+        target_value=2700,
+        trigger_states=[],
+    )
+    engine = _make_engine(hass, config)
+    engine._startup_complete = True
+    skipped_events = []
+    service = AsyncMock()
+    hass.bus.async_listen(EVENT_SKIPPED, lambda e: skipped_events.append(e))
+    hass.services.async_register("light", "turn_on", service)
+    hass.states.async_set("light.bedroom", "on", {})
+
+    await engine.async_evaluate("light.bedroom", hass.states.get("light.bedroom"))
+
+    service.assert_not_awaited()
+    assert skipped_events[-1].data["reason"] == "attribute_unavailable"
 
 
 async def test_delayed_color_enforcement_skips_if_light_turns_off(hass: HomeAssistant):
